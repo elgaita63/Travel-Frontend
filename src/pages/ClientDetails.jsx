@@ -8,7 +8,7 @@ import PassengerForm from '../components/PassengerForm';
 const ClientDetails = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
-  const [client, setClient] = useState(null);
+  const [client, setClient] = useState(null);  
   const [passengers, setPassengers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
