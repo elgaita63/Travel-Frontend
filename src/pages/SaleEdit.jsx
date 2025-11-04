@@ -844,12 +844,15 @@ const SaleEdit = () => {
               })()}
             </div> */}
           </div>
-          {/* <button
+          <button
             onClick={() => setShowAddServiceModal(true)}
-            className="btn-secondary"
+            className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg transition-colors"
+            title="Add New Service"
           >
-            Add New Service
-          </button> */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
 
         {serviceTemplateInstances.length === 0 ? (
