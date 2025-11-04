@@ -9,7 +9,7 @@ import CurrencyDisplay from '../components/CurrencyDisplay';
 import { formatCurrencyCompact, formatWithWarning, formatCurrencyFull, getCurrencySymbol } from '../utils/formatNumbers';
 
 // Component for individual provider cards with expandable details
-const ProviderCard = ({ provider, serviceIndex, providerIndex }) => {
+const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'USD' }) => {
   const [providerDetails, setProviderDetails] = useState(provider);
   const [loadingProvider, setLoadingProvider] = useState(true);
   const [errorProvider, setErrorProvider] = useState('');
@@ -46,7 +46,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex }) => {
       const providerDetails = {
         name: providerName,
         costProvider: provider.costProvider !== undefined && provider.costProvider !== null ? provider.costProvider : null,
-        currency: provider.currency || sale.saleCurrency,
+        currency: provider.currency || saleCurrency,
         startDate: provider.startDate || provider.serviceDates?.startDate || null,
         endDate: provider.endDate || provider.serviceDates?.endDate || null,
         documents: documents
@@ -62,7 +62,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex }) => {
     };
 
     setupProviderDetails();
-  }, [provider]);
+  }, [provider, saleCurrency]);
 
   if (loadingProvider) return <p className="text-dark-300">Loading provider...</p>;
   if (errorProvider) return <ErrorDisplay message={errorProvider} />;
@@ -364,7 +364,7 @@ const ProviderDisplay = ({ provider, providerIndex }) => {
       </div>
       {provider.costProvider && (
         <span className="text-sm font-semibold text-blue-400 ml-4 flex-shrink-0">
-          <CurrencyDisplay>{getCurrencySymbol(provider.currency || sale.saleCurrency)}{provider.costProvider.toFixed(2)}</CurrencyDisplay>
+          <CurrencyDisplay>{getCurrencySymbol(provider.currency || saleCurrency)}{provider.costProvider.toFixed(2)}</CurrencyDisplay>
         </span>
       )}
     </div>
@@ -1222,6 +1222,7 @@ const SaleSummary = () => {
                         provider={provider}
                         serviceIndex={provider.services?.[0]?.serviceIndex || 0}
                         providerIndex={0}
+                        saleCurrency={sale?.saleCurrency || 'USD'}
                       />
                     ));
                   })()}
