@@ -1126,32 +1126,28 @@ const SaleSummary = () => {
                 <div className="space-y-4">
                   {(() => {
                     // Collect all unique providers across all services with aggregated documents
-                    const allProviders = [];
-                    const seenProviders = new Set();
-                    const providerDataMap = new Map(); // Map to store aggregated provider data
+                    const providerDataMap = new Map(); // Map to store aggregated provider data by unique provider ID
 
                     sale.services.forEach((serviceSale, serviceIndex) => {
                       // Handle multiple providers per service (prioritize this over single provider)
                       if (serviceSale.providers && serviceSale.providers.length > 0) {
                         serviceSale.providers.forEach((provider, providerIndex) => {
-                          // Create a unique identifier for the provider that includes service context
-                          // This ensures each provider-service combination is tracked separately
+                          // Use only provider ID as the key for deduplication
                           const providerId = provider.providerId?._id || provider.providerId || provider._id;
-                          const providerKey = `${providerId || 'unknown'}-${serviceIndex}-${providerIndex}`;
+                          const providerKey = providerId || 'unknown';
 
                           if (!providerDataMap.has(providerKey)) {
-                            // First time seeing this provider-service combination - initialize with base data
+                            // First time seeing this provider - initialize with base data
+                            const providerObj = provider.providerId || provider;
                             providerDataMap.set(providerKey, {
-                              ...provider,
+                              ...providerObj,
                               uniqueKey: providerKey,
-                              serviceIndex,
-                              providerIndex,
-                              allDocuments: [], // Array to collect all documents for this specific provider instance
+                              allDocuments: [], // Array to collect all documents for this provider
                               services: [] // Array to track which services this provider appears in
                             });
                           }
 
-                          // Add documents from this specific provider instance to its document collection
+                          // Add documents from this provider instance to its document collection
                           const providerData = providerDataMap.get(providerKey);
                           // Documents should be specific to this provider instance in this service
                           const documentsToAdd = provider.documents || provider.providerId?.documents || [];
@@ -1166,6 +1162,7 @@ const SaleSummary = () => {
                               }
                             });
                           }
+                          // Track this service for the provider
                           providerData.services.push({
                             serviceIndex,
                             serviceName: serviceSale.serviceName || 'Unknown Service',
@@ -1179,11 +1176,10 @@ const SaleSummary = () => {
 
                         if (!providerDataMap.has(providerKey)) {
                           // First time seeing this provider - initialize with base data
+                          const providerObj = serviceSale.providerId?._id ? serviceSale.providerId : { _id: providerKey };
                           providerDataMap.set(providerKey, {
-                            ...serviceSale,
+                            ...providerObj,
                             uniqueKey: providerKey,
-                            serviceIndex,
-                            providerIndex: 0,
                             allDocuments: [], // Array to collect all documents
                             services: [] // Array to track which services this provider appears in
                           });
@@ -1192,7 +1188,13 @@ const SaleSummary = () => {
                         // Add documents from this service to the provider's document collection
                         const providerData = providerDataMap.get(providerKey);
                         if (serviceSale.documents && serviceSale.documents.length > 0) {
-                          providerData.allDocuments.push(...serviceSale.documents);
+                          const validDocuments = serviceSale.documents.filter(doc => doc && (doc.url || doc.filename || doc.name));
+                          validDocuments.forEach(doc => {
+                            const docUrl = doc.url || doc.filename || doc.name;
+                            if (!providerData.allDocuments.some(existing => (existing.url || existing.filename || existing.name) === docUrl)) {
+                              providerData.allDocuments.push(doc);
+                            }
+                          });
                         }
                         providerData.services.push({
                           serviceIndex,
@@ -1203,7 +1205,7 @@ const SaleSummary = () => {
                     });
 
                     // Convert map to array and update documents property
-                    allProviders.push(...Array.from(providerDataMap.values()).map(provider => {
+                    const allProviders = Array.from(providerDataMap.values()).map(provider => {
                       const providerObj = {
                         ...provider,
                         documents: provider.allDocuments || [] // Use aggregated documents
@@ -1211,15 +1213,15 @@ const SaleSummary = () => {
                       console.log(`🔍 Provider ${provider.uniqueKey} - Documents count:`, providerObj.documents.length);
                       console.log(`🔍 Provider ${provider.uniqueKey} - Documents:`, providerObj.documents);
                       return providerObj;
-                    }));
+                    });
 
                     // Render each unique provider only once
                     return allProviders.map((provider) => (
                       <ProviderCard
                         key={provider.uniqueKey}
                         provider={provider}
-                        serviceIndex={provider.serviceIndex}
-                        providerIndex={provider.providerIndex}
+                        serviceIndex={provider.services?.[0]?.serviceIndex || 0}
+                        providerIndex={0}
                       />
                     ));
                   })()}
