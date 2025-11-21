@@ -1,6 +1,6 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.PROD ? 'https://travel-backend-production-5253.up.railway.app' : 'http://localhost:5000');
+  (import.meta.env.PROD ? 'https://' : 'http://localhost:5000');
 
 // Log API configuration in development
 if (import.meta.env.DEV) {
