@@ -330,7 +330,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
               value={formData.amount}
               onChange={handleChange}
               required
-              min="0"
               step="0.01"
               className="input-field"
               placeholder="Enter amount"
