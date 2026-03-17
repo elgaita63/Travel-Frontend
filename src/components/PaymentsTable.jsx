@@ -89,44 +89,35 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     setShowEditModal(true);
   };
 
-  // Handle saving edited payment
+  // Handle saving edited payment (ACTUALIZADO)
   const handleSavePayment = async (updatedPaymentData) => {
     if (!editingPayment) return;
 
+    // Si no recibimos datos, significa que el modal solo quiere cerrar y refrescar 
+    // (útil para cuando se borra un pago)
+    if (!updatedPaymentData) {
+        handleCancelEdit();
+        await fetchPayments();
+        onPaymentAdded && onPaymentAdded();
+        return;
+    }
+
     setSaving(true);
     try {
-      // Check if updatedPaymentData is FormData (file upload) or regular object
       const isFormData = updatedPaymentData instanceof FormData;
-      
       let response;
       if (isFormData) {
-        // Handle file upload with FormData
         response = await api.put(`/api/payments/${editingPayment._id}`, updatedPaymentData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
       } else {
-        // Handle regular object update
         response = await api.put(`/api/payments/${editingPayment._id}`, updatedPaymentData);
       }
       
       if (response.data.success) {
-        // Update the payments list with the updated payment
-        setPayments(prev => prev.map(payment => 
-          payment._id === editingPayment._id 
-            ? { ...payment, ...response.data.data.payment }
-            : payment
-        ));
-        
-        // Close modal
         setShowEditModal(false);
         setEditingPayment(null);
-        
-        // Refresh payments to get updated receipt status
         await fetchPayments();
-        
-        // Notify parent component to refresh sale data
         onPaymentAdded && onPaymentAdded();
       }
     } catch (error) {
@@ -137,11 +128,22 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     }
   };
 
+  // Función específica para cuando se borra con éxito (NUEVA)
+  const handleDeleteSuccess = async () => {
+    setShowEditModal(false);
+    setEditingPayment(null); // Limpiamos el fantasma inmediatamente
+    await fetchPayments();
+    if (onPaymentAdded) onPaymentAdded();
+  };
+
   // Handle canceling edit modal
   const handleCancelEdit = () => {
     setShowEditModal(false);
     setEditingPayment(null);
+    setError(''); // Limpiamos errores al cerrar
   };
+
+
 
   const generateReceipt = async (paymentId) => {
     try {
@@ -397,6 +399,7 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
         isOpen={showEditModal}
         onClose={handleCancelEdit}
         onSave={handleSavePayment}
+        onDeleteSuccess={handleDeleteSuccess} // <--- Agregamos esta prop
         saving={saving}
         saleCurrency={saleCurrency}
       />
