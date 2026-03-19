@@ -40,7 +40,7 @@ import SearchPage from './pages/SearchPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 
-const MODO_MANTENIMIENTO = true; 
+const MODO_MANTENIMIENTO = false; 
 
 const styles = {
   container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a', color: '#fff', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' },
