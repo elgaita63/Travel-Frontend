@@ -40,7 +40,8 @@ import SearchPage from './pages/SearchPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 
-const MODO_MANTENIMIENTO = false; 
+// Ahora el sistema le pregunta a Netlify si debe mostrar el mantenimiento
+const MODO_MANTENIMIENTO = import.meta.env.VITE_MODO_MANTENIMIENTO === 'true';
 
 const styles = {
   container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a', color: '#fff', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' },
