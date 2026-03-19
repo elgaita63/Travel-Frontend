@@ -39,6 +39,16 @@ import AdminInsightsDashboard from './pages/AdminInsightsDashboard';
 import SearchPage from './pages/SearchPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
+
+const MODO_MANTENIMIENTO = true; 
+
+const styles = {
+  container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a', color: '#fff', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' },
+  content: { maxWidth: '500px', width: '100%', padding: '40px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' },
+  logo: { maxWidth: '200px', marginBottom: '20px' },
+  highlight: { fontSize: '1.2rem', fontWeight: 'bold', color: '#00ffc4' }
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -401,6 +411,28 @@ const AppRoutes = () => {
 };
 
 function App() {
+
+// --- Lógica de Mantenimiento ---
+  if (MODO_MANTENIMIENTO) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.content}>
+          <img src="/logo_marenostrum.png" alt="Marenostrum Logo" style={styles.logo} />
+          <h2 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>Mantenimiento Programado</h2>
+          <p style={{ fontSize: '1.1rem', color: '#ccc', lineHeight: '1.5' }}>
+            Estamos optimizando nuestros servidores de base de datos. 
+            El sistema volverá a estar en línea en unos minutos.
+          </p>
+          <p style={styles.highlight}>Gracias por tu paciencia.</p>
+          <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '25px 0' }} />
+          <p style={{ fontSize: '0.8rem', color: '#666' }}>Equipo de IT Marenostrum — v1.1.2</p>
+        </div>
+      </div>
+    );
+  }
+  // --- Fin Mantenimiento ---
+
+
   return (
     <ThemeProvider>
       <AuthProvider>
