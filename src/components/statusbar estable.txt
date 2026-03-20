@@ -9,6 +9,7 @@ const Layout = ({ children, showNavigation = true }) => {
   const location = useLocation();
   const [version, setVersion] = useState('V 0.0.0');
 
+  // Pedimos la versión para el Sidebar
   useEffect(() => {
     const fetchVersion = async () => {
       try {
@@ -59,6 +60,7 @@ const Layout = ({ children, showNavigation = true }) => {
                   </div>
                 </div>
                 
+                {/* Línea divisoria Sidebar con margen alineado */}
                 <div className="border-b border-white/10 mx-4 sm:mx-6 md:mx-8 mb-6"></div>
                 
                 <div className="flex-grow flex flex-col px-1 sm:px-2 md:px-4 overflow-y-auto">
@@ -67,7 +69,7 @@ const Layout = ({ children, showNavigation = true }) => {
                         <Link 
                           key={item.path} 
                           to={item.path} 
-                          className={`nav-link flex items-center p-2 rounded-lg text-dark-100 hover:text-white hover:bg-dark-700/50 transition-all duration-200 ${location.pathname === item.path ? 'active bg-dark-700 font-semibold text-white' : ''}`} 
+                          className={`nav-link flex items-center p-2 rounded-lg text-dark-100 hover:text-white hover:bg-dark-700/50 transition-all duration-200 ${location.pathname === item.path ? 'active bg-dark-700 font-semibold' : ''}`} 
                           title={item.label}
                         >
                           <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{item.icon}</span>
@@ -79,19 +81,22 @@ const Layout = ({ children, showNavigation = true }) => {
 
                 {user && (
                   <div className="flex-shrink-0 border-t border-white/10 p-2 sm:p-4 md:p-6 mb-12">
-                    <div className="w-full bg-dark-700 rounded-lg p-3 sm:p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg">
-                          {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
+                    <div className="w-full space-y-3">
+                      <div className="w-full bg-dark-700 rounded-lg p-3 sm:p-4">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg shadow-lg">
+                            {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="ml-2 sm:ml-3 md:ml-4 flex-1 hidden md:block min-w-0">
+                            <p className="text-sm font-semibold text-dark-100 truncate">{user?.username || user?.email}</p>
+                            <p className="text-xs text-dark-400 uppercase tracking-wide">{user?.role}</p>
+                          </div>
                         </div>
-                        <div className="ml-2 sm:ml-3 md:ml-4 flex-1 hidden md:block min-w-0">
-                          <p className="text-sm font-semibold text-dark-100 truncate">{user?.username || user?.email}</p>
-                          <p className="text-xs text-dark-400 uppercase tracking-wide">{user?.role}</p>
-                        </div>
-                        <button onClick={logout} className="ml-auto p-2 text-dark-400 hover:text-error-500">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        </button>
                       </div>
+                      <button onClick={logout} className="w-full p-2 sm:p-3 rounded-lg text-dark-400 hover:text-error-500 hover:bg-error-500/10 transition-all duration-200 flex items-center justify-center">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <span className="hidden md:block text-sm font-medium">Logout</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -101,7 +106,8 @@ const Layout = ({ children, showNavigation = true }) => {
 
         {/* Main Content Area */}
         <div className="flex flex-col flex-1 overflow-hidden relative">
-          <header className="h-[92px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
+          {/* Header Superior con logo h-16 y línea ajustada en posición, brillo y márgenes laterales */}
+          <header className="h-[92px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative py-1">
             <div className="flex items-center">
               <img 
                 src="https://fvvaymusodszkkzhmgtk.supabase.co/storage/v1/object/public/assets-agencia/marenostrum_logo.png" 
@@ -112,14 +118,16 @@ const Layout = ({ children, showNavigation = true }) => {
                 MARE NOSTRUM
               </h2>
             </div>
-            {/* Línea divisoria */}
-            <div className="absolute bottom-1 left-8 right-8 border-b border-white/20"></div>
+            {/* Línea divisoria: bajada (bottom-1), más clara (white/20) y con margen duplicado (left-8 right-8) */}
+            <div className="absolute bottom-[-17px] left-8 right-8 border-b border-white/20"></div>
           </header>
 
           <main className="flex-1 overflow-y-auto pb-16 bg-dark-900">
             <div className="pt-8 pb-8 px-12">
               <div className="max-w-7xl mx-auto">
-                {children}
+                <div className="animate-fade-in-up">
+                  {children}
+                </div>
               </div>
             </div>
           </main>
