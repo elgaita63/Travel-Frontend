@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import StatusBar from '../components/StatusBar'; // 1. Importamos la barra centralizada
+import StatusBar from '../components/StatusBar'; 
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +18,6 @@ const Login = () => {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        // Le pedimos la versión al endpoint que acabas de probar en Chrome
         const response = await fetch('http://localhost:5000/api/system/version');
         const result = await response.json();
         if (result.success && result.version) {
@@ -26,7 +25,6 @@ const Login = () => {
         }
       } catch (err) {
         console.error('Error recuperando versión:', err);
-        // Si falla, queda v0.0.0-NonVersioned por defecto
       }
     };
     fetchVersion();
@@ -78,15 +76,17 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-md mx-auto -mt-12">
         <div className="text-center mb-4">
           <div className="flex flex-col items-center justify-center mb-2">
+            {/* LOGO DINÁMICO */}
             <img 
-              src="https://fvvaymusodszkkzhmgtk.supabase.co/storage/v1/object/public/assets-agencia/marenostrum_logo.png" 
-              alt="Logo Mare Nostrum" 
+              src={import.meta.env.VITE_AGENCY_LOGO} 
+              alt={`Logo ${import.meta.env.VITE_AGENCY_NAME}`} 
               className="h-32 w-auto mb-1 shadow-2xl"
               style={{ objectFit: 'contain' }}
               onError={(e) => { e.target.style.display = 'none'; }} 
             />
-            <h1 className="text-4xl font-bold text-primary-400 font-poppins tracking-wider">
-              MARE NOSTRUM
+            {/* NOMBRE DINÁMICO */}
+            <h1 className="text-4xl font-bold text-primary-400 font-poppins tracking-wider uppercase">
+              {import.meta.env.VITE_AGENCY_NAME}
             </h1>
           </div>
 

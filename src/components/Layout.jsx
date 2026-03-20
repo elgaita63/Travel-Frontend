@@ -9,6 +9,7 @@ const Layout = ({ children, showNavigation = true }) => {
   const location = useLocation();
   const [version, setVersion] = useState('V 0.0.0');
 
+  // Cargamos la versión desde el backend
   useEffect(() => {
     const fetchVersion = async () => {
       try {
@@ -102,17 +103,19 @@ const Layout = ({ children, showNavigation = true }) => {
         <div className="flex flex-col flex-1 overflow-hidden relative">
           <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
+              {/* Logo dinámico desde .env */}
               <img 
-                src="https://fvvaymusodszkkzhmgtk.supabase.co/storage/v1/object/public/assets-agencia/marenostrum_logo.png" 
-                alt="Logo Mare Nostrum" 
+                src={import.meta.env.VITE_AGENCY_LOGO} 
+                alt={`Logo ${import.meta.env.VITE_AGENCY_NAME}`} 
                 className="h-20 w-auto mr-6 object-contain"
               />
+              {/* Nombre dinámico desde .env */}
               <h2 className="text-2xl font-bold font-poppins tracking-wider gradient-text uppercase">
-                MARE NOSTRUM
+                {import.meta.env.VITE_AGENCY_NAME}
               </h2>
             </div>
-            {/* Línea divisoria bajada al ras con bottom-[-2px] */}
-            <div className="absolute bottom-[-16px] left-8 right-8 border-b border-white/20"></div>
+            {/* Línea divisoria al ras */}
+            <div className="absolute bottom-[-2px] left-8 right-8 border-b border-white/20"></div>
           </header>
 
           <main className="flex-1 overflow-y-auto pb-16 bg-dark-900">
