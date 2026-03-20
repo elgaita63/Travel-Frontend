@@ -247,51 +247,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleResetDatabase = async () => {
-    const confirmMessage = 'WARNING: This will permanently delete ALL data from the database including users, passengers, sales, and all other records. This action cannot be undone. Are you absolutely sure?';
-    
-    if (!window.confirm(confirmMessage)) {
-      showSystemMessage('Database reset cancelled by user', 'info');
-      return;
-    }
-    
-    const doubleConfirm = window.confirm('This is your final warning. ALL DATA WILL BE LOST. Type "RESET" in the next prompt to confirm.');
-    if (!doubleConfirm) {
-      showSystemMessage('Database reset cancelled by user', 'info');
-      return;
-    }
-    
-    const finalConfirm = window.prompt('Type "RESET" to confirm database reset:');
-    if (finalConfirm !== 'RESET') {
-      showSystemMessage('Database reset cancelled - confirmation text did not match', 'error');
-      return;
-    }
-    
-    try {
-      setSystemLoading(true);
-      showSystemMessage('WARNING: Resetting database - ALL DATA WILL BE DELETED...', 'warning');
-      
-      const response = await api.post('/api/system/reset');
-      
-      if (response.data.success) {
-        const resetInfo = response.data.data;
-        showSystemMessage(
-          `Database reset COMPLETED: Removed ${resetInfo.totalDocumentsRemoved} documents from all collections at ${new Date().toLocaleTimeString()}`, 
-          'success'
-        );
-        // Refresh all data after reset
-        setTimeout(() => {
-          fetchAllData();
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Database reset error:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
-      showSystemMessage(`Database reset FAILED: ${errorMsg}`, 'error');
-    } finally {
-      setSystemLoading(false);
-    }
-  };
 
   const handleClearCache = async () => {
     if (!window.confirm('This will clear temporary files and cache. Continue?')) {
@@ -782,22 +737,6 @@ const AdminDashboard = () => {
                       </svg>
                     )}
                     <span>{systemLoading ? 'Backing up...' : 'Backup Database'}</span>
-                  </span>
-                </button>
-                <button 
-                  className="w-full btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleResetDatabase}
-                  disabled={systemLoading}
-                >
-                  <span className="flex items-center justify-center space-x-2">
-                    {systemLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-200 border-t-primary-500"></div>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                    <span>{systemLoading ? 'Resetting...' : 'Reset Database'}</span>
                   </span>
                 </button>
               </div>
