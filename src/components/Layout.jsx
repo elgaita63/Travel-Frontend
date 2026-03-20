@@ -39,7 +39,6 @@ const Layout = ({ children, showNavigation = true }) => {
   return (
     <PageTransition>
       <div className="flex h-screen relative overflow-hidden bg-dark-900 font-sans text-dark-100">
-        {/* Sidebar */}
         {showNavigation && (
           <div className="flex w-16 sm:w-20 md:w-72 flex-col">
             <div className="flex flex-col flex-grow bg-dark-800 border-r border-white/10 relative">
@@ -101,19 +100,19 @@ const Layout = ({ children, showNavigation = true }) => {
 
         {/* Main Content Area */}
         <div className="flex flex-col flex-1 overflow-hidden relative">
-          <header className="h-[92px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
+          <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
               <img 
                 src="https://fvvaymusodszkkzhmgtk.supabase.co/storage/v1/object/public/assets-agencia/marenostrum_logo.png" 
                 alt="Logo Mare Nostrum" 
-                className="h-16 w-auto mr-4"
+                className="h-20 w-auto mr-6 object-contain"
               />
-              <h2 className="text-xl font-bold font-poppins tracking-wider gradient-text uppercase">
+              <h2 className="text-2xl font-bold font-poppins tracking-wider gradient-text uppercase">
                 MARE NOSTRUM
               </h2>
             </div>
-            {/* Línea divisoria */}
-            <div className="absolute bottom-1 left-8 right-8 border-b border-white/20"></div>
+            {/* Línea divisoria bajada al ras con bottom-[-2px] */}
+            <div className="absolute bottom-[-16px] left-8 right-8 border-b border-white/20"></div>
           </header>
 
           <main className="flex-1 overflow-y-auto pb-16 bg-dark-900">
