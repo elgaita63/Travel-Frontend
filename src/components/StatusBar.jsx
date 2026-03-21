@@ -16,7 +16,10 @@ const StatusBar = ({ user }) => {
   useEffect(() => {
     const fetchSysInfo = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/system/version');
+        // --- ÚNICO CAMBIO: SE REEMPLAZA EL HARDCODEO POR LA VARIABLE DE ENTORNO ---
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const response = await fetch(`${baseUrl}/api/system/version`);
+        
         const result = await response.json();
         if (result.success) {
           setSysInfo({
