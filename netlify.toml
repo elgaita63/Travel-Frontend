@@ -11,9 +11,7 @@
   # Node version - Vite 7+ requires Node.js 20.19+ or 22.12+
   NODE_VERSION = "20.19.0"
   # API Base URL for production
-  VITE_API_BASE_URL = "https://travel-backend-production-96d5.up.railway.app"
   # Set production mode
-  NODE_ENV = "production"
   # Build command
   BUILD_COMMAND = "npm run build"
 
