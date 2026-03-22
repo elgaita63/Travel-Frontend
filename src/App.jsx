@@ -414,11 +414,28 @@ const AppRoutes = () => {
 function App() {
 
 // --- Lógica de Mantenimiento ---
-  if (MODO_MANTENIMIENTO) {
+
+if (MODO_MANTENIMIENTO) {
+    const agencyLogo = import.meta.env.VITE_AGENCY_LOGO;
+
     return (
       <div style={styles.container}>
         <div style={styles.content}>
-          <img src="/logo_marenostrum.png" alt="Marenostrum Logo" style={styles.logo} />
+          {/* Centrado del logo con lógica condicional */}
+          {agencyLogo && (
+            <img 
+              src={agencyLogo} 
+              alt="Marenostrum Logo" 
+              style={{
+                ...styles.logo,
+                display: 'block',    // Lo hacemos bloque
+                marginLeft: 'auto',  // Margen izquierdo auto
+                marginRight: 'auto', // Margen derecho auto
+                marginBottom: '20px' // Espacio con el título
+              }} 
+            />
+          )}
+          
           <h2 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>Mantenimiento Programado</h2>
           <p style={{ fontSize: '1.1rem', color: '#ccc', lineHeight: '1.5' }}>
             Estamos optimizando nuestros servidores de base de datos. 
@@ -426,12 +443,14 @@ function App() {
           </p>
           <p style={styles.highlight}>Gracias por tu paciencia.</p>
           <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '25px 0' }} />
-          <p style={{ fontSize: '0.8rem', color: '#666' }}>Equipo de IT Marenostrum — v1.1.2</p>
+          <p style={{ fontSize: '0.8rem', color: '#666' }}>Equipo de IT</p>
         </div>
       </div>
     );
   }
-  // --- Fin Mantenimiento ---
+
+
+// --- Fin Mantenimiento ---
 
 
   return (
