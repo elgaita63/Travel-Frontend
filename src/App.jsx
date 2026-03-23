@@ -54,7 +54,19 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+            <Route 
+              path="/register" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Layout>
+                    <Register />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+
+
+
       <Route 
         path="/dashboard" 
         element={
@@ -412,15 +424,6 @@ const AppRoutes = () => {
 };
 
 function App() {
-
-  // --- Relato de variables de arranque (FRONT) ---
-  console.log("%c--- CONFIGURACIÓN DE ARRANQUE (FRONT) ---", "color: #00ffc4; font-weight: bold;");
-  console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
-  console.log("VITE_NODE_ENV:", import.meta.env.VITE_NODE_ENV);
-  console.log("VITE_MODO_MANTENIMIENTO:", import.meta.env.VITE_MODO_MANTENIMIENTO);
-  console.log("VITE_AGENCY_NAME:", import.meta.env.VITE_AGENCY_NAME);
-  console.log("%c---------------------------------------", "color: #00ffc4; font-weight: bold;");
-
 
 // --- Lógica de Mantenimiento ---
 

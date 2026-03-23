@@ -102,15 +102,6 @@ const Login = () => {
           <h2 className="text-2xl font-medium text-dark-200 mb-1">
             Ingrese con su cuenta
           </h2>
-          <p className="text-dark-300">
-            o{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-primary-400 hover:text-primary-300 transition-colors duration-200 hover:underline"
-            >
-              cree una cuenta nueva
-            </Link>
-          </p>
         </div>
 
         <div className="card-glass p-8 mb-16">
