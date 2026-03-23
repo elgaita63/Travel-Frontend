@@ -2,66 +2,62 @@ import React, { useState, useEffect } from 'react';
 
 const StatusBar = ({ user }) => {
   const [sysInfo, setSysInfo] = useState({
-    env: 'CARGANDO...',
+    env: 'CONECTANDO...',
     dbHost: '...',
     dbName: '...'
   });
   const [now, setNow] = useState(new Date());
 
+  // Reloj en tiempo real
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch de información del sistema
   useEffect(() => {
     const fetchSysInfo = async () => {
       try {
-        // --- ÚNICO CAMBIO: SE REEMPLAZA EL HARDCODEO POR LA VARIABLE DE ENTORNO ---
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
         const response = await fetch(`${baseUrl}/api/system/version`);
-        
         const result = await response.json();
+        
         if (result.success) {
           setSysInfo({
-            env: result.environment ? result.environment.toUpperCase() : 'LOCAL',
-            dbHost: result.database.host,
-            dbName: result.database.name
+            env: result.environment || 'LOCAL',
+            dbHost: result.database.host || '...',
+            dbName: result.database.name || '...'
           });
         }
       } catch (err) {
+        setSysInfo({ env: 'DESCONECTADO', dbHost: 'ERROR', dbName: 'ERROR' });
         console.error('Error en StatusBar:', err);
       }
     };
     fetchSysInfo();
   }, []);
 
-  // Lógica de colores según tu pedido: Dev y Test en ROJO, Prod Natural
-  const getEnvStyle = (env) => {
-    switch (env) {
-      case 'PRODUCTION':
-        // Colores naturales de la app
-        return 'bg-dark-800/95 text-dark-300 border-white/10';
-      case 'DEVELOPMENT':
-      case 'LOCAL':
-      case 'DEV':
-      case 'TEST':
-        // ROJO TOTAL para alertar que no es producción
-        return 'bg-red-600 text-white font-bold border-red-800';
-      default:
-        return 'bg-dark-800/95 text-dark-300 border-white/10';
-    }
-  };
+  // Lógica de Usuario: Si no hay login, es ANÓNIMO
+  const userName = user ? (user.username || user.email) : 'ANÓNIMO';
+  const userRole = user ? (user.role || 'Invitado') : '---';
 
-  const envClass = getEnvStyle(sysInfo.env);
-  const userName = user?.username || user?.email || 'elgaita';
-  const userRole = user?.role || 'Admin';
+  // Formato de Fecha y Hora
   const fechaStr = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
   const horaStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+  // Lógica de alerta: Todo lo que NO sea PRODUCTION va en ROJO
+  const isProduction = sysInfo.env.toUpperCase() === 'PRODUCTION';
+  const alertStyle = !isProduction ? { color: '#ff0000', fontWeight: 'bold' } : {};
+
   return (
-    <footer className={`fixed bottom-0 left-0 w-full backdrop-blur-sm border-t py-2 text-center z-50 transition-colors duration-500 ${envClass}`}>
-      <p className="text-[11px] font-mono tracking-wider">
-        AMBIENTE: {sysInfo.env} | DB : : mongoose {sysInfo.dbHost} {sysInfo.dbName} | User : {userName} | Perfil : {userRole} | Fecha : {fechaStr} | Hora : {horaStr}
+    <footer className="fixed bottom-0 left-0 w-full bg-[#1a1a1a]/95 backdrop-blur-sm border-t border-white/10 py-2 text-center z-50">
+      <p className="text-[11px] font-mono tracking-wider uppercase" style={{ color: '#a3a3a3' }}>
+        AMBIENTE: <span style={alertStyle}>{sysInfo.env}</span> | 
+        DB: {sysInfo.dbHost} <span style={alertStyle}>{sysInfo.dbName}</span> | 
+        USER: {userName} | 
+        PERFIL: {userRole} | 
+        FECHA: {fechaStr} | 
+        HORA: {horaStr}
       </p>
     </footer>
   );

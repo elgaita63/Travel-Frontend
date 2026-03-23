@@ -71,7 +71,7 @@ const Layout = ({ children, showNavigation = true }) => {
                           title={item.label}
                         >
                           <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{item.icon}</span>
-                          <span className="hidden md:block text-sm">{item.label}</span>
+                          <span className="hidden md:block text-lg">{item.label}</span>
                         </Link>
                     ))}
                   </nav>
@@ -103,18 +103,15 @@ const Layout = ({ children, showNavigation = true }) => {
         <div className="flex flex-col flex-1 overflow-hidden relative">
           <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
-              {/* Logo dinámico desde .env */}
               <img 
                 src={import.meta.env.VITE_AGENCY_LOGO} 
                 alt={`Logo ${import.meta.env.VITE_AGENCY_NAME}`} 
                 className="h-20 w-auto mr-6 object-contain"
               />
-              {/* Nombre dinámico desde .env */}
               <h2 className="text-2xl font-bold font-poppins tracking-wider gradient-text uppercase">
                 {import.meta.env.VITE_AGENCY_NAME}
               </h2>
             </div>
-            {/* Línea divisoria al ras */}
             <div className="absolute bottom-[-2px] left-8 right-8 border-b border-white/20"></div>
           </header>
 
