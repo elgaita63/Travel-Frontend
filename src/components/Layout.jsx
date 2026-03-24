@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PageTransition from './PageTransition';
 import StatusBar from './StatusBar';
@@ -7,9 +7,9 @@ import StatusBar from './StatusBar';
 const Layout = ({ children, showNavigation = true }) => {
   const { user, logout, isAdmin, isSeller } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate(); // Agregado para la navegación del botón
   const [version, setVersion] = useState('V 0.0.0');
 
-  // Cargamos la versión desde el backend
   useEffect(() => {
     const fetchVersion = async () => {
       try {
@@ -60,6 +60,21 @@ const Layout = ({ children, showNavigation = true }) => {
                 </div>
                 
                 <div className="border-b border-white/10 mx-4 sm:mx-6 md:mx-8 mb-6"></div>
+
+                {/* BOTÓN NUEVA VENTA - Agregado aquí */}
+                {(isSeller || isAdmin) && (
+                  <div className="hidden md:block px-4 mb-6">
+                    <button
+                      onClick={() => navigate('/sales/new')}
+                      className="btn-primary w-full flex items-center justify-center gap-2 py-3 shadow-lg hover:scale-[1.02] transition-transform"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Create New Sale</span>
+                    </button>
+                  </div>
+                )}
                 
                 <div className="flex-grow flex flex-col px-1 sm:px-2 md:px-4 overflow-y-auto">
                   <nav className="flex-1 space-y-1">
