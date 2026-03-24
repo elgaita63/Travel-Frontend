@@ -7,7 +7,7 @@ import StatusBar from './StatusBar';
 const Layout = ({ children, showNavigation = true }) => {
   const { user, logout, isAdmin, isSeller } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate(); // Agregado para la navegación del botón
+  const navigate = useNavigate();
   const [version, setVersion] = useState('V 0.0.0');
 
   useEffect(() => {
@@ -41,80 +41,88 @@ const Layout = ({ children, showNavigation = true }) => {
     <PageTransition>
       <div className="flex h-screen relative overflow-hidden bg-dark-900 font-sans text-dark-100">
         {showNavigation && (
-          <div className="flex w-16 sm:w-20 md:w-72 flex-col">
-            <div className="flex flex-col flex-grow bg-dark-800 border-r border-white/10 relative">
-                <div className="flex flex-col items-center flex-shrink-0 px-2 sm:px-4 md:px-6 pt-5 pb-2">
-                  <div className="flex items-center w-full">
-                    <div className="icon-container mr-2 sm:mr-3 md:mr-4">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <h1 className="hidden md:block text-xl font-bold gradient-text font-poppins tracking-wider">
-                      Travel AI Management
-                    </h1>
+          <div className="flex w-16 sm:w-20 md:w-72 flex-col h-full">
+            <div className="flex flex-col h-full bg-dark-800 border-r border-white/10 relative">
+              
+              {/* Header Fijo */}
+              <div className="flex flex-col items-center flex-shrink-0 px-2 sm:px-4 md:px-6 pt-5 pb-2">
+                <div className="flex items-center w-full">
+                  <div className="icon-container mr-2 sm:mr-3 md:mr-4">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   </div>
-                  <div className="w-full text-right pr-2">
-                    <span className="text-[10px] font-mono text-dark-400">{version}</span>
-                  </div>
+                  <h1 className="hidden md:block text-xl font-bold gradient-text font-poppins tracking-wider">
+                    Travel AI Management
+                  </h1>
                 </div>
-                
-                <div className="border-b border-white/10 mx-4 sm:mx-6 md:mx-8 mb-6"></div>
+                <div className="w-full text-right pr-2">
+                  <span className="text-[10px] font-mono text-dark-400">{version}</span>
+                </div>
+              </div>
+              
+              <div className="border-b border-white/10 mx-4 sm:mx-6 md:mx-8 mb-6"></div>
 
-                {/* BOTÓN NUEVA VENTA - Agregado aquí */}
-                {(isSeller || isAdmin) && (
-                  <div className="hidden md:block px-4 mb-6">
-                    <button
-                      onClick={() => navigate('/sales/new')}
-                      className="btn-primary w-full flex items-center justify-center gap-2 py-3 shadow-lg hover:scale-[1.02] transition-transform"
+              {/* Área con Scroll: Botón + Menú */}
+              <div className="flex-grow overflow-y-auto custom-scrollbar px-1 sm:px-2 md:px-4">
+                <nav className="flex-1 space-y-1 pb-10">
+                  
+                  {/* BOTÓN NUEVA VENTA: Alineado milimétricamente con Dashboard */}
+                  {(isSeller || isAdmin) && (
+                    <div className="hidden md:block mb-2">
+                      <button
+                        onClick={() => navigate('/sales/new')}
+                        className="flex items-center w-full p-2 rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-all duration-200 group shadow-md"
+                        title="Create New Sale"
+                      >
+                        <span className="mr-1 sm:mr-2 md:mr-3 text-white">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </span>
+                        <span className="hidden md:block text-lg font-medium">Create New Sale</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {navigationItems.map((item) => (
+                    <Link 
+                      key={item.path} 
+                      to={item.path} 
+                      className={`nav-link flex items-center p-2 rounded-lg text-dark-100 hover:text-white hover:bg-dark-700/50 transition-all duration-200 ${location.pathname === item.path ? 'active bg-dark-700 font-semibold text-white' : ''}`} 
+                      title={item.label}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Create New Sale</span>
-                    </button>
-                  </div>
-                )}
-                
-                <div className="flex-grow flex flex-col px-1 sm:px-2 md:px-4 overflow-y-auto">
-                  <nav className="flex-1 space-y-1">
-                    {navigationItems.map((item) => (
-                        <Link 
-                          key={item.path} 
-                          to={item.path} 
-                          className={`nav-link flex items-center p-2 rounded-lg text-dark-100 hover:text-white hover:bg-dark-700/50 transition-all duration-200 ${location.pathname === item.path ? 'active bg-dark-700 font-semibold text-white' : ''}`} 
-                          title={item.label}
-                        >
-                          <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{item.icon}</span>
-                          <span className="hidden md:block text-lg">{item.label}</span>
-                        </Link>
-                    ))}
-                  </nav>
-                </div>
+                      <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{item.icon}</span>
+                      <span className="hidden md:block text-lg">{item.label}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </div>
 
-                {user && (
-                  <div className="flex-shrink-0 border-t border-white/10 p-2 sm:p-4 md:p-6 mb-12">
-                    <div className="w-full bg-dark-700 rounded-lg p-3 sm:p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg">
-                          {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="ml-2 sm:ml-3 md:ml-4 flex-1 hidden md:block min-w-0">
-                          <p className="text-sm font-semibold text-dark-100 truncate">{user?.username || user?.email}</p>
-                          <p className="text-xs text-dark-400 uppercase tracking-wide">{user?.role}</p>
-                        </div>
-                        <button onClick={logout} className="ml-auto p-2 text-dark-400 hover:text-error-500">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        </button>
+              {/* Bloque de Usuario Fijo abajo */}
+              {user && (
+                <div className="flex-shrink-0 border-t border-white/10 p-2 sm:p-4 md:p-6 bg-dark-800">
+                  <div className="w-full bg-dark-700 rounded-lg p-3 sm:p-4">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg">
+                        {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
+                      <div className="ml-2 sm:ml-3 md:ml-4 flex-1 hidden md:block min-w-0">
+                        <p className="text-sm font-semibold text-dark-100 truncate">{user?.username || user?.email}</p>
+                        <p className="text-xs text-dark-400 uppercase tracking-wide">{user?.role}</p>
+                      </div>
+                      <button onClick={logout} className="ml-auto p-2 text-dark-400 hover:text-error-500">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Main Content Area */}
+        {/* Contenido Principal */}
         <div className="flex flex-col flex-1 overflow-hidden relative">
           <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
