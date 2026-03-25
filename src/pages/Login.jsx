@@ -18,7 +18,8 @@ const Login = () => {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/system/version`);
+        // Ajuste: Uso de VITE_API_BASE_URL + /api agregado manualmente
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/system/version`);
         const result = await response.json();
         if (result.success && result.version) {
           setVersion(result.version);
@@ -85,7 +86,7 @@ const Login = () => {
               onError={(e) => { e.target.style.display = 'none'; }} 
             />
             {/* NOMBRE DINÁMICO */}
-            <h1 className="text-4xl font-bold text-primary-400 font-poppins tracking-wider uppercase">
+            <h1 className="text-4xl font-bold text-primary-400 font-poppins tracking-wider ">
               {import.meta.env.VITE_AGENCY_NAME}
             </h1>
           </div>
