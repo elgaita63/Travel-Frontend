@@ -17,40 +17,32 @@ const PaymentEditModal = ({
     method: '',
     date: '',
     notes: '',
-    exchangeRate: '',
-    paymentTo: '' 
+    exchangeRate: ''
   });
 
   const [paymentMethods, setPaymentMethods] = useState([]);
-  const [providers, setProviders] = useState([]);
-  const [loadingData, setLoadingData] = useState(false);
-  const [usdEquivalent, setUsdEquivalent] = useState(null);
+  const [loadingMethods, setLoadingMethods] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState('');
-  const [showExchangeRate, setShowExchangeRate] = useState(false);
-  const [convertedAmount, setConvertedAmount] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoadingData(true);
+    const fetchMethods = async () => {
+      setLoadingMethods(true);
       try {
-        const [methodsRes, providersRes] = await Promise.all([
-          api.get('/api/manage-currencies'),
-          api.get('/api/providers')
-        ]);
-        if (methodsRes.data.success) setPaymentMethods(methodsRes.data.data.paymentMethods || []);
-        if (providersRes.data.success) setProviders(providersRes.data.data.providers || []);
+        const response = await api.get('/api/manage-currencies');
+        if (response.data.success) {
+          setPaymentMethods(response.data.data.paymentMethods || []);
+        }
       } catch (error) {
-        console.error('Error fetching modal data:', error);
+        console.error('Error fetching payment methods:', error);
       } finally {
-        setLoadingData(false);
+        setLoadingMethods(false);
       }
     };
-
-    if (isOpen) fetchData();
+    if (isOpen) fetchMethods();
   }, [isOpen]);
 
   useEffect(() => {
@@ -61,95 +53,142 @@ const PaymentEditModal = ({
         method: payment.method || '',
         date: new Date(payment.date).toISOString().split('T')[0],
         notes: payment.notes || '',
-        exchangeRate: payment.exchangeRate ? payment.exchangeRate.toString() : '',
-        paymentTo: payment.paymentTo?._id || payment.paymentTo || ''
+        exchangeRate: payment.exchangeRate ? payment.exchangeRate.toString() : ''
       });
+      setReceiptFile(null);
+      setExtractionError('');
     }
   }, [payment, isOpen]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (field === 'currency') setShowExchangeRate(value && value !== saleCurrency);
   };
 
-  const handleDeleteClick = () => setShowDeleteConfirm(true);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setReceiptFile(file);
+    setExtractionError('');
+  };
+
+  const handleExtractReceipt = async () => {
+    if (!receiptFile) {
+      setExtractionError('Seleccioná un archivo primero');
+      return;
+    }
+    setExtracting(true);
+    setExtractionError('');
+    try {
+      const ocrData = new FormData();
+      ocrData.append('receipt', receiptFile);
+      const response = await api.post('/api/receipts/extract', ocrData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000 
+      });
+      if (response.data.success) {
+        const { amount, date, currency } = response.data.data;
+        if (amount) handleInputChange('amount', amount.toString());
+        if (currency) handleInputChange('currency', currency.toUpperCase());
+        if (date) {
+          const formattedDate = new Date(date).toISOString().split('T')[0];
+          handleInputChange('date', formattedDate);
+        }
+      }
+    } catch (error) {
+      setExtractionError('Fallo en la extracción de datos');
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   const confirmDelete = async () => {
     setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
       const response = await api.delete(`/api/payments/${payment._id}`);
-      if (response.data.success && onDeleteSuccess) onDeleteSuccess();
+      if (response.data.success) {
+        onDeleteSuccess();
+      }
     } catch (error) {
-      console.error('Error deleting payment:', error);
       alert('Error al eliminar el pago');
-    } finally { setIsDeleting(false); }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    let updateData = { ...formData };
-    updateData.date = new Date(formData.date);
-    updateData.amount = parseFloat(formData.amount);
-    
-    if (receiptFile) {
-      const submitData = new FormData();
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] !== null) submitData.append(key, updateData[key]);
-      });
-      submitData.append('receipt', receiptFile);
-      onSave(submitData);
-    } else {
-      onSave(updateData);
-    }
+    const submitData = new FormData();
+    const updateData = {
+      ...formData,
+      amount: parseFloat(formData.amount),
+      date: new Date(formData.date)
+    };
+    Object.keys(updateData).forEach(key => {
+      submitData.append(key, updateData[key]);
+    });
+    if (receiptFile) submitData.append('receipt', receiptFile);
+    onSave(submitData);
   };
 
   if (!isOpen || !payment) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50">
-      <div className="bg-dark-700 rounded-lg shadow-xl w-full max-w-md mx-4 border border-white/10 overflow-y-auto max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-white/10">
-          <h3 className="text-lg font-semibold text-white">Edit Payment</h3>
-          <p className="text-sm text-dark-300 mt-1">{payment.type === 'client' ? 'Passenger' : 'Provider'} Payment</p>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* max-w-sm lo hace más angosto, px-4 py-3 reduce el aire interno */}
+      <div className="bg-dark-700 rounded-lg shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden flex flex-col">
+        
+        <div className="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-dark-800/50">
+          <h3 className="text-base font-bold text-white uppercase tracking-tight">Editar Pago</h3>
+          <button onClick={onClose} className="text-dark-400 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-dark-200 mb-2">Destinatario del Pago</label>
-            <select
-              value={formData.paymentTo}
-              onChange={(e) => handleInputChange('paymentTo', e.target.value)}
-              className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none"
-            >
-              <option value="">A la Agencia</option>
-              {providers.map(p => (
-                <option key={p._id} value={p._id}>{p.name}</option>
-              ))}
-            </select>
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto max-h-[80vh]">
+          
+          {/* Sección OCR Compacta */}
+          <div className="bg-primary-600/10 border border-primary-500/20 rounded-md p-3">
+            <label className="block text-[10px] font-bold text-primary-400 uppercase mb-1">Escanear Recibo (OCR)</label>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={handleFileChange}
+              className="text-[11px] text-dark-300 w-full mb-2 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-primary-600 file:text-white file:text-[10px]"
+            />
+            {receiptFile && (
+              <button
+                type="button"
+                onClick={handleExtractReceipt}
+                disabled={extracting}
+                className="w-full py-1.5 bg-primary-600 text-white text-[11px] font-bold rounded shadow-lg hover:bg-primary-700 transition-all disabled:opacity-50"
+              >
+                {extracting ? 'EXTRAYENDO...' : 'EXTRAER DATOS'}
+              </button>
+            )}
+            {extractionError && <p className="text-[10px] text-red-400 mt-1 font-medium">{extractionError}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-dark-200 mb-2">Payment Method</label>
-            <select
-              value={formData.method}
-              onChange={(e) => handleInputChange('method', e.target.value)}
-              className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none"
-              required
-            >
-              <option value="">Select method</option>
-              {paymentMethods.map(m => <option key={m._id} value={m.name}>{m.name}</option>)}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-dark-200 mb-2">Amount</label>
-              <input type="number" step="0.01" value={formData.amount} onChange={(e) => handleInputChange('amount', e.target.value)} className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none" required />
+              <label className="block text-[11px] font-medium text-dark-300 mb-1">Monto</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => handleInputChange('amount', e.target.value)}
+                className="w-full px-3 py-1.5 bg-dark-600 border border-dark-500 rounded text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
+                required
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark-200 mb-2">Currency</label>
-              <select value={formData.currency} onChange={(e) => handleInputChange('currency', e.target.value)} className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none">
+              <label className="block text-[11px] font-medium text-dark-300 mb-1">Moneda</label>
+              <select
+                value={formData.currency}
+                onChange={(e) => handleInputChange('currency', e.target.value)}
+                className="w-full px-3 py-1.5 bg-dark-600 border border-dark-500 rounded text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
+              >
                 <option value="USD">USD</option>
                 <option value="ARS">ARS</option>
               </select>
@@ -157,31 +196,64 @@ const PaymentEditModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-200 mb-2">Payment Date</label>
-            <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none" required />
+            <label className="block text-[11px] font-medium text-dark-300 mb-1">Método de Pago</label>
+            <select
+              value={formData.method}
+              onChange={(e) => handleInputChange('method', e.target.value)}
+              className="w-full px-3 py-1.5 bg-dark-600 border border-dark-500 rounded text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
+              required
+            >
+              <option value="">Seleccionar...</option>
+              {paymentMethods.map(m => <option key={m._id} value={m.name}>{m.name}</option>)}
+            </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-200 mb-2">Notes</label>
-            <textarea value={formData.notes} onChange={(e) => handleInputChange('notes', e.target.value)} className="w-full px-3 py-2 bg-dark-600 border border-dark-500 rounded-md text-white focus:border-primary-500 focus:outline-none" rows="3" />
+            <label className="block text-[11px] font-medium text-dark-300 mb-1">Fecha</label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => handleInputChange('date', e.target.value)}
+              className="w-full px-3 py-1.5 bg-dark-600 border border-dark-500 rounded text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
+              required
+            />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-white/10">
-            <button type="button" onClick={handleDeleteClick} className="px-4 py-2 text-red-500 bg-red-500/10 rounded-md text-sm font-medium">Eliminar Pago</button>
-            <div className="flex space-x-3">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-dark-300 bg-dark-600 rounded-md">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-md">{saving ? 'Saving...' : 'Save Changes'}</button>
+          <div className="flex flex-col space-y-2 pt-4 border-t border-white/10">
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-2 bg-primary-600 text-white rounded font-bold text-sm shadow-lg hover:bg-primary-700 transition-all disabled:opacity-50"
+            >
+              {saving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+            </button>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2 bg-dark-500 text-dark-100 rounded text-xs font-medium hover:bg-dark-400 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex-1 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded text-xs font-medium hover:bg-red-500/20 transition-colors"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </form>
       </div>
 
-      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Confirmar Eliminación" size="sm">
+      {/* Confirmación de eliminación */}
+      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Confirmar" size="sm">
         <div className="p-4 text-center">
-          <p className="text-dark-100 mb-6">¿Eliminar pago? <br /><span className="text-red-400 text-sm font-bold uppercase">Esta acción no se puede deshacer.</span></p>
+          <p className="text-white text-sm mb-4 uppercase font-bold text-red-400">¿Eliminar este pago?</p>
           <div className="flex justify-center space-x-3">
-            <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 bg-dark-600 text-white rounded-md">Cancelar</button>
-            <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-md font-bold">Eliminar</button>
+            <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 bg-dark-600 text-white rounded text-xs font-bold">NO</button>
+            <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded text-xs font-bold shadow-lg">SÍ, ELIMINAR</button>
           </div>
         </div>
       </Modal>
