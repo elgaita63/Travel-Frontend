@@ -13,11 +13,10 @@ const Balances = () => {
   const [selectedEntity, setSelectedEntity] = useState('Todos');
   const [loading, setLoading] = useState(false);
   
-  // Detalle de pagos asociados a la selección
+  // Detalle de payments al final del listado
   const [salePayments, setSalePayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
-  // 1. Carga inicial de ventas y usuarios
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -81,7 +80,7 @@ const Balances = () => {
     });
   }, [selectedEntity, allSales, filterType, usersMap]);
 
-  // 2. Lógica para detallar pagos asociados a las ventas seleccionadas
+  // Lógica para detallar pagos asociados a las ventas seleccionadas
   useEffect(() => {
     const fetchPaymentsForSelection = async () => {
       if (selectedEntity === 'Todos' || displayedItems.length === 0) {
@@ -96,7 +95,6 @@ const Balances = () => {
           const allPayments = res.data.data.payments || res.data.data || [];
           const saleIds = displayedItems.map(s => s._id);
           
-          // Filtrar pagos que pertenezcan a cualquiera de las ventas en el listado
           const filtered = allPayments.filter(p => {
             const pSaleId = typeof p.saleId === 'object' ? p.saleId?._id : p.saleId;
             return saleIds.includes(pSaleId);
@@ -127,7 +125,7 @@ const Balances = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-white mb-6 gradient-text tracking-tighter">Saldos/Balances/Conciliaciones de Pasajeros/Proveedores</h1>
+      <h1 className="text-3xl font-bold text-white mb-6 gradient-text tracking-tighter ">Saldos/Balances/Conciliaciones de Pasajeros/Proveedores</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-6 card-glass rounded-xl border border-white/10 shadow-2xl">
         <div>
@@ -197,7 +195,6 @@ const Balances = () => {
         </div>
       </div>
 
-      {/* DETALLE DE PAGOS: Solo aparece si se seleccionó un pasajero específico */}
       {selectedEntity !== 'Todos' && (
         <div className="card-glass rounded-xl border border-primary-500/30 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4">
           <div className="p-6 bg-dark-900/50 border-b border-white/10 flex justify-between items-center">
@@ -211,13 +208,19 @@ const Balances = () => {
             ) : salePayments.length > 0 ? (
               <table className="w-full text-xs text-left border-collapse font-mono uppercase">
                 <thead className="text-dark-400 border-b border-white/10">
-                  <tr><th className="py-3">Fecha</th><th className="py-3">Método</th><th className="py-3 text-right">Monto</th></tr>
+                  <tr>
+                    <th className="py-3">Fecha</th>
+                    <th className="py-3">Método</th>
+                    <th className="py-3">Tipo</th>
+                    <th className="py-3 text-right">Monto</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {salePayments.map((p, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors">
                       <td className="py-3">{new Date(p.date || p.paymentDate).toLocaleDateString()}</td>
                       <td className="py-3 text-dark-300">{p.method || p.paymentMethod || 'S/D'}</td>
+                      <td className="py-3 text-dark-300">{p.type === 'passenger' ? 'PASAJERO' : p.type === 'provider' ? 'PROVEEDOR' : (p.type || 'S/D')}</td>
                       <td className="py-3 text-right font-bold" style={{ color: '#22c55e' }}>
                         {p.currency} {p.amount?.toLocaleString()}
                       </td>
@@ -226,7 +229,7 @@ const Balances = () => {
                 </tbody>
               </table>
             ) : (
-              <p className="text-xs text-dark-400 font-mono">No se encontraron pagos registrados para la selección actual.</p>
+              <p className="text-xs text-dark-400 font-mono ">No hay payments registrados para esta selección.</p>
             )}
           </div>
         </div>
