@@ -36,6 +36,7 @@ import UsersList from './pages/UsersList';
 import UserForm from './pages/UserForm';
 import DailyReports from './pages/DailyReports';
 import AdminInsightsDashboard from './pages/AdminInsightsDashboard';
+import Balances from './pages/Balances';
 import SearchPage from './pages/SearchPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -333,6 +334,16 @@ const AppRoutes = () => {
                 <ProtectedRoute requireAdmin>
                   <Layout>
                     <AdminInsightsDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/balances"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Layout>
+                    <Balances />
                   </Layout>
                 </ProtectedRoute>
               }
