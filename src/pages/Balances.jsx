@@ -13,7 +13,8 @@ const Balances = () => {
   const [selectedEntity, setSelectedEntity] = useState('Todos');
   const [loading, setLoading] = useState(false);
   
-  const [expandedSaleId, setExpandedSaleId] = useState(null);
+  // Detalle de payments al final del listado
+  const [selectedSaleForPayments, setSelectedSaleForPayments] = useState(null);
   const [salePayments, setSalePayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
@@ -47,27 +48,24 @@ const Balances = () => {
     fetchData();
   }, [startDate, endDate]);
 
-  // Lógica corregida: Usamos el ID de la fila (saleId) 
-  // y cambiamos el endpoint al que tu servidor SÍ reconoce
-  const handleRowClick = async (saleId) => {
-    if (expandedSaleId === saleId) {
-      setExpandedSaleId(null);
+  const handleRowClick = async (sale) => {
+    if (selectedSaleForPayments?._id === sale._id) {
+      setSelectedSaleForPayments(null);
+      setSalePayments([]);
       return;
     }
 
-    setExpandedSaleId(saleId);
+    setSelectedSaleForPayments(sale);
     setLoadingPayments(true);
     
     try {
-      // Intentamos con la ruta de pagos filtrada por saleId
-      // Si '/api/client-payments' te da 404, probamos con '/api/payments'
-      const res = await api.get(`/api/payments?saleId=${saleId}`);
-      
-      if (res.data && res.data.success) {
+      // Usamos /api/payments que es la ruta que tu servidor reconoce
+      const res = await api.get(`/api/payments?saleId=${sale._id}`);
+      if (res.data.success) {
         setSalePayments(res.data.data.payments || res.data.data || []);
       }
     } catch (error) {
-      console.error("Error al buscar payments:", error);
+      console.error("Error al buscar pagos:", error);
       setSalePayments([]);
     } finally {
       setLoadingPayments(false);
@@ -120,7 +118,7 @@ const Balances = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-white mb-6 gradient-text tracking-tighter">Saldos/Balances/Conciliaciones de Pasajeros/Proveedores</h1>
+      <h1 className="text-3xl font-bold text-white mb-6 gradient-text tracking-tighter ">Saldos/Balances/Conciliaciones de Pasajeros/Proveedores</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-6 card-glass rounded-xl border border-white/10 shadow-2xl">
         <div>
@@ -136,14 +134,14 @@ const Balances = () => {
             {uniqueEntities.map(name => <option key={name} value={name}>{name}</option>)}
           </select>
         </div>
-        <div><label className="block text-xs text-dark-300 uppercase mb-2 tracking-widest text-white">Desde</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-dark-800 text-white rounded-lg p-2.5 border border-white/10" style={{ colorScheme: 'dark' }} /></div>
-        <div><label className="block text-xs text-dark-300 uppercase mb-2 tracking-widest text-white">Hasta</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-dark-800 text-white rounded-lg p-2.5 border border-white/10" style={{ colorScheme: 'dark' }} /></div>
+        <div><label className="block text-xs text-dark-300 uppercase mb-2">Desde</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-dark-800 text-white rounded-lg p-2.5 border border-white/10" style={{ colorScheme: 'dark' }} /></div>
+        <div><label className="block text-xs text-dark-300 uppercase mb-2">Hasta</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-dark-800 text-white rounded-lg p-2.5 border border-white/10" style={{ colorScheme: 'dark' }} /></div>
       </div>
 
       <div className="card-glass rounded-xl border border-white/10 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-white/5 text-dark-300 uppercase text-xs font-bold tracking-widest">
+          <table className="w-full text-left border-collapse uppercase">
+            <thead className="bg-white/5 text-dark-300 text-xs font-bold tracking-widest">
               <tr>
                 <th className="p-4 border-b border-white/10">Fecha</th>
                 <th className="p-4 border-b border-white/10">Apellido / Nombre</th>
@@ -153,55 +151,73 @@ const Balances = () => {
                 <th className="p-4 border-b border-white/10 text-right">Saldo</th>
               </tr>
             </thead>
-            <tbody className="text-dark-100 divide-y divide-white/5 uppercase">
+            <tbody className="text-dark-100 divide-y divide-white/5">
               {displayedItems.map((sale) => {
                 const info = getVentaInfo(sale);
                 return (
-                  <React.Fragment key={sale._id}>
-                    <tr onClick={() => handleRowClick(sale._id)} className={`cursor-pointer transition-colors ${expandedSaleId === sale._id ? 'bg-primary-900/20' : 'hover:bg-white/5'}`}>
-                      <td className="p-4 text-sm font-mono">{new Date(sale.createdAt).toLocaleDateString()}</td>
-                      <td className="p-4 uppercase font-bold text-white">{info.apellido}, <span className="text-[14px] font-normal uppercase">{info.nombre}</span></td>
-                      <td className="p-4 text-sm font-semibold uppercase text-primary-300">{info.vendedor}</td>
-                      <td className="p-4 text-right font-mono"><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.saleCurrency}</span> {sale.totalSalePrice?.toLocaleString()}</td>
-                      <td className="p-4 text-right font-mono text-white"><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.saleCurrency}</span> {sale.totalClientPayments?.toLocaleString()}</td>
-                      <td className={`p-4 text-right font-mono font-bold ${sale.clientBalance < 0 ? 'text-error-400' : 'text-success-500'}`}><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.clientBalance?.toLocaleString()}</span></td>
-                    </tr>
-                    {expandedSaleId === sale._id && (
-                      <tr>
-                        <td colSpan="6" className="p-0 bg-dark-900/50">
-                          <div className="p-6 border-l-4 border-primary-500">
-                            <h4 className="text-xs font-bold text-primary-400 mb-4 uppercase font-mono italic">Pagos de esta venta:</h4>
-                            {loadingPayments ? (
-                                <p className="text-xs text-dark-400 animate-pulse uppercase">Consultando...</p>
-                            ) : salePayments.length > 0 ? (
-                                <table className="w-full text-[11px] text-left border-collapse font-mono">
-                                  <thead className="text-dark-400 uppercase border-b border-white/10">
-                                    <tr><th className="py-2">Fecha</th><th className="py-2">Método</th><th className="py-2 text-right">Monto</th></tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-white/5">
-                                    {salePayments.map((p, idx) => (
-                                      <tr key={idx}>
-                                        <td className="py-2">{new Date(p.date || p.paymentDate).toLocaleDateString()}</td>
-                                        <td className="py-2 text-dark-300 uppercase">{p.method || p.paymentMethod}</td>
-                                        <td className="py-2 text-right text-success-400">{p.currency} {p.amount?.toLocaleString()}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                            ) : (
-                              <p className="text-xs text-dark-400 uppercase font-mono italic">No hay payments para esta sale en el backend.</p>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={sale._id} 
+                      onClick={() => handleRowClick(sale)} 
+                      className={`cursor-pointer transition-colors ${selectedSaleForPayments?._id === sale._id ? 'bg-primary-900/20' : 'hover:bg-white/5'}`}>
+                    <td className="p-4 text-sm font-mono">{new Date(sale.createdAt).toLocaleDateString()}</td>
+                    <td className="p-4 font-bold text-white">{info.apellido}, <span className="text-[14px] font-normal">{info.nombre}</span></td>
+                    <td className="p-4 text-sm font-semibold text-primary-300">{info.vendedor}</td>
+                    <td className="p-4 text-right font-mono"><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.saleCurrency}</span> {sale.totalSalePrice?.toLocaleString()}</td>
+                    <td className="p-4 text-right font-mono text-white"><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.saleCurrency}</span> {sale.totalClientPayments?.toLocaleString()}</td>
+                    <td className={`p-4 text-right font-mono font-bold ${sale.clientBalance < 0 ? 'text-error-400' : 'text-success-500'}`}><span className={getCurrencyStyle(sale.saleCurrency)}>{sale.clientBalance?.toLocaleString()}</span></td>
+                  </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+
+        <div className="bg-dark-800/80 p-6 border-t border-white/20">
+          <div className="flex gap-6">
+            {Object.keys(totals).map(currency => (
+              <div key={currency} className="p-4 rounded-lg bg-dark-900/50 border border-white/10 min-w-[240px]">
+                <p className={`${getCurrencyStyle(currency)} text-2xl border-b border-white/10 mb-2`}>{currency}</p>
+                <div className="flex justify-between font-bold text-xl mt-2 text-white">
+                  <span>Saldo:</span> <span className={totals[currency].balance < 0 ? 'text-error-400' : 'text-success-500'}>{totals[currency].balance.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* SECCIÓN DE PAGOS AL FINAL DE TODO */}
+      {selectedSaleForPayments && (
+        <div className="card-glass rounded-xl border border-primary-500/30 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="p-6 bg-dark-900/50 border-b border-white/10 flex justify-between items-center">
+            <h4 className="text-sm font-bold text-primary-400 tracking-widest font-mono ">
+              Pagos asociados a la venta: 
+            </h4>
+            <button onClick={() => setSelectedSaleForPayments(null)} className="text-dark-400 hover:text-white text-xs uppercase font-bold">Cerrar Detalle</button>
+          </div>
+          <div className="p-6">
+            {loadingPayments ? (
+              <p className="text-xs text-dark-400 animate-pulse uppercase">Consultando base de datos...</p>
+            ) : salePayments.length > 0 ? (
+              <table className="w-full text-xs text-left border-collapse font-mono uppercase">
+                <thead className="text-dark-400 border-b border-white/10">
+                  <tr><th className="py-3">Fecha</th><th className="py-3">Método</th><th className="py-3 text-right">Monto</th></tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {salePayments.map((p, idx) => (
+                    <tr key={idx} className="hover:bg-white/5 transition-colors">
+                      <td className="py-3">{new Date(p.date || p.paymentDate).toLocaleDateString()}</td>
+                      <td className="py-3 text-dark-300">{p.method || p.paymentMethod || 'S/D'}</td>
+                      <td className="py-3 text-right text-success-400 font-bold">{p.currency} {p.amount?.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-xs text-dark-400 font-mono ">No hay payments registrados para esta venta.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
