@@ -25,6 +25,10 @@ if (import.meta.env.PROD) {
   }
 }
 
+// Front Version ************************
+export const FRONTEND_VERSION = '2.1.0UDV';  
+// **************************************
+
 // Export API_BASE_URL for components that need direct URL access
 export { API_BASE_URL };
 

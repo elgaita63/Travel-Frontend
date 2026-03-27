@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import StatusBar from '../components/StatusBar'; 
@@ -10,26 +10,10 @@ const Login = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [version, setVersion] = useState('v0.0.0-NonVersioned');
   
-  const { login } = useAuth();
+  // Extraemos login y version del contexto global
+  const { login, version } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchVersion = async () => {
-      try {
-        // Ajuste: Uso de VITE_API_BASE_URL + /api agregado manualmente
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/system/version`);
-        const result = await response.json();
-        if (result.success && result.version) {
-          setVersion(result.version);
-        }
-      } catch (err) {
-        console.error('Error recuperando versión:', err);
-      }
-    };
-    fetchVersion();
-  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -77,7 +61,6 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-md mx-auto -mt-12">
         <div className="text-center mb-4">
           <div className="flex flex-col items-center justify-center mb-2">
-            {/* LOGO DINÁMICO */}
             <img 
               src={import.meta.env.VITE_AGENCY_LOGO} 
               alt={`Logo ${import.meta.env.VITE_AGENCY_NAME}`} 
@@ -85,17 +68,16 @@ const Login = () => {
               style={{ objectFit: 'contain' }}
               onError={(e) => { e.target.style.display = 'none'; }} 
             />
-            {/* NOMBRE DINÁMICO */}
             <h1 className="text-4xl font-bold text-primary-400 font-poppins tracking-wider ">
               {import.meta.env.VITE_AGENCY_NAME}
             </h1>
           </div>
 
           <div className="mb-4">
-            <h3 className="text-xl font-semibold text-primary-400 font-poppins m-0 leading-tight">
+            <h3 className="text-xxl font-semibold text-primary-400 font-poppins m-0 leading-tight">
               Travel AI Management
             </h3>
-            <p className="text-sm text-dark-400 font-mono mt-1">
+            <p className="text-xs text-dark-400 font-mono mt-1">
               {version}
             </p>
           </div>

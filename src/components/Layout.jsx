@@ -1,27 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PageTransition from './PageTransition';
 import StatusBar from './StatusBar';
 
 const Layout = ({ children, showNavigation = true }) => {
-  const { user, logout, isAdmin, isSeller } = useAuth();
+  // Extraemos version del contexto global
+  const { user, logout, isAdmin, isSeller, version } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [version, setVersion] = useState('V0.0.0 Unversioned');
-
-  useEffect(() => {
-    const fetchVersion = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/system/version`);
-        const result = await response.json();
-        if (result.success) setVersion(`${result.version}`);
-      } catch (err) {
-        console.error('Error version sidebar:', err);
-      }
-    };
-    fetchVersion();
-  }, []);
 
   const navigationItems = [
     { path: '/dashboard', label: 'Panel Control', icon: (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" /></svg>) },
@@ -37,7 +24,6 @@ const Layout = ({ children, showNavigation = true }) => {
     ] : []),
   ];
 
-  // Definimos Balances aparte para insertarlo manualmente donde pediste
   const balancesItem = { path: '/balances', label: 'Saldos/Balances', icon: (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>) };
 
   return (
@@ -47,7 +33,6 @@ const Layout = ({ children, showNavigation = true }) => {
           <div className="flex w-16 sm:w-20 md:w-72 flex-col h-full">
             <div className="flex flex-col h-full bg-dark-800 border-r border-white/10 relative">
               
-              {/* Header Fijo */}
               <div className="flex flex-col items-center flex-shrink-0 px-2 sm:px-4 md:px-6 pt-5 pb-2">
                 <div className="flex items-center w-full">
                   <div className="icon-container mr-2 sm:mr-3 md:mr-4">
@@ -60,16 +45,14 @@ const Layout = ({ children, showNavigation = true }) => {
                   </h1>
                 </div>
                 <div className="w-full text-right pr-2">
-                  <span className="text-[12px] font-mono font-bold text-dark-400">{version}</span>
+                  <span className="text-[10px] font-mono font-bold text-dark-400">{version}</span>
                 </div>
               </div>
               
               <div className="border-b border-white/10 mx-4 sm:mx-6 md:mx-8 mb-6"></div>
 
-              {/* Área con Scroll: Menú */}
               <div className="flex-grow overflow-y-auto custom-scrollbar px-1 sm:px-2 md:px-4">
                 <nav className="flex-1 space-y-1 pb-10">
-                  
                   {navigationItems.map((item) => (
                     <React.Fragment key={item.path}>
                       <Link 
@@ -81,7 +64,6 @@ const Layout = ({ children, showNavigation = true }) => {
                         <span className="hidden md:block text-lg">{item.label}</span>
                       </Link>
 
-                      {/* BOTÓN NUEVA VENTA Y LUEGO BALANCES */}
                       {item.path === '/sales' && (isSeller || isAdmin) && (
                         <>
                           <div className="hidden md:block mt-1 mb-2 ml-4">
@@ -99,7 +81,6 @@ const Layout = ({ children, showNavigation = true }) => {
                             </button>
                           </div>
                           
-                          {/* SALDOS/BALANCES DEBAJO DE NUEVA VENTA */}
                           {isAdmin && (
                             <Link 
                               to={balancesItem.path} 
@@ -117,7 +98,6 @@ const Layout = ({ children, showNavigation = true }) => {
                 </nav>
               </div>
 
-              {/* Bloque de Usuario Fijo abajo */}
               {user && (
                 <div className="flex-shrink-0 border-t border-white/10 p-2 sm:p-4 md:p-6 bg-dark-800">
                   <div className="w-full bg-dark-700 rounded-lg p-3 sm:p-4">
@@ -142,7 +122,6 @@ const Layout = ({ children, showNavigation = true }) => {
           </div>
         )}
 
-        {/* Contenido Principal */}
         <div className="flex flex-col flex-1 overflow-hidden relative">
           <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
