@@ -73,10 +73,9 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       if (result.success) {
         setFormData(prev => ({
           ...prev,
-          ...result.data.extractedData,
-          passportImage: result.data.passportImage
+          ...result.data.extractedData
         }));
-        setErrors({ success: `Passport data extracted!` });
+        setErrors({ success: 'Passport data extracted!' });
       } else {
         setErrors({ general: result.message || 'Failed to extract' });
       }
@@ -93,21 +92,17 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       setErrors(newErrors);
       return;
     }
-    try {
-      const companionData = { 
-        ...formData,
-        passportImage: shouldSaveImage ? formData.passportImage : ''
-      };
-      
-      if (isEditing && onUpdateCompanion) {
-        onUpdateCompanion(companionData);
-      } else {
-        onAddCompanion(companionData);
-      }
-      onCancel();
-    } catch (error) {
-      setErrors({ general: 'Failed to add companion.' });
+    const companionData = { 
+      ...formData,
+      passportImage: shouldSaveImage ? passportImage : '' 
+    };
+    
+    if (isEditing && onUpdateCompanion) {
+      onUpdateCompanion(companionData);
+    } else {
+      onAddCompanion(companionData);
     }
+    onCancel();
   };
 
   return (
@@ -122,19 +117,6 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
           <div className="space-y-3">
             <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" />
             
-            <div className="flex items-center mt-2">
-              <input 
-                type="checkbox" 
-                id="saveImageCompanion" 
-                checked={shouldSaveImage} 
-                onChange={(e) => setShouldSaveImage(e.target.checked)}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-white/20 rounded bg-dark-800/50"
-              />
-              <label htmlFor="saveImageCompanion" className="ml-2 block text-sm text-dark-200 cursor-pointer">
-                ¿Guardar imagen?
-              </label>
-            </div>
-
             {passportImage && (
               <button type="button" onClick={handleOpenAIExtraction} disabled={ocrLoading} className="mt-2 w-full btn-primary text-sm disabled:opacity-50">
                 {ocrLoading ? 'Processing with OpenAI...' : 'Extract Data with OpenAI'}
@@ -179,7 +161,17 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       <div><label className="block text-sm font-medium text-dark-200 mb-1">Special Requests / Notes</label>
       <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows={3} placeholder="Dietary restrictions..." className="input-field text-sm" /></div>
       
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end items-center space-x-6 pt-4 border-t border-white/10">
+        <div className="flex items-center space-x-3">
+          <span className="text-xs font-medium text-dark-300 uppercase">Guardar imagen: {shouldSaveImage ? 'SÍ' : 'NO'}</span>
+          <button 
+            type="button"
+            onClick={() => setShouldSaveImage(!shouldSaveImage)}
+            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${shouldSaveImage ? 'bg-primary-600' : 'bg-dark-600'}`}
+          >
+            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${shouldSaveImage ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
         <button type="button" onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
         <button type="button" onClick={handleSubmit} className="btn-primary text-sm">{isEditing ? 'Update Acompañante' : 'Add Acompañante'}</button>
       </div>
@@ -240,10 +232,9 @@ const ClientForm = () => {
       if (result.success) {
         setFormData(prev => ({
           ...prev,
-          ...result.data.extractedData,
-          passportImage: result.data.passportImage
+          ...result.data.extractedData
         }));
-        setSuccess(`Passport data extracted!`);
+        setSuccess('Passport data extracted!');
       } else {
         setError(result.message || 'Failed to extract');
       }
@@ -259,29 +250,45 @@ const ClientForm = () => {
     setLoading(true);
     setError('');
     try {
-      const clientPayload = {
-        ...formData,
-        passportImage: shouldSaveImage ? formData.passportImage : '',
-        preferences: { specialRequests: formData.specialRequests || '' }
-      };
-      delete clientPayload.specialRequests;
+      const finalPayload = new FormData();
+      
+      const { passportImage: _pi, ...dataToSubmit } = formData;
 
-      let response;
-      if (companions.length > 0) {
-        response = await api.post('/api/clients/bulk', {
-          mainClient: clientPayload,
-          companions: companions
-        });
-      } else {
-        response = await api.post('/api/clients', clientPayload);
+      Object.keys(dataToSubmit).forEach(key => {
+        if (key === 'specialRequests') {
+            finalPayload.append('preferences[specialRequests]', dataToSubmit[key] || '');
+        } else {
+            finalPayload.append(key, dataToSubmit[key]);
+        }
+      });
+
+      if (shouldSaveImage && passportImage) {
+        finalPayload.append('passportImage', passportImage);
       }
 
-      if (response.data.success) {
+      if (companions.length > 0) {
+        finalPayload.append('companions', JSON.stringify(companions));
+      }
+
+      // CAMBIO CLAVE: Usamos fetch nativo, igual que en el OCR que sabemos que funciona para mandar archivos físicos
+      const response = await fetch(`${API_BASE_URL}/api/clients`, {
+        method: 'POST',
+        body: finalPayload,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
         setSuccess('Passenger created successfully!');
         setTimeout(() => navigate('/clients'), 2000);
+      } else {
+        setError(responseData.message || 'Failed to create passenger');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create passenger');
+      setError('Failed to create passenger');
     } finally {
       setLoading(false);
     }
@@ -305,19 +312,6 @@ const ClientForm = () => {
               <label className="block text-sm font-medium text-dark-200 mb-2">Upload Imagen</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30" />
               
-              <div className="flex items-center mt-3 mb-1">
-                <input 
-                  type="checkbox" 
-                  id="saveImageMain" 
-                  checked={shouldSaveImage} 
-                  onChange={(e) => setShouldSaveImage(e.target.checked)}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-white/20 rounded bg-dark-800/50"
-                />
-                <label htmlFor="saveImageMain" className="ml-2 block text-sm text-dark-200 cursor-pointer">
-                  ¿Guardar imagen?
-                </label>
-              </div>
-
               {passportImage && (
                 <button type="button" onClick={handleOpenAIExtraction} disabled={ocrLoading} className="mt-3 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50">
                   {ocrLoading ? 'Processing with OpenAI...' : 'Extract Data with OpenAI'}
@@ -361,7 +355,18 @@ const ClientForm = () => {
           <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-white/10">
+        <div className="flex justify-end items-center space-x-6 pt-6 border-t border-white/10">
+          <div className="flex items-center space-x-3">
+            <span className="text-sm font-medium text-dark-300 uppercase">Guardar imagen: {shouldSaveImage ? 'SÍ' : 'NO'}</span>
+            <button 
+              type="button"
+              onClick={() => setShouldSaveImage(!shouldSaveImage)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${shouldSaveImage ? 'bg-primary-600' : 'bg-dark-600'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${shouldSaveImage ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
           <button type="button" onClick={() => navigate('/clients')} className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 border border-white/10 rounded-md">Cancel</button>
           <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50">
             {loading ? 'Creating...' : 'Create Passenger'}
