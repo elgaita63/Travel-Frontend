@@ -33,9 +33,9 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name) newErrors.name = 'First Name is required';
-    if (!formData.surname) newErrors.surname = 'Last Name is required';
-    if (!formData.dni) newErrors.dni = 'DNI/CUIT is required';
+    if (!formData.name) newErrors.name = 'El Nombre es obligatorio';
+    if (!formData.surname) newErrors.surname = 'El Apellido es obligatorio';
+    if (!formData.dni) newErrors.dni = 'El DNI/CUIT es obligatorio';
     return newErrors;
   };
 
@@ -56,7 +56,7 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
 
   const handleOpenAIExtraction = async () => {
     if (!passportImage) {
-      setErrors({ general: 'Please upload a passport image first' });
+      setErrors({ general: 'Subí una imagen con los datos del pasajero' });
       return;
     }
     setOcrLoading(true);
@@ -75,12 +75,12 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
           ...prev,
           ...result.data.extractedData
         }));
-        setErrors({ success: 'Passport data extracted!' });
+        setErrors({ success: 'Datos extraidos !' });
       } else {
-        setErrors({ general: result.message || 'Failed to extract' });
+        setErrors({ general: result.message || 'Error al extraer datos de la imagen' });
       }
     } catch (error) {
-      setErrors({ general: 'Failed to extract passport data.' });
+      setErrors({ general: 'Error al extraer datos de la imagen' });
     } finally {
       setOcrLoading(false);
     }
@@ -107,25 +107,25 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
 
   return (
     <div className="space-y-4">
-      <h4 className="text-md font-medium text-dark-100 mb-4">{isEditing ? 'Edit Acompañante' : 'Add Acompañante'}</h4>
+      <h4 className="text-md font-medium text-dark-100 mb-4">{isEditing ? 'Editar acompañante' : 'Agregar acompañante'}</h4>
       {errors.general && <div className="bg-error-500/10 border border-error-500/20 text-error-400 px-4 py-3 rounded-md">{errors.general}</div>}
       {errors.success && <div className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-md">{errors.success}</div>}
       
       <div className="card p-4">
-        <h4 className="text-sm font-medium text-dark-400 mb-3">Passport Data Extraction</h4>
+        <h4 className="text-sm font-medium text-dark-400 mb-3">Extracción de Datos</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
             <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" />
             
             {passportImage && (
               <button type="button" onClick={handleOpenAIExtraction} disabled={ocrLoading} className="mt-2 w-full btn-primary text-sm disabled:opacity-50">
-                {ocrLoading ? 'Processing with OpenAI...' : 'Extract Data with OpenAI'}
+                {ocrLoading ? 'Procesando con OpenAI...' : 'Extraer Datos con OpenAI'}
               </button>
             )}
           </div>
           {imagePreview && (
             <div>
-              <h5 className="text-sm font-medium text-dark-400 mb-2">Uploaded Image</h5>
+              <h5 className="text-sm font-medium text-dark-400 mb-2">Imagen Subida</h5>
               <img src={imagePreview} alt="Preview" className="max-w-full h-32 object-contain border border-white/10 rounded" />
             </div>
           )}
@@ -133,33 +133,33 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">First Name *</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Nombre *</label>
         <input type="text" name="name" value={formData.name} onChange={handleChange} required className="input-field text-sm" /></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Last Name *</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Apellido *</label>
         <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">DNI/CUIT *</label>
         <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className="input-field text-sm" /></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Date of Birth</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Fecha de Nacimiento</label>
         <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">Email</label>
         <input type="email" name="email" value={formData.email} onChange={handleChange} className="input-field text-sm" /></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Phone Number</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Teléfono</label>
         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+999" className="input-field text-sm" /></div>
         
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Gender</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Género</label>
         <select name="gender" value={formData.gender} onChange={handleChange} className="input-field text-sm">
-          <option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+          <option value="">Seleccionar Género</option><option value="male">Masculino</option><option value="female">Femenino</option><option value="other">Otro</option>
         </select></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Passport Number</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Número de Pasaporte</label>
         <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleChange} className="input-field text-sm" /></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Nationality</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Nacionalidad</label>
         <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} className="input-field text-sm" /></div>
-        <div><label className="block text-sm font-medium text-dark-200 mb-1">Passport Expiration Date</label>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Fecha de Vencimiento</label>
         <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className="input-field text-sm" /></div>
       </div>
 
-      <div><label className="block text-sm font-medium text-dark-200 mb-1">Special Requests / Notes</label>
-      <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows={3} placeholder="Dietary restrictions..." className="input-field text-sm" /></div>
+      <div><label className="block text-sm font-medium text-dark-200 mb-1">Pedidos Especiales / Notas</label>
+      <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows={3} placeholder="Restricciones alimentarias, condiciones médicas o de viaje..." className="input-field text-sm" /></div>
       
       <div className="flex justify-end items-center space-x-6 pt-4 border-t border-white/10">
         <div className="flex items-center space-x-3">
@@ -172,8 +172,8 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${shouldSaveImage ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
-        <button type="button" onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
-        <button type="button" onClick={handleSubmit} className="btn-primary text-sm">{isEditing ? 'Update Acompañante' : 'Add Acompañante'}</button>
+        <button type="button" onClick={onCancel} className="btn-secondary text-sm">Cancelar</button>
+        <button type="button" onClick={handleSubmit} className="btn-primary text-sm">{isEditing ? 'Actualizar acompañante' : 'Agregar acompañante'}</button>
       </div>
     </div>
   );
@@ -215,7 +215,7 @@ const ClientForm = () => {
 
   const handleOpenAIExtraction = async () => {
     if (!passportImage) {
-      setError('Please upload a passport image first');
+      setError('Subí una imagen con los datos del pasajero');
       return;
     }
     setOcrLoading(true);
@@ -234,12 +234,12 @@ const ClientForm = () => {
           ...prev,
           ...result.data.extractedData
         }));
-        setSuccess('Passport data extracted!');
+        setSuccess('Datos extraidos !');
       } else {
-        setError(result.message || 'Failed to extract');
+        setError(result.message || 'Error al extraer datos de la imagen');
       }
     } catch (err) {
-      setError('Failed to extract passport data.');
+      setError('Error al extraer datos de la imagen');
     } finally {
       setOcrLoading(false);
     }
@@ -270,7 +270,6 @@ const ClientForm = () => {
         finalPayload.append('companions', JSON.stringify(companions));
       }
 
-      // CAMBIO CLAVE: Usamos fetch nativo, igual que en el OCR que sabemos que funciona para mandar archivos físicos
       const response = await fetch(`${API_BASE_URL}/api/clients`, {
         method: 'POST',
         body: finalPayload,
@@ -282,13 +281,13 @@ const ClientForm = () => {
       const responseData = await response.json();
 
       if (response.ok && responseData.success) {
-        setSuccess('Passenger created successfully!');
+        setSuccess('¡Pasajero titular creado con éxito!');
         setTimeout(() => navigate('/clients'), 2000);
       } else {
-        setError(responseData.message || 'Failed to create passenger');
+        setError(responseData.message || 'Error al crear el pasajero titular');
       }
     } catch (err) {
-      setError('Failed to create passenger');
+      setError('Error al crear el pasajero titular');
     } finally {
       setLoading(false);
     }
@@ -297,8 +296,8 @@ const ClientForm = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-dark-100">Add New Passenger</h1>
-        <p className="mt-1 text-sm text-dark-400">Create a new passenger record with passport information</p>
+        <h1 className="text-2xl font-bold text-dark-100">Agregar pasajero titular</h1>
+        <p className="mt-1 text-sm text-dark-400">Crear un nuevo registro de pasajero titular con información de pasaporte</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -309,18 +308,18 @@ const ClientForm = () => {
           <h3 className="text-lg font-medium text-dark-100 mb-4">Imagen con datos del Pasajero</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-dark-200 mb-2">Upload Imagen</label>
+              <label className="block text-sm font-medium text-dark-200 mb-2">Subir Imagen</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30" />
               
               {passportImage && (
                 <button type="button" onClick={handleOpenAIExtraction} disabled={ocrLoading} className="mt-3 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50">
-                  {ocrLoading ? 'Processing with OpenAI...' : 'Extract Data with OpenAI'}
+                  {ocrLoading ? 'Procesando con OpenAI...' : 'Extraer Datos con OpenAI'}
                 </button>
               )}
             </div>
             {imagePreview && (
               <div>
-                <label className="block text-sm font-medium text-dark-200 mb-2">Image Preview</label>
+                <label className="block text-sm font-medium text-dark-200 mb-2">Vista Previa de la Imagen</label>
                 <div className="border-2 border-dashed border-white/20 rounded-lg p-4">
                   <img src={imagePreview} alt="Preview" className="max-w-full h-48 object-contain mx-auto" />
                 </div>
@@ -330,28 +329,28 @@ const ClientForm = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div><label className="block text-sm font-medium text-dark-200">First Name *</label>
+          <div><label className="block text-sm font-medium text-dark-200">Nombre *</label>
           <input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
-          <div><label className="block text-sm font-medium text-dark-200">Last Name *</label>
+          <div><label className="block text-sm font-medium text-dark-200">Apellido *</label>
           <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">DNI/CUIT *</label>
           <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
-          <div><label className="block text-sm font-medium text-dark-200">Date of Birth</label>
+          <div><label className="block text-sm font-medium text-dark-200">Fecha de Nacimiento</label>
           <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">Email</label>
           <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
-          <div><label className="block text-sm font-medium text-dark-200">Phone Number</label>
+          <div><label className="block text-sm font-medium text-dark-200">Teléfono</label>
           <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+999" className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           
-          <div><label className="block text-sm font-medium text-dark-200">Gender</label>
+          <div><label className="block text-sm font-medium text-dark-200">Género</label>
           <select name="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20">
-            <option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+            <option value="">Seleccionar Género</option><option value="male">Masculino</option><option value="female">Femenino</option><option value="other">Otro</option>
           </select></div>
-          <div><label className="block text-sm font-medium text-dark-200">Passport Number</label>
+          <div><label className="block text-sm font-medium text-dark-200">Número de Pasaporte</label>
           <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
-          <div><label className="block text-sm font-medium text-dark-200">Nationality</label>
+          <div><label className="block text-sm font-medium text-dark-200">Nacionalidad</label>
           <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
-          <div><label className="block text-sm font-medium text-dark-200">Passport Expiration Date</label>
+          <div><label className="block text-sm font-medium text-dark-200">Fecha de Vencimiento</label>
           <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
         </div>
 
@@ -367,9 +366,9 @@ const ClientForm = () => {
             </button>
           </div>
 
-          <button type="button" onClick={() => navigate('/clients')} className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 border border-white/10 rounded-md">Cancel</button>
+          <button type="button" onClick={() => navigate('/clients')} className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 border border-white/10 rounded-md">Cancelar</button>
           <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50">
-            {loading ? 'Creating...' : 'Create Passenger'}
+            {loading ? 'Agregando...' : 'Agregar pasajero titular'}
           </button>
         </div>
       </form>

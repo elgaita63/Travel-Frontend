@@ -59,7 +59,7 @@ const ClientsList = () => {
       setError('');
     } catch (err) {
       console.error('Error fetching clients:', err);
-      setError('Failed to load passengers. Please try again.');
+      setError('Error al cargar los pasajeros. Por favor, intentá de nuevo.');
       setClients([]);
     } finally {
       if (isInitialLoad) {
@@ -95,7 +95,7 @@ const ClientsList = () => {
       }
     } catch (error) {
       console.error('Error promoting companion:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to promote Acompañante. Please try again.';
+      const errorMessage = error.response?.data?.message || 'Error al promover al acompañante. Por favor, intentá de nuevo.';
       setError(errorMessage);
     }
   };
@@ -123,7 +123,7 @@ const ClientsList = () => {
             </div>
           </div>
         </div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading Passengers...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando pasajeros...</p>
       </div>
     );
   }
@@ -133,11 +133,11 @@ const ClientsList = () => {
       <div className="space-y-12">
         {/* Modern Header */}
         <div className="text-center">
-          <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            Passenger Management
+          <h1 className="text-3xl sm:text-5xl font-bold gradient-text mb-6 font-poppins">
+            Gestión de Pasajeros
           </h1>
-          <p className="text-xl text-dark-300 max-w-3xl mx-auto">
-            Manage your passenger records, track passenger information, and maintain comprehensive travel documentation
+          <p className="text-L text-dark-300 max-w-3xl mx-auto">
+            Administrá los registros de tus pasajeros, su información y toda la documentación de viaje.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ const ClientsList = () => {
           {searchLoading && (
             <div className="flex items-center justify-center mb-4">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-200 border-t-primary-500 mr-2"></div>
-              <span className="text-sm text-dark-300">Searching...</span>
+              <span className="text-sm text-dark-300">Buscando...</span>
             </div>
           )}
           <div className="max-w-6xl mx-auto">
@@ -167,7 +167,7 @@ const ClientsList = () => {
               {/* Search Input */}
               <div className="flex-1">
                 <label htmlFor="search" className="block text-sm font-semibold text-dark-200 mb-4">
-                  Search Passengers
+                  Buscar Pasajeros
                 </label>
                 <div className="relative">
                   <input
@@ -175,7 +175,7 @@ const ClientsList = () => {
                     id="search"
                     value={searchTerm}
                     onChange={handleSearch}
-                    placeholder="Search by name, DNI/CUIT, email, or passport number..."
+                    placeholder="Buscar por nombre, DNI/CUIT, email o pasaporte..."
                     className="input-field pl-12"
                   />
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -196,7 +196,7 @@ const ClientsList = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    <span>Add New Passenger</span>
+                    <span>Agregar pasajero titular</span>
                   </span>
                 </button>
               </div>
@@ -208,18 +208,7 @@ const ClientsList = () => {
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-dark-100">Travel Passengers</h4>
-              <button
-                onClick={() => navigate('/clients/new')}
-                className="btn-primary text-sm"
-              >
-                <span className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>Add Passenger</span>
-                </span>
-              </button>
+              <h4 className="text-lg font-medium text-dark-100">Lista de Pasajeros</h4>
             </div>
           </div>
 
@@ -232,14 +221,14 @@ const ClientsList = () => {
                   </svg>
                 </div>
                 <h3 className="text-3xl font-semibold text-dark-100">
-                  {searchTerm ? 'No passengers found' : 'No passengers yet'}
+                  {searchTerm ? 'No se encontraron pasajeros' : 'Todavía no hay pasajeros'}
                 </h3>
               </div>
               <div className="text-center">
                 <p className="text-dark-300 mb-8 max-w-md mx-auto text-lg">
                   {searchTerm 
-                    ? 'Try adjusting your search terms or clear the search to see all passengers.' 
-                    : 'Get started by adding your first passenger to begin managing your travel business.'
+                    ? 'Intentá cambiar los términos de búsqueda o borrala para ver a todos los pasajeros.' 
+                    : 'Empezá agregando tu primer pasajero para comenzar a gestionar los viajes.'
                   }
                 </p>
                 {!searchTerm && (
@@ -247,7 +236,7 @@ const ClientsList = () => {
                     onClick={() => navigate('/clients/new')}
                     className="btn-primary"
                   >
-                    Add Your First Passenger
+                    Agregar primer pasajero titular
                   </button>
                 )}
               </div>
@@ -266,7 +255,7 @@ const ClientsList = () => {
                         </div>
                         <div>
                           <div className="text-lg font-semibold text-dark-100">
-                            {client.name || 'Unknown Passenger'} {client.surname || ''}
+                            {client.name || 'Pasajero Desconocido'} {client.surname || ''}
                             {!client.isMainClient && (
                               <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
                                 Acompañante
@@ -274,20 +263,20 @@ const ClientsList = () => {
                             )}
                           </div>
                           <div className="text-sm text-dark-300">
-                            DNI: {client.dni || 'No DNI'} | {client.email || 'No email'}
+                            DNI: {client.dni || 'Sin DNI'} | {client.email || 'Sin email'}
                           </div>
                           <div className="text-xs text-dark-400">
-                            Phone: {client.phone || 'No phone'} | Passport: {client.passportNumber || 'No passport'}
+                            Tel: {client.phone || 'Sin teléfono'} | Pasaporte: {client.passportNumber || 'Sin pasaporte'}
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        <span className={`badge ${client.status === 'active'
+                        <span className={`badge ${client.status === 'active' || !client.status
                             ? 'badge-success'
                             : 'badge-warning'
                           }`}>
-                          {client.status || 'active'}
+                          {client.status === 'active' || !client.status ? 'Activo' : client.status}
                         </span>
 
                         <div className="flex space-x-2">
@@ -300,7 +289,7 @@ const ClientsList = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                               </svg>
-                              <span>View Details</span>
+                              <span>Ver Detalles</span>
                             </span>
                           </button>
                           
@@ -308,13 +297,13 @@ const ClientsList = () => {
                             <button
                               onClick={() => handlePromoteCompanion(client._id || client.id)}
                               className="btn-secondary text-sm"
-                              title="Promote to Main Passenger"
+                              title="Promover a Pasajero Titular"
                             >
                               <span className="flex items-center space-x-1">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                                 </svg>
-                                <span>Promote</span>
+                                <span>Promover</span>
                               </span>
                             </button>
                           )}
@@ -331,7 +320,7 @@ const ClientsList = () => {
                   <div className="flex items-center justify-between">
                     {/* Rows per page selector */}
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm text-dark-300">Rows per page:</span>
+                      <span className="text-sm text-dark-300">Filas por página:</span>
                       <select
                         value={rowsPerPage}
                         onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
@@ -345,7 +334,7 @@ const ClientsList = () => {
 
                     {/* Page info */}
                     <div className="text-sm text-dark-300">
-                      Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalClients)} of {totalClients} passenger
+                      Mostrando {((currentPage - 1) * rowsPerPage) + 1} a {Math.min(currentPage * rowsPerPage, totalClients)} de {totalClients} pasajeros
                     </div>
 
                     {/* Pagination buttons */}
@@ -355,17 +344,17 @@ const ClientsList = () => {
                         disabled={currentPage === 1}
                         className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Previous
+                        Anterior
                       </button>
                       <span className="text-sm text-dark-300 px-2">
-                        Page {currentPage} of {totalPages}
+                        Página {currentPage} de {totalPages}
                       </span>
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Next
+                        Siguiente
                       </button>
                     </div>
                   </div>

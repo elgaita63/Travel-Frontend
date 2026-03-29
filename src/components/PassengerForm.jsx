@@ -18,7 +18,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
   });
   const [passportImage, setPassportImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [passportImageFilename, setPassportImageFilename] = useState(null);
+  const [shouldSaveImage, setShouldSaveImage] = useState(false); // Switch SÍ/NO
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,10 +49,8 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    console.log('📁 File selected:', file);
     if (file) {
       setPassportImage(file);
-      console.log('✅ Passport image state set:', file.name, file.size, file.type);
       
       // Create preview
       const reader = new FileReader();
@@ -65,7 +63,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
   const handleOpenAIExtraction = async () => {
     if (!passportImage) {
-      setError('Please upload a passport image first');
+      setError('Subí una imagen con los datos del pasajero');
       return;
     }
 
@@ -73,42 +71,22 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
     setError('');
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('passportImage', passportImage);
+      const uploadData = new FormData();
+      uploadData.append('passportImage', passportImage);
 
-      // Call the backend OpenAI Vision API
-      const response = await fetch(`${API_BASE_URL}/api/passengers/ocr`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/ocr`, {
         method: 'POST',
-        body: formData,
+        body: uploadData,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-      
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Response text:', responseText);
-        throw new Error('Invalid JSON response from server');
-      }
+      const result = await response.json();
 
       if (result.success) {
         const extractedData = result.data.extractedData;
         
-        // Auto-fill form with OpenAI extracted data
         setFormData(prev => ({
           ...prev,
           name: extractedData.name || prev.name,
@@ -123,13 +101,12 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
           gender: extractedData.gender || prev.gender
         }));
 
-        setSuccess(`Passport data extracted successfully using OpenAI Vision (confidence: ${result.data.confidence}%)`);
+        setSuccess(`Datos extraidos ! (confianza: ${result.data.confidence}%)`);
       } else {
-        setError(result.message || 'Failed to extract passport data');
+        setError(result.message || 'Error al extraer datos de la imagen');
       }
     } catch (error) {
-      console.error('OpenAI extraction error:', error);
-      setError('Failed to extract passport data. Please try again.');
+      setError('Error al extraer datos de la imagen');
     } finally {
       setOcrLoading(false);
     }
@@ -145,73 +122,33 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
     try {
       // Validate required fields first
       if (!formData.name?.trim()) {
-        setValidationErrors({ name: 'Name is required' });
-        setError('Please fill in all required fields');
+        setValidationErrors({ name: 'El Nombre es obligatorio' });
+        setError('Por favor, completá todos los campos obligatorios');
         setLoading(false);
         return;
       }
       
       if (!formData.surname?.trim()) {
-        setValidationErrors({ surname: 'Surname is required' });
-        setError('Please fill in all required fields');
+        setValidationErrors({ surname: 'El Apellido es obligatorio' });
+        setError('Por favor, completá todos los campos obligatorios');
         setLoading(false);
         return;
       }
       
       if (!formData.dni?.trim()) {
-        setValidationErrors({ dni: 'DNI is required' });
-        setError('Please fill in all required fields');
+        setValidationErrors({ dni: 'El DNI/CUIT es obligatorio' });
+        setError('Por favor, completá todos los campos obligatorios');
         setLoading(false);
         return;
       }
 
-      // Upload passport image first if one is selected
-      let uploadedImageFilename = null;
-      console.log('🔍 Checking passport image state:', {
-        hasPassportImage: !!passportImage,
-        passportImageType: typeof passportImage,
-        passportImageName: passportImage?.name,
-        passportImageSize: passportImage?.size
-      });
-      
-      if (passportImage) {
-        console.log('📁 Uploading passport image:', passportImage.name);
-        
-        const uploadFormData = new FormData();
-        uploadFormData.append('passportImage', passportImage);
-        
-        try {
-          const uploadResponse = await api.post('/api/upload/passport', uploadFormData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-            timeout: 120000, // 2 minutes timeout for file upload
-          });
-          
-          console.log('📁 Upload response:', uploadResponse.data);
-          
-          if (uploadResponse.data.success) {
-            uploadedImageFilename = uploadResponse.data.filename;
-            console.log('✅ Upload successful, filename:', uploadedImageFilename);
-          } else {
-            console.error('❌ Upload failed:', uploadResponse.data.message);
-          }
-        } catch (uploadError) {
-          console.error('❌ Upload error:', uploadError);
-          setError('Failed to upload passport image: ' + uploadError.message);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Clean up form data - only include fields that have values
+      // Clean up form data
       const cleanedFormData = {
         name: formData.name.trim(),
         surname: formData.surname.trim(),
-        dni: formData.dni.replace(/\D/g, '') // Remove all non-digits
+        dni: formData.dni.replace(/\D/g, '')
       };
       
-      // Only add optional fields if they have values
       if (formData.email?.trim()) cleanedFormData.email = formData.email.trim();
       if (formData.phone?.trim()) cleanedFormData.phone = formData.phone.trim();
       if (formData.dob) cleanedFormData.dob = new Date(formData.dob).toISOString().split('T')[0];
@@ -220,73 +157,49 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
       if (formData.expirationDate) cleanedFormData.expirationDate = new Date(formData.expirationDate).toISOString().split('T')[0];
       if (formData.gender) cleanedFormData.gender = formData.gender;
       if (formData.specialRequests?.trim()) cleanedFormData.specialRequests = formData.specialRequests.trim();
-      if (uploadedImageFilename) cleanedFormData.passportImage = uploadedImageFilename;
 
-      // Validate DNI length after cleaning
       if (cleanedFormData.dni.length < 7 || cleanedFormData.dni.length > 20) {
         setValidationErrors({ dni: 'DNI must be between 7 and 20 characters' });
-        setError('Please enter a valid DNI');
+        setError('Por favor, ingresá un DNI válido');
         setLoading(false);
         return;
       }
 
-      console.log('=== PASSENGER FORM SUBMIT DEBUG ===');
-      console.log('Form data:', formData);
-      console.log('Uploaded image filename:', uploadedImageFilename);
-      console.log('Cleaned form data being sent:', cleanedFormData);
-      console.log('DNI validation check:', {
-        original: formData.dni,
-        cleaned: cleanedFormData.dni,
-        length: cleanedFormData.dni.length,
-        isValid: cleanedFormData.dni.length >= 7 && cleanedFormData.dni.length <= 20
+      const finalPayload = new FormData();
+      Object.keys(cleanedFormData).forEach(key => {
+        finalPayload.append(key, cleanedFormData[key]);
       });
-      console.log('===================================');
 
-      const response = await api.post(
-        `/api/clients/${clientId}/passengers`,
-        cleanedFormData
-      );
+      // Lógica unificada con el Titular: Si el toggle está en SI, mandamos el archivo físico
+      if (shouldSaveImage && passportImage) {
+        finalPayload.append('passportImage', passportImage);
+      }
 
-      if (response.data.success) {
-        onPassengerAdded(response.data.data.passenger);
-        // Reset form
+      const response = await fetch(`${API_BASE_URL}/api/clients/${clientId}/passengers`, {
+        method: 'POST',
+        body: finalPayload,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
+        onPassengerAdded(responseData.data.passenger);
         setFormData({
-          name: '',
-          surname: '',
-          dni: '',
-          email: '',
-          phone: '',
-          dob: '',
-          passportNumber: '',
-          nationality: '',
-          expirationDate: '',
-          gender: '',
-          specialRequests: ''
+          name: '', surname: '', dni: '', email: '', phone: '', dob: '',
+          passportNumber: '', nationality: '', expirationDate: '', gender: '', specialRequests: ''
         });
         setPassportImage(null);
         setImagePreview(null);
-        setPassportImageFilename(null);
-        setSuccess('Acompañante added successfully!');
+        setSuccess('¡Acompañante agregado con éxito!');
         setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(responseData.message || 'Error al agregar el acompañante');
       }
     } catch (error) {
-      console.error('Passenger creation error:', error);
-      console.error('Error response:', error.response?.data);
-      
-      if (error.response?.status === 400 && error.response?.data?.errors) {
-        // Handle validation errors
-        const fieldErrors = {};
-        error.response.data.errors.forEach(err => {
-          fieldErrors[err.field] = err.message;
-        });
-        setValidationErrors(fieldErrors);
-        setError('Please fix the validation errors below');
-      } else if (error.response?.status === 400) {
-        // Handle general 400 errors
-        setError(error.response?.data?.message || 'Invalid data provided. Please check all fields.');
-      } else {
-        setError(error.response?.data?.message || 'Failed to add Acompañante');
-      }
+      setError('Error al agregar el acompañante');
     } finally {
       setLoading(false);
     }
@@ -294,7 +207,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-medium text-dark-100 mb-4">Add New Acompañante</h3>
+      <h3 className="text-lg font-medium text-dark-100 mb-4">Agregar Nuevo Acompañante</h3>
       
       {error && (
         <div className="bg-error-500/10 border border-error-500/20 text-error-400 px-4 py-3 rounded-md mb-4">
@@ -311,7 +224,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Passport Image Upload */}
         <div className="card p-4">
-          <h4 className="text-sm font-medium text-dark-400 mb-3">Passport Data Extraction</h4>
+          <h4 className="text-sm font-medium text-dark-400 mb-3">Extracción de Datos</h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
@@ -331,7 +244,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
                   disabled={ocrLoading}
                   className="mt-2 w-full btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {ocrLoading ? 'Processing with OpenAI...' : 'Extract Data with OpenAI'}
+                    {ocrLoading ? 'Procesando con OpenAI...' : 'Extraer Datos con OpenAI'}
                 </button>
               )}
               </div>
@@ -339,7 +252,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
             {imagePreview && (
               <div>
-                <h5 className="text-sm font-medium text-dark-400 mb-2">Uploaded Image</h5>
+                <h5 className="text-sm font-medium text-dark-400 mb-2">Imagen Subida</h5>
                 <img
                   src={imagePreview}
                   alt="Passport preview"
@@ -354,7 +267,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              First Name *
+              Nombre *
             </label>
             <input
               type="text"
@@ -371,7 +284,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Last Name *
+              Apellido *
             </label>
             <input
               type="text"
@@ -396,7 +309,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
               value={formData.dni}
               onChange={handleChange}
               required
-              placeholder="Enter DNI/CUIT (numbers only)"
+              placeholder="Ingresá DNI/CUIT (solo números)"
               maxLength={20}
               className={`input-field text-sm ${validationErrors.dni ? 'border-red-500' : ''}`}
             />
@@ -423,7 +336,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Phone Number
+              Teléfono
             </label>
             <input
               type="tel"
@@ -440,7 +353,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Date of Birth
+              Fecha de Nacimiento
             </label>
             <input
               type="date"
@@ -456,7 +369,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Gender
+              Género
             </label>
             <select
               name="gender"
@@ -464,10 +377,10 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
               onChange={handleChange}
               className={`input-field text-sm ${validationErrors.gender ? 'border-red-500' : ''}`}
             >
-              <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="">Seleccionar Género</option>
+              <option value="male">Masculino</option>
+              <option value="female">Femenino</option>
+              <option value="other">Otro</option>
             </select>
             {validationErrors.gender && (
               <p className="text-red-400 text-xs mt-1">{validationErrors.gender}</p>
@@ -476,7 +389,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Passport Number
+              Número de Pasaporte
             </label>
             <input
               type="text"
@@ -492,7 +405,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Nationality
+              Nacionalidad
             </label>
             <input
               type="text"
@@ -508,7 +421,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Expiration Date
+              Fecha de Vencimiento
             </label>
             <input
               type="date"
@@ -526,14 +439,14 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
         {/* Special Requests / Notes */}
         <div>
           <label className="block text-sm font-medium text-dark-400 mb-1">
-            Special Requests / Notes
+            Pedidos Especiales / Notas
           </label>
           <textarea
             name="specialRequests"
             value={formData.specialRequests}
             onChange={handleChange}
             rows={3}
-            placeholder="Dietary restrictions, medical conditions, travel preferences, or any other notes..."
+            placeholder="Restricciones alimentarias, condiciones médicas o de viaje..."
             className={`input-field text-sm ${validationErrors.specialRequests ? 'border-red-500' : ''}`}
           />
           {validationErrors.specialRequests && (
@@ -542,20 +455,30 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
         </div>
 
         {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end items-center space-x-6 pt-4 border-t border-white/10">
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-medium text-dark-300 uppercase">Guardar imagen: {shouldSaveImage ? 'SÍ' : 'NO'}</span>
+            <button 
+              type="button"
+              onClick={() => setShouldSaveImage(!shouldSaveImage)}
+              className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${shouldSaveImage ? 'bg-primary-600' : 'bg-dark-600'}`}
+            >
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${shouldSaveImage ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
           <button
             type="button"
             onClick={onCancel}
             className="btn-secondary text-sm"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
             className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Adding...' : 'Add Acompañante'}
+            {loading ? 'Agregando...' : 'Agregar Acompañante'}
           </button>
         </div>
       </form>

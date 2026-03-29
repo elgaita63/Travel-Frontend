@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../utils/api';
+import { API_BASE_URL } from '../config/api';
 import { getUploadUrl } from '../utils/uploadUtils';
 
 const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
@@ -17,6 +18,8 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
     expirationDate: passenger.expirationDate ? passenger.expirationDate.split('T')[0] : '',
     specialRequests: passenger.specialRequests || ''
   });
+  const [passportImage, setPassportImage] = useState(null);
+  const [shouldSaveImage, setShouldSaveImage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
@@ -36,6 +39,13 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
   const toggleCardExpansion = () => {
     setIsCardExpanded(!isCardExpanded);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPassportImage(file);
+    }
   };
 
   // Handle Escape key to close modal and expanded card
@@ -97,29 +107,47 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
         specialRequests: formData.specialRequests.trim() || undefined
       };
 
-      const response = await api.put(
-        `/api/passengers/${passenger._id}`,
-        cleanedFormData
-      );
+      const finalPayload = new FormData();
+      Object.keys(cleanedFormData).forEach(key => {
+        if (cleanedFormData[key] !== undefined) {
+          finalPayload.append(key, cleanedFormData[key]);
+        }
+      });
 
-      if (response.data.success) {
-        onUpdate(response.data.data.passenger);
+      if (shouldSaveImage && passportImage) {
+        finalPayload.append('passportImage', passportImage);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/passengers/${passenger._id}`, {
+        method: 'PUT',
+        body: finalPayload,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
+        onUpdate(responseData.data.passenger);
         setIsEditing(false);
+        setPassportImage(null);
+        setShouldSaveImage(false);
+      } else {
+        if (response.status === 400 && responseData.errors) {
+          const fieldErrors = {};
+          responseData.errors.forEach(err => {
+            fieldErrors[err.field] = err.message;
+          });
+          setValidationErrors(fieldErrors);
+          setError('Por favor, corregí los errores a continuación');
+        } else {
+          setError(responseData.message || responseData.error || 'Error al actualizar el pasajero');
+        }
       }
     } catch (error) {
       console.error('Passenger update error:', error);
-      
-      if (error.response?.status === 400 && error.response?.data?.errors) {
-        // Handle validation errors
-        const fieldErrors = {};
-        error.response.data.errors.forEach(err => {
-          fieldErrors[err.field] = err.message;
-        });
-        setValidationErrors(fieldErrors);
-        setError('Please fix the validation errors below');
-      } else {
-        setError(error.response?.data?.message || error.response?.data?.error || 'Failed to update passenger');
-      }
+      setError('Error al actualizar el pasajero');
     } finally {
       setLoading(false);
     }
@@ -138,17 +166,19 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
       expirationDate: passenger.expirationDate ? passenger.expirationDate.split('T')[0] : '',
       specialRequests: passenger.specialRequests || ''
     });
+    setPassportImage(null);
+    setShouldSaveImage(false);
     setIsEditing(false);
     setError('');
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this passenger?')) {
+    if (window.confirm('¿Estás seguro de que querés eliminar a este pasajero?')) {
       try {
       await api.delete(`/api/passengers/${passenger._id}`);
         onDelete(passenger._id);
       } catch (error) {
-        setError(error.response?.data?.message || 'Failed to delete passenger');
+        setError(error.response?.data?.message || 'Error al eliminar el pasajero');
       }
     }
   };
@@ -165,10 +195,10 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium text-dark-100">
-            {passenger.fullName || `${passenger.name || ''} ${passenger.surname || ''}`.trim() || 'Unknown Passenger'}
+            {passenger.fullName || `${passenger.name || ''} ${passenger.surname || ''}`.trim() || 'Pasajero Desconocido'}
           </h3>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-4">
           {!isEditing ? (
             <>
               {passenger.passportImage && (
@@ -178,7 +208,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
                     openImageModal(imageUrl);
                   }}
                   className="text-blue-400 hover:text-blue-300 p-2 rounded-md hover:bg-blue-400/10 transition-colors duration-200"
-                  title="View Passport Image"
+                  title="Ver imagen"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -189,7 +219,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
               <button
                 onClick={toggleCardExpansion}
                 className="text-blue-400 hover:text-blue-300 p-2 rounded-md hover:bg-blue-400/10 transition-colors duration-200"
-                title={isCardExpanded ? "Collapse" : "Expand"}
+                title={isCardExpanded ? "Contraer" : "Expandir"}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-5 h-5 transition-transform duration-200 ${isCardExpanded ? 'rotate-180' : ''}`}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -199,29 +229,39 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
                 onClick={() => setIsEditing(true)}
                 className="text-primary-400 hover:text-primary-300 text-sm font-medium"
               >
-                Edit
+                Editar
               </button>
               <button
                 onClick={handleDelete}
                 className="text-error-400 hover:text-error-300 text-sm font-medium"
               >
-                Delete
+                Eliminar
               </button>
             </>
           ) : (
             <>
+              <div className="flex items-center space-x-2 mr-4 border-r border-white/10 pr-4">
+                <span className="text-xs font-medium text-dark-300 uppercase">Guardar imagen: {shouldSaveImage ? 'SÍ' : 'NO'}</span>
+                <button 
+                  type="button"
+                  onClick={() => setShouldSaveImage(!shouldSaveImage)}
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${shouldSaveImage ? 'bg-primary-600' : 'bg-dark-600'}`}
+                >
+                  <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${shouldSaveImage ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
               <button
                 onClick={handleSave}
                 disabled={loading}
                 className="text-success-400 hover:text-success-300 text-sm font-medium disabled:opacity-50"
               >
-                {loading ? 'Saving...' : 'Save'}
+                {loading ? 'Guardando...' : 'Guardar'}
               </button>
               <button
                 onClick={handleCancel}
                 className="text-dark-400 hover:text-dark-300 text-sm font-medium"
               >
-                Cancel
+                Cancelar
               </button>
             </>
           )}
@@ -230,10 +270,10 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
 
       {isEditing ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              First Name
+              Nombre
             </label>
             <input
               type="text"
@@ -249,7 +289,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Last Name
+              Apellido
             </label>
             <input
               type="text"
@@ -297,7 +337,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Phone Number
+              Teléfono
             </label>
             <input
               type="tel"
@@ -314,7 +354,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Date of Birth
+              Fecha de Nacimiento
             </label>
             <input
               type="date"
@@ -330,7 +370,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Passport Number
+              Número de Pasaporte
             </label>
             <input
               type="text"
@@ -346,7 +386,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Nationality
+              Nacionalidad
             </label>
             <input
               type="text"
@@ -362,7 +402,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Expiration Date
+              Fecha de Vencimiento
             </label>
             <input
               type="date"
@@ -376,16 +416,28 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
             )}
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-dark-400 mb-1">
+              Actualizar Pasaporte (Opcional)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600"
+            />
+          </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Special Requests / Notes
+              Pedidos Especiales / Notas
             </label>
             <textarea
               name="specialRequests"
               value={formData.specialRequests}
               onChange={handleChange}
               rows={3}
-              placeholder="Dietary restrictions, medical conditions, travel preferences, or any other notes..."
+              placeholder="Restricciones alimentarias, condiciones médicas o de viaje..."
               className={`input-field text-sm ${validationErrors.specialRequests ? 'border-red-500' : ''}`}
             />
             {validationErrors.specialRequests && (
@@ -400,7 +452,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
             /* Expanded view - show all details */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <span className="text-sm font-medium text-dark-400">Full Name</span>
+                <span className="text-sm font-medium text-dark-400">Nombre Completo</span>
                 <p className="text-dark-100">{passenger.fullName || `${passenger.name || ''} ${passenger.surname || ''}`.trim() || 'N/A'}</p>
               </div>
 
@@ -410,47 +462,47 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Phone</span>
+                <span className="text-sm font-medium text-dark-400">Teléfono</span>
                 <p className="text-dark-100">{passenger.phone || 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Date of Birth</span>
+                <span className="text-sm font-medium text-dark-400">Fecha de Nacimiento</span>
                 <p className="text-dark-100">{passenger.dob ? new Date(passenger.dob).toLocaleDateString() : 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Passport Number</span>
+                <span className="text-sm font-medium text-dark-400">Número de Pasaporte</span>
                 <p className="text-dark-100">{passenger.passportNumber || 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Nationality</span>
+                <span className="text-sm font-medium text-dark-400">Nacionalidad</span>
                 <p className="text-dark-100">{passenger.nationality || 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Passport Expiration</span>
+                <span className="text-sm font-medium text-dark-400">Vencimiento del Pasaporte</span>
                 <p className="text-dark-100">{passenger.expirationDate ? new Date(passenger.expirationDate).toLocaleDateString() : 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Passport Status</span>
+                <span className="text-sm font-medium text-dark-400">Estado del Pasaporte</span>
                 <span className={`ml-2 badge ${passenger.isPassportValid
                     ? 'badge-success'
                     : 'badge-error'
                   }`}>
-                  {passenger.isPassportValid ? 'Valid' : 'Expired'}
+                  {passenger.isPassportValid ? 'VÁLIDO' : 'VENCIDO'}
                 </span>
               </div>
 
               <div className="md:col-span-2">
-                <span className="text-sm font-medium text-dark-400">Special Requests / Notes</span>
-                <p className="text-dark-100">{passenger.specialRequests || 'No special requests'}</p>
+                <span className="text-sm font-medium text-dark-400">Pedidos Especiales / Notas</span>
+                <p className="text-dark-100">{passenger.specialRequests || 'Sin pedidos especiales'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Created</span>
+                <span className="text-sm font-medium text-dark-400">Creado el</span>
                 <p className="text-dark-100">{new Date(passenger.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
@@ -463,17 +515,17 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Phone</span>
+                <span className="text-sm font-medium text-dark-400">Teléfono</span>
                 <p className="text-dark-100">{passenger.phone || 'N/A'}</p>
               </div>
 
               <div>
-                <span className="text-sm font-medium text-dark-400">Passport Status</span>
+                <span className="text-sm font-medium text-dark-400">Estado del Pasaporte</span>
                 <span className={`ml-2 badge ${passenger.isPassportValid
                     ? 'badge-success'
                     : 'badge-error'
                   }`}>
-                  {passenger.isPassportValid ? 'Valid' : 'Expired'}
+                  {passenger.isPassportValid ? 'VÁLIDO' : 'VENCIDO'}
                 </span>
               </div>
             </div>
