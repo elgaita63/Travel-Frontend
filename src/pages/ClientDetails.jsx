@@ -201,6 +201,69 @@ const ClientDetails = () => {
           <img src={modalImageUrl} alt="Passport" className="max-w-full max-h-full object-contain" />
         </div>
       )}
+
+      {/* MODAL DE EDICIÓN AGREGADO */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-dark-800 rounded-lg border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-dark-100 mb-6">Editar Pasajero</h2>
+              
+              {editError && <div className="bg-error-500/10 border border-error-500/20 text-error-400 p-3 rounded mb-4">{editError}</div>}
+              
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">First Name *</label>
+                    <input type="text" name="name" value={editFormData.name || ''} onChange={handleEditChange} required className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Last Name *</label>
+                    <input type="text" name="surname" value={editFormData.surname || ''} onChange={handleEditChange} required className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Email</label>
+                    <input type="email" name="email" value={editFormData.email || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Phone</label>
+                    <input type="tel" name="phone" value={editFormData.phone || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Date of Birth</label>
+                    <input type="date" name="dob" value={editFormData.dob || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Passport Number</label>
+                    <input type="text" name="passportNumber" value={editFormData.passportNumber || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Nationality</label>
+                    <input type="text" name="nationality" value={editFormData.nationality || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-dark-200 mb-1">Passport Expiration Date</label>
+                    <input type="date" name="expirationDate" value={editFormData.expirationDate || ''} onChange={handleEditChange} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-dark-200 mb-1">Special Requests</label>
+                  <textarea name="specialRequests" value={editFormData.specialRequests || ''} onChange={handleEditChange} rows={3} className="block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20 text-sm" />
+                </div>
+
+                <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
+                  <button type="button" onClick={closeEditModal} className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 border border-white/10 rounded-md hover:bg-dark-600">Cancel</button>
+                  <button type="submit" disabled={editLoading} className="btn-primary">
+                    {editLoading ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
