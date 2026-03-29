@@ -21,7 +21,7 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
   });
   const [passportImage, setPassportImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [shouldSaveImage, setShouldSaveImage] = useState(false); // Default NO (apagado)
+  const [shouldSaveImage, setShouldSaveImage] = useState(false); // Default NO
   const [ocrLoading, setOcrLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -31,40 +31,11 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
     }
   }, [initialData]);
 
-  const validateName = (name, fieldName) => {
-    const nameRegex = /^[a-zA-Z\s\-']+$/;
-    if (!name) return `${fieldName} is required`;
-    if (!nameRegex.test(name)) return `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
-    if (name.length < 2) return `${fieldName} must be at least 2 characters long`;
-    return '';
-  };
-  const validateDNI = (dni) => {
-    if (!dni) return 'DNI/CUIT is required';
-    if (dni.length < 7) return 'DNI/CUIT must be at least 7 characters long';
-    if (dni.length > 20) return 'DNI/CUIT cannot exceed 20 characters';
-    return '';
-  };
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email && !emailRegex.test(email)) return 'Your email format is incorrect.';
-    return '';
-  };
-  const validatePhone = (phone) => {
-    if (!phone) return '';
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    const phoneRegex = /^(\+?[1-9]\d{9,14})$/;
-    if (!phoneRegex.test(cleanPhone)) return 'Incorrect phone format.';
-    return '';
-  };
-
   const validateForm = () => {
     const newErrors = {};
-    newErrors.name = validateName(formData.name, 'First Name');
-    newErrors.surname = validateName(formData.surname, 'Last Name');
-    newErrors.dni = validateDNI(formData.dni);
-    if (formData.email) newErrors.email = validateEmail(formData.email);
-    if (formData.phone) newErrors.phone = validatePhone(formData.phone);
-    Object.keys(newErrors).forEach(key => { if (!newErrors[key]) delete newErrors[key]; });
+    if (!formData.name) newErrors.name = 'First Name is required';
+    if (!formData.surname) newErrors.surname = 'Last Name is required';
+    if (!formData.dni) newErrors.dni = 'DNI/CUIT is required';
     return newErrors;
   };
 
@@ -93,7 +64,7 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
     try {
       const uploadData = new FormData();
       uploadData.append('passportImage', passportImage);
-      const response = await fetch(`${API_BASE_URL}/api/passengers/ocr`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/ocr`, {
         method: 'POST',
         body: uploadData,
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -103,9 +74,9 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
         setFormData(prev => ({
           ...prev,
           ...result.data.extractedData,
-          passportImage: result.data.passportImage // Guardamos la URL de Supabase capturada
+          passportImage: result.data.passportImage
         }));
-        setErrors({ success: `Passport data extracted! (confidence: ${result.data.confidence}%)` });
+        setErrors({ success: `Passport data extracted!` });
       } else {
         setErrors({ general: result.message || 'Failed to extract' });
       }
@@ -123,7 +94,6 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       return;
     }
     try {
-      // --- CIRUGÍA: Solo persiste la imagen si el tilde está activo ---
       const companionData = { 
         ...formData,
         passportImage: shouldSaveImage ? formData.passportImage : ''
@@ -152,7 +122,6 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
           <div className="space-y-3">
             <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" />
             
-            {/* --- CHECKBOX GUARDAR IMAGEN (Acompañante) --- */}
             <div className="flex items-center mt-2">
               <input 
                 type="checkbox" 
@@ -183,20 +152,33 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-dark-200 mb-1">First Name *</label>
-        <input type="text" name="name" value={formData.name} onChange={handleChange} required className={`input-field text-sm ${errors.name ? 'border-red-500' : ''}`} /></div>
+        <input type="text" name="name" value={formData.name} onChange={handleChange} required className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">Last Name *</label>
-        <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className={`input-field text-sm ${errors.surname ? 'border-red-500' : ''}`} /></div>
+        <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">DNI/CUIT *</label>
-        <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className={`input-field text-sm ${errors.dni ? 'border-red-500' : ''}`} /></div>
+        <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">Date of Birth</label>
         <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">Email</label>
         <input type="email" name="email" value={formData.email} onChange={handleChange} className="input-field text-sm" /></div>
         <div><label className="block text-sm font-medium text-dark-200 mb-1">Phone Number</label>
         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+999" className="input-field text-sm" /></div>
+        
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Gender</label>
+        <select name="gender" value={formData.gender} onChange={handleChange} className="input-field text-sm">
+          <option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+        </select></div>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Passport Number</label>
+        <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleChange} className="input-field text-sm" /></div>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Nationality</label>
+        <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} className="input-field text-sm" /></div>
+        <div><label className="block text-sm font-medium text-dark-200 mb-1">Passport Expiration Date</label>
+        <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className="input-field text-sm" /></div>
       </div>
+
       <div><label className="block text-sm font-medium text-dark-200 mb-1">Special Requests / Notes</label>
       <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows={3} placeholder="Dietary restrictions..." className="input-field text-sm" /></div>
+      
       <div className="flex justify-end space-x-3 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary text-sm">Cancel</button>
         <button type="button" onClick={handleSubmit} className="btn-primary text-sm">{isEditing ? 'Update Acompañante' : 'Add Acompañante'}</button>
@@ -205,7 +187,6 @@ const CompanionForm = ({ onAddCompanion, onCancel, initialData = null, isEditing
   );
 };
 
-// --- CLIENT FORM PRINCIPAL ---
 const ClientForm = () => {
   const [formData, setFormData] = useState({
     name: '', surname: '', dni: '', dob: '', email: '', phone: '',
@@ -214,7 +195,7 @@ const ClientForm = () => {
   });
   const [companions, setCompanions] = useState([]);
   const [showCompanionForm, setShowCompanionForm] = useState(false);
-  const [shouldSaveImage, setShouldSaveImage] = useState(false); // Default NO (apagado)
+  const [shouldSaveImage, setShouldSaveImage] = useState(false); // Default NO
   const [passportImage, setPassportImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -225,18 +206,9 @@ const ClientForm = () => {
 
   const navigate = useNavigate();
 
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.name) errors.name = 'First Name is required';
-    if (!formData.surname) errors.surname = 'Last Name is required';
-    if (!formData.dni) errors.dni = 'DNI/CUIT is required';
-    return errors;
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setError('');
   };
 
   const handleImageUpload = (e) => {
@@ -269,9 +241,9 @@ const ClientForm = () => {
         setFormData(prev => ({
           ...prev,
           ...result.data.extractedData,
-          passportImage: result.data.passportImage // URL de Supabase capturada
+          passportImage: result.data.passportImage
         }));
-        setSuccess(`Passport data extracted! (confidence: ${result.data.confidence}%)`);
+        setSuccess(`Passport data extracted!`);
       } else {
         setError(result.message || 'Failed to extract');
       }
@@ -284,16 +256,9 @@ const ClientForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      setError('Please correct the errors');
-      return;
-    }
     setLoading(true);
     setError('');
     try {
-      // --- CIRUGÍA: Solo persiste la imagen si el tilde está activo ---
       const clientPayload = {
         ...formData,
         passportImage: shouldSaveImage ? formData.passportImage : '',
@@ -334,13 +299,12 @@ const ClientForm = () => {
         {success && <div className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-md">{success}</div>}
 
         <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10">
-          <h3 className="text-lg font-medium text-dark-100 mb-4">Passport Image</h3>
+          <h3 className="text-lg font-medium text-dark-100 mb-4">Imagen con datos del Pasajero</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-dark-200 mb-2">Upload Passport Image</label>
+              <label className="block text-sm font-medium text-dark-200 mb-2">Upload Imagen</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30" />
               
-              {/* --- CHECKBOX GUARDAR IMAGEN (Titular) --- */}
               <div className="flex items-center mt-3 mb-1">
                 <input 
                   type="checkbox" 
@@ -373,39 +337,28 @@ const ClientForm = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div><label className="block text-sm font-medium text-dark-200">First Name *</label>
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 ${validationErrors.name ? 'border-red-500' : 'border-white/20'}`} /></div>
+          <input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">Last Name *</label>
-          <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 ${validationErrors.surname ? 'border-red-500' : 'border-white/20'}`} /></div>
+          <input type="text" name="surname" value={formData.surname} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">DNI/CUIT *</label>
-          <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 ${validationErrors.dni ? 'border-red-500' : 'border-white/20'}`} /></div>
+          <input type="text" name="dni" value={formData.dni} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">Date of Birth</label>
-          <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 border-white/20" /></div>
+          <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">Email</label>
-          <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 border-white/20" /></div>
+          <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
           <div><label className="block text-sm font-medium text-dark-200">Phone Number</label>
-          <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+999" className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-dark-100 bg-dark-800/50 border-white/20" /></div>
-        </div>
-
-        <div className="pt-6 border-t border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-dark-100">Acompañantes</h3>
-            <button type="button" onClick={() => setShowCompanionForm(!showCompanionForm)} className="btn-primary text-sm">{showCompanionForm ? 'Cancel' : 'Add Acompañante'}</button>
-          </div>
-          {showCompanionForm && (
-            <div className="mb-6 p-4 bg-dark-700/50 rounded-lg border border-white/10">
-              <CompanionForm onAddCompanion={(c) => { setCompanions(prev => [...prev, c]); setShowCompanionForm(false); }} onCancel={() => setShowCompanionForm(false)} />
-            </div>
-          )}
-          {companions.length > 0 && (
-            <div className="space-y-3">
-              {companions.map((c, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-dark-700/30 rounded-lg border border-white/10">
-                  <div><span className="text-dark-100 font-medium">{c.name} {c.surname}</span><span className="text-dark-400 text-sm ml-2">DNI: {c.dni}</span></div>
-                  <button type="button" onClick={() => setCompanions(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
-                </div>
-              ))}
-            </div>
-          )}
+          <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+999" className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
+          
+          <div><label className="block text-sm font-medium text-dark-200">Gender</label>
+          <select name="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20">
+            <option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+          </select></div>
+          <div><label className="block text-sm font-medium text-dark-200">Passport Number</label>
+          <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
+          <div><label className="block text-sm font-medium text-dark-200">Nationality</label>
+          <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
+          <div><label className="block text-sm font-medium text-dark-200">Passport Expiration Date</label>
+          <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" /></div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-6 border-t border-white/10">
