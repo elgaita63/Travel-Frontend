@@ -1,33 +1,22 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
-import { apiConfig, FRONTEND_VERSION } from '../config/api'; // Import de version del front
+import { apiConfig, FRONTEND_VERSION } from '../config/api';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
+// Provider Component
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(`F${FRONTEND_VERSION} | B Cargando...`);
 
-  // Initialize Auth + System Version
   useEffect(() => {
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('token');
-      
-      // 1. Consultamos la versión del Backend y la combinamos con la del Front
       try {
         const versionRes = await api.get('/api/system/version');
         if (versionRes.data.success) {
-          // Resultado esperado: Fn.n.n | Bm.m.m
           setVersion(`F${FRONTEND_VERSION} B${versionRes.data.version}`);
         }
       } catch (vError) {
@@ -35,7 +24,6 @@ export const AuthProvider = ({ children }) => {
         setVersion(`F${FRONTEND_VERSION} | B Error`);
       }
 
-      // 2. Inicializamos el usuario si hay token
       if (storedToken) {
         setToken(storedToken);
         try {
@@ -48,18 +36,29 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     };
-
     initializeAuth();
   }, []);
 
   const login = async (email, password) => {
     try {
       const response = await api.post(apiConfig.endpoints.auth.login, { email, password });
-      const { token: newToken, user: userData } = response.data.data;
-      setToken(newToken);
-      setUser(userData);
-      localStorage.setItem('token', newToken);
-      return { success: true, user: userData };
+      
+      // FIX: Capturamos requirePasswordChange del nivel superior (response.data)
+      const { requirePasswordChange } = response.data;
+      const { token: newToken, user: userData } = response.data.data || {};
+
+      if (!requirePasswordChange && newToken) {
+        setToken(newToken);
+        setUser(userData);
+        localStorage.setItem('token', newToken);
+      }
+
+      return { 
+        success: true, 
+        user: userData, 
+        requirePasswordChange: !!requirePasswordChange, // Aseguramos booleano
+        data: response.data.data 
+      };
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Login failed';
       return { success: false, message };
@@ -81,11 +80,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await api.post(apiConfig.endpoints.auth.logout);
-    } catch (error) {
-      console.error('Logout API call failed:', error);
-    } finally {
+    try { await api.post(apiConfig.endpoints.auth.logout); } 
+    catch (error) { console.error('Logout API call failed:', error); } 
+    finally {
       setToken(null);
       setUser(null);
       localStorage.removeItem('token');
@@ -103,28 +100,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateUser = (userData) => {
-    setUser(userData);
-  };
+  const updateUser = (userData) => { setUser(userData); };
 
   const value = {
-    token,
-    user,
-    loading,
-    version, // <-- Compartimos el string combinado
-    login,
-    register,
-    logout,
-    fetchUser,
-    updateUser,
+    token, user, loading, version, login, register, logout, fetchUser, updateUser,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin',
     isSeller: user?.role === 'seller'
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Hook exportado al final para intentar calmar a Vite
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
 };
