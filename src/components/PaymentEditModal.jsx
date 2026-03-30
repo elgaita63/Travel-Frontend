@@ -23,6 +23,7 @@ const PaymentEditModal = ({
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loadingMethods, setLoadingMethods] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null); // ESTADO PARA VISTA PREVIA
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -37,7 +38,7 @@ const PaymentEditModal = ({
           setPaymentMethods(response.data.data.paymentMethods || []);
         }
       } catch (error) {
-        console.error('Error fetching payment methods:', error);
+        console.error('Error al cargar métodos de pago:', error);
       } finally {
         setLoadingMethods(false);
       }
@@ -56,6 +57,7 @@ const PaymentEditModal = ({
         exchangeRate: payment.exchangeRate ? payment.exchangeRate.toString() : ''
       });
       setReceiptFile(null);
+      setImagePreview(null); // Limpiar vista previa al abrir
       setExtractionError('');
     }
   }, [payment, isOpen]);
@@ -66,8 +68,19 @@ const PaymentEditModal = ({
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setReceiptFile(file);
-    setExtractionError('');
+    if (file) {
+      setReceiptFile(file);
+      setExtractionError('');
+      
+      // Lógica de vista previa
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => setImagePreview(event.target.result);
+        reader.readAsDataURL(file);
+      } else {
+        setImagePreview(null);
+      }
+    }
   };
 
   const handleExtractReceipt = async () => {
@@ -94,7 +107,7 @@ const PaymentEditModal = ({
         }
       }
     } catch (error) {
-      setExtractionError('Fallo en la extracción de datos');
+      setExtractionError('Error al extraer datos de la imagen');
     } finally {
       setExtracting(false);
     }
@@ -126,7 +139,9 @@ const PaymentEditModal = ({
     Object.keys(updateData).forEach(key => {
       submitData.append(key, updateData[key]);
     });
+    // Si hay una foto nueva, la mandamos. El backend se encarga de subirla a Supabase.
     if (receiptFile) submitData.append('receipt', receiptFile);
+    
     onSave(submitData);
   };
 
@@ -148,15 +163,30 @@ const PaymentEditModal = ({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto max-h-[80vh]">
           
-          {/* Sección OCR Compacta */}
+          {/* Sección OCR Compacta Modificada */}
           <div className="bg-primary-600/10 border border-primary-500/20 rounded-md p-3">
-            <label className="block text-[10px] font-bold text-primary-400 uppercase mb-1">Escanear Recibo (OCR)</label>
+            <label className="block text-[10px] font-bold text-primary-400 uppercase mb-1">
+              Actualizar Recibo / Extraer OCR
+            </label>
             <input
               type="file"
               accept="image/*,.pdf"
               onChange={handleFileChange}
               className="text-[11px] text-dark-300 w-full mb-2 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-primary-600 file:text-white file:text-[10px]"
             />
+            
+            {/* BLOQUE DE VISTA PREVIA */}
+            {imagePreview ? (
+              <div className="mt-2 mb-2 flex justify-center bg-dark-800/50 rounded p-1 border border-white/10">
+                <img src={imagePreview} alt="Preview" className="max-h-24 object-contain rounded" />
+              </div>
+            ) : receiptFile && receiptFile.type === 'application/pdf' ? (
+              <div className="mt-2 mb-2 flex justify-center items-center bg-dark-800/50 rounded p-2 border border-white/10">
+                <span className="text-xl">📄</span>
+                <span className="text-[10px] ml-2 text-dark-400 uppercase">PDF seleccionado</span>
+              </div>
+            ) : null}
+
             {receiptFile && (
               <button
                 type="button"
