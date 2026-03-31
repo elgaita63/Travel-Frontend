@@ -9,7 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [version, setVersion] = useState(`F${FRONTEND_VERSION} | B Cargando...`);
+  
+  // Estado inicial preventivo
+  const [version, setVersion] = useState(`V${FRONTEND_VERSION}`);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -17,7 +19,17 @@ export const AuthProvider = ({ children }) => {
       try {
         const versionRes = await api.get('/api/system/version');
         if (versionRes.data.success) {
-          setVersion(`F${FRONTEND_VERSION} B${versionRes.data.version}`);
+          const backendVersion = versionRes.data.version;
+          
+          // --- NUEVA LÓGICA DE COMPARACIÓN ---
+          if (FRONTEND_VERSION === backendVersion) {
+            // Si son iguales, solo una V y la versión
+            setVersion(`v${FRONTEND_VERSION}`);
+          } else {
+            // Si son distintas, mantenemos el formato de diagnóstico
+            setVersion(`F${FRONTEND_VERSION} B${backendVersion}`);
+          }
+          // ------------------------------------
         }
       } catch (vError) {
         console.error('Error fetching backend version:', vError);
@@ -43,7 +55,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post(apiConfig.endpoints.auth.login, { email, password });
       
-      // FIX: Capturamos requirePasswordChange del nivel superior (response.data)
       const { requirePasswordChange } = response.data;
       const { token: newToken, user: userData } = response.data.data || {};
 
@@ -56,7 +67,7 @@ export const AuthProvider = ({ children }) => {
       return { 
         success: true, 
         user: userData, 
-        requirePasswordChange: !!requirePasswordChange, // Aseguramos booleano
+        requirePasswordChange: !!requirePasswordChange, 
         data: response.data.data 
       };
     } catch (error) {
@@ -112,7 +123,6 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Hook exportado al final para intentar calmar a Vite
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
