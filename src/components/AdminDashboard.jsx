@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useAuth } from '../contexts/AuthContext'; // <--- AGREGADO
 import { useSystemStats } from '../contexts/SystemStatsContext';
 import { formatCurrencyCompact } from '../utils/formatNumbers';
 import { t, getCurrentLanguage } from '../utils/i18n';
@@ -10,6 +11,7 @@ import DatabaseValue from './DatabaseValue';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // <--- AGREGADO
   const { systemStats, businessStats, fetchSystemStats, fetchBusinessStats, refreshStats } = useSystemStats();
   const { formatCurrency, formatCurrencyJSX, formatCurrencyFullJSX } = useCurrencyFormat();
 
@@ -913,17 +915,20 @@ const AdminDashboard = () => {
             <div className="px-6 py-4 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-dark-100">Usuarios del Sistema</h4>
-                <button
-                  onClick={() => navigate('/users/new')}
-                  className="btn-primary text-sm"
-                >
-                  <span className="flex items-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span>Agregar Usuario</span>
-                  </span>
-                </button>
+                {/* CAMBIO FINAL: Solo el SuperAdmin (vos) ve este botón */}
+                {user?.isSuper && (
+                  <button
+                    onClick={() => navigate('/users/new')}
+                    className="btn-primary text-sm"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Agregar Usuario</span>
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
