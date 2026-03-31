@@ -4,127 +4,141 @@ import { apiConfig, FRONTEND_VERSION } from '../config/api';
 
 const AuthContext = createContext();
 
-// Provider Component
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null);
+  // Inicializamos el token directamente del storage para evitar saltos de render
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Estado inicial preventivo
   const [version, setVersion] = useState(`V${FRONTEND_VERSION}`);
+  const [timeLeft, setTimeLeft] = useState(1800); 
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('token');
+      
       try {
-        const versionRes = await api.get('/api/system/version');
-        if (versionRes.data.success) {
-          const backendVersion = versionRes.data.version;
-          
-          // --- NUEVA LÓGICA DE COMPARACIÓN ---
-          if (FRONTEND_VERSION === backendVersion) {
-            // Si son iguales, solo una V y la versión
-            setVersion(`v${FRONTEND_VERSION}`);
-          } else {
-            // Si son distintas, mantenemos el formato de diagnóstico
-            setVersion(`F${FRONTEND_VERSION} B${backendVersion}`);
-          }
-          // ------------------------------------
-        }
-      } catch (vError) {
-        console.error('Error fetching backend version:', vError);
-        setVersion(`F${FRONTEND_VERSION} | B Error`);
-      }
+        // 1. Carga de configuración inicial del sistema
+        const [versionRes, configRes] = await Promise.all([
+          api.get('/api/system/version').catch(() => null),
+          api.get('/api/system/config').catch(() => null)
+        ]);
 
-      if (storedToken) {
-        setToken(storedToken);
-        try {
+        if (isMounted) {
+          if (versionRes?.data?.success) {
+            const backendVersion = versionRes.data.version;
+            setVersion(FRONTEND_VERSION === backendVersion ? `v${FRONTEND_VERSION}` : `F${FRONTEND_VERSION} B${backendVersion}`);
+          }
+          if (configRes?.data?.success) {
+            setTimeLeft(configRes.data.data.session_timeout_seconds);
+          }
+        }
+
+        // 2. Validación de sesión existente
+        if (storedToken) {
           const response = await api.get(apiConfig.endpoints.auth.me);
-          setUser(response.data.data.user);
-        } catch (error) {
+          if (isMounted && response.data?.success) {
+            const userData = response.data.data?.user || response.data.user;
+            setUser(userData);
+            setToken(storedToken);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Error inicializando sesión:', error);
           localStorage.removeItem('token');
           setToken(null);
+          setUser(null);
         }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
+
     initializeAuth();
+    return () => { isMounted = false; }; 
   }, []);
 
   const login = async (email, password) => {
     try {
-      const response = await api.post(apiConfig.endpoints.auth.login, { email, password });
+      // Intento 1: Login normal
+      let response = await api.post(apiConfig.endpoints.auth.login, { email, password });
       
-      const { requirePasswordChange } = response.data;
-      const { token: newToken, user: userData } = response.data.data || {};
-
-      if (!requirePasswordChange && newToken) {
-        setToken(newToken);
-        setUser(userData);
-        localStorage.setItem('token', newToken);
+      // CASO A: Sesión activa detectada (Concurrencia en el Back)
+      if (response.data?.hasActiveSession) {
+        console.warn('⚠️ Sesión activa en otra pantalla. Forzando ingreso...');
+        // Intento 2: Forzamos el login (esto gatilla invalidateUserSessions en el back)
+        response = await api.post(apiConfig.endpoints.auth.login, { 
+          email, 
+          password, 
+          forceLogin: true 
+        });
       }
 
+      // CASO B: Cambio de contraseña obligatorio
+      if (response.data?.requirePasswordChange) {
+        return { 
+          success: true, 
+          requirePasswordChange: true, 
+          data: response.data.data 
+        };
+      }
+
+      // CASO C: Login exitoso (Normal o Sid)
+      const responseData = response.data?.data || response.data;
+      const newToken = responseData?.token;
+      const userData = responseData?.user;
+      
+      if (newToken) {
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
+        setUser(userData);
+        
+        return { 
+          success: true, 
+          user: userData, 
+          data: responseData 
+        };
+      }
+      
+      return { success: false, message: 'No se recibió un token de acceso válido' };
+
+    } catch (error) {
+      console.error('Login error detail:', error);
       return { 
-        success: true, 
-        user: userData, 
-        requirePasswordChange: !!requirePasswordChange, 
-        data: response.data.data 
+        success: false, 
+        message: error.response?.data?.message || 'Credenciales inválidas o error de servidor' 
       };
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      return { success: false, message };
     }
   };
 
-  const register = async (username, email, password, role = 'seller') => {
-    try {
-      const response = await api.post(apiConfig.endpoints.auth.register, { username, email, password, role });
-      const { token: newToken, user: userData } = response.data.data;
-      setToken(newToken);
-      setUser(userData);
-      localStorage.setItem('token', newToken);
-      return { success: true, user: userData };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
-      return { success: false, message };
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    // Usamos replace para limpiar el historial y evitar rebotes del router
+    window.location.replace('/login');
   };
-
-  const logout = async () => {
-    try { await api.post(apiConfig.endpoints.auth.logout); } 
-    catch (error) { console.error('Logout API call failed:', error); } 
-    finally {
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('token');
-    }
-  };
-
-  const fetchUser = async () => {
-    try {
-      const response = await api.get(apiConfig.endpoints.auth.me);
-      setUser(response.data.data.user);
-      return { success: true, user: response.data.data.user };
-    } catch (error) {
-      logout();
-      return { success: false, message: 'Failed to fetch user data' };
-    }
-  };
-
-  const updateUser = (userData) => { setUser(userData); };
 
   const value = {
-    token, user, loading, version, login, register, logout, fetchUser, updateUser,
+    token,
+    user,
+    loading,
+    version,
+    timeLeft,
+    login,
+    logout,
     isAuthenticated: !!token,
-    isAdmin: user?.role === 'admin',
+    isAdmin: user?.role === 'admin' || user?.isSuper,
     isSeller: user?.role === 'seller'
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

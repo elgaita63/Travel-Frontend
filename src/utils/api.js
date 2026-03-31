@@ -61,7 +61,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid, clear it
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      
+      // LA CURA: Comentamos la redirección física. 
+      // Dejamos que el AuthContext maneje el estado de 'user' como null
+      // y React Router se encargue de mostrar el Login sin recargar la página.
+      console.warn('⚠️ Sesión expirada o inválida. Token removido de LocalStorage.');
+      // window.location.href = '/login'; <--- ESTO CAUSABA EL LOOP
     }
     return Promise.reject(error);
   }

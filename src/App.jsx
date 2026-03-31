@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemStatsProvider } from './contexts/SystemStatsContext';
 import Layout from './components/Layout';
@@ -34,12 +34,12 @@ import DailyReports from './pages/DailyReports';
 import AdminInsightsDashboard from './pages/AdminInsightsDashboard';
 import Balances from './pages/Balances';
 import SearchPage from './pages/SearchPage';
-import ForcePasswordChange from './pages/ForcePasswordChange'; // NUEVO IMPORT
+import ForcePasswordChange from './pages/ForcePasswordChange';
 import ProtectedRoute from './components/ProtectedRoute';
+import SystemConfig from './pages/SystemConfig';
 
 const MODO_MANTENIMIENTO = import.meta.env.VITE_MODO_MANTENIMIENTO === 'true';
 
-// ESTILOS RESTAURADOS
 const styles = {
   container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a', color: '#fff', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px' },
   content: { maxWidth: '500px', width: '100%', padding: '40px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' },
@@ -48,13 +48,20 @@ const styles = {
 };
 
 const AppRoutes = () => {
+  const { loading, isAuthenticated } = useAuth(); // <--- Agregado isAuthenticated
+
+  if (loading) return null;
+
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/force-password-change" element={<ForcePasswordChange />} /> {/* RUTA PÚBLICA NUEVA */}
+      {/* RUTAS PÚBLICAS */}
+      {/* Si ya está autenticado, no lo dejamos entrar al login, lo mandamos al dashboard */}
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/force-password-change" element={<ForcePasswordChange />} />
       
-      <Route path="/register" element={<ProtectedRoute requireAdmin><Layout><Register /></Layout></ProtectedRoute>} />
+      {/* RUTAS PROTEGIDAS COMPLETAS */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+      <Route path="/register" element={<ProtectedRoute requireAdmin><Layout><Register /></Layout></ProtectedRoute>} />
       <Route path="/clients" element={<ProtectedRoute><Layout><ClientsList /></Layout></ProtectedRoute>} />
       <Route path="/clients/new" element={<ProtectedRoute><Layout><ClientForm /></Layout></ProtectedRoute>} />
       <Route path="/clients/:clientId" element={<ProtectedRoute><Layout><ClientDetails /></Layout></ProtectedRoute>} />
@@ -85,36 +92,24 @@ const AppRoutes = () => {
       <Route path="/users/new" element={<ProtectedRoute><Layout><UserForm /></Layout></ProtectedRoute>} />
       <Route path="/users/:id/edit" element={<ProtectedRoute><Layout><UserForm /></Layout></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Layout><SearchPage /></Layout></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/system-config" element={<ProtectedRoute requireAdmin><Layout><SystemConfig /></Layout></ProtectedRoute>} />
+
+      {/* MANEJO DE REDIRECCIONES INTELIGENTES */}
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
     </Routes>
   );
 };
 
 function App() {
-  // LÓGICA DE MANTENIMIENTO RESTAURADA
   if (MODO_MANTENIMIENTO) {
     const agencyLogo = import.meta.env.VITE_AGENCY_LOGO;
     return (
       <div style={styles.container}>
         <div style={styles.content}>
-          {agencyLogo && (
-            <img 
-              src={agencyLogo} 
-              alt="Marenostrum Logo" 
-              style={{
-                ...styles.logo,
-                display: 'block',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                marginBottom: '20px'
-              }} 
-            />
-          )}
+          {agencyLogo && <img src={agencyLogo} alt="Logo" style={{...styles.logo, display: 'block', marginLeft: 'auto', marginRight: 'auto', marginBottom: '20px'}} />}
           <h2 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>Mantenimiento Programado</h2>
-          <p style={{ fontSize: '1.1rem', color: '#ccc', lineHeight: '1.5' }}>
-            Estamos optimizando nuestros servidores de base de datos. 
-            El sistema volverá a estar en línea en unos minutos.
-          </p>
+          <p style={{ fontSize: '1.1rem', color: '#ccc', lineHeight: '1.5' }}>Estamos optimizando servidores. Volvemos en minutos.</p>
           <p style={styles.highlight}>Gracias por tu paciencia.</p>
           <hr style={{ border: '0', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '25px 0' }} />
           <p style={{ fontSize: '0.8rem', color: '#666' }}>Equipo de IT</p>
