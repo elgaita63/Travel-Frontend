@@ -22,11 +22,15 @@ const AdminDashboard = () => {
     username: '',
     email: '',
     role: '',
-    comision: '',
+    commission: '', // --- NUEVO: Campo para la comisión
     forcePasswordExpiration: false,
     password: '',
     confirmPassword: ''
   });
+  
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [showAdminConfirm, setShowAdminConfirm] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -70,9 +74,12 @@ const AdminDashboard = () => {
   const fetchAllData = async () => {
     try {
       setLoading(true);
+      // Fetch users first and get the result
       const usersData = await fetchUsers();
       await fetchRecentActivity();
+      // Fetch stats using context methods
       await fetchSystemStats();
+      // Fetch business stats with the fetched users
       await fetchBusinessStats(usersData);
     } catch (error) {
       setError('Failed to load dashboard data');
@@ -106,11 +113,13 @@ const AdminDashboard = () => {
         setRecentActivity(response.data.data.activities);
         setTotalActivities(response.data.data.pagination.totalCount);
       } else {
+        // Fallback to empty array if API fails
         setRecentActivity([]);
         setTotalActivities(0);
       }
     } catch (error) {
       console.error('Error fetching recent activity:', error);
+      // Fallback to empty array if API fails
       setRecentActivity([]);
       setTotalActivities(0);
     }
@@ -118,11 +127,13 @@ const AdminDashboard = () => {
 
   const handleEditUser = (user) => {
     setEditingUser(user);
+    setShowAdminPass(false);
+    setShowAdminConfirm(false);
     setEditForm({
       username: user.username,
       email: user.email,
       role: user.role,
-      comision: user.comision || '',
+      commission: user.commission || '', // --- NUEVO: Cargar comisión al editar
       forcePasswordExpiration: false,
       password: '',
       confirmPassword: ''
@@ -131,23 +142,15 @@ const AdminDashboard = () => {
 
   const handleUpdateUser = async (e) => {
     e.preventDefault();
-
-    // Validación de contraseñas si se activa el vencimiento forzado
     if (editForm.forcePasswordExpiration) {
-      if (!editForm.password) {
-        setError('Password is required to force expiration');
-        return;
-      }
-      if (editForm.password !== editForm.confirmPassword) {
-        setError('Passwords do not match');
+      if (!editForm.password || editForm.password !== editForm.confirmPassword) {
+        setError('Las contraseñas no coinciden o están vacías.');
         return;
       }
     }
-
     try {
-      await api.put(`/api/users/${editingUser.id}`, editForm);
+        await api.put(`/api/users/${editingUser.id}`, editForm);
       setEditingUser(null);
-      setError('');
       fetchUsers();
     } catch (error) {
       setError('Failed to update user');
@@ -160,6 +163,7 @@ const AdminDashboard = () => {
       try {
         await api.delete(`/api/users/${userId}`);
         fetchUsers();
+        // Refresh system stats to update analytics
         refreshStats();
       } catch (error) {
         setError('Failed to delete user');
@@ -170,7 +174,7 @@ const AdminDashboard = () => {
 
   const handleRowsPerPageChange = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when changing rows per page
   };
 
   const handlePageChange = (newPage) => {
@@ -184,7 +188,7 @@ const AdminDashboard = () => {
   // Activity pagination handlers
   const handleActivityRowsPerPageChange = (newRowsPerPage) => {
     setActivityRowsPerPage(newRowsPerPage);
-    setActivityCurrentPage(1);
+    setActivityCurrentPage(1); // Reset to first page when changing rows per page
   };
 
   const handleActivityPageChange = (newPage) => {
@@ -208,7 +212,7 @@ const AdminDashboard = () => {
     setTimeout(() => {
       setSystemMessage('');
       setSystemMessageType('');
-    }, 2500);
+    }, 2500); // Reduced to 2.5 seconds for better UX
   };
 
   const handleSystemHealthCheck = async () => {
@@ -453,7 +457,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-primary-500">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
                 <span className="text-primary-400 text-sm font-medium">Active</span>
@@ -653,6 +657,7 @@ const AdminDashboard = () => {
             {totalActivities > 0 && (
               <div className="px-6 py-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
+                  {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-dark-300">Rows per page:</span>
                     <select
@@ -665,9 +670,13 @@ const AdminDashboard = () => {
                       <option value={20}>20</option>
                     </select>
                   </div>
+
+                  {/* Page info */}
                   <div className="text-sm text-dark-300">
                     Showing {((activityCurrentPage - 1) * activityRowsPerPage) + 1} to {Math.min(activityCurrentPage * activityRowsPerPage, totalActivities)} of {totalActivities} activities
                   </div>
+
+                  {/* Pagination buttons */}
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleActivityPageChange(activityCurrentPage - 1)}
@@ -706,6 +715,7 @@ const AdminDashboard = () => {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Database Management */}
             <div className="card hover-lift p-6">
               <div className="flex items-center space-x-4 mb-4">
                 <div className="icon-container bg-primary-500">
@@ -738,6 +748,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {/* System Maintenance */}
             <div className="card hover-lift p-6">
               <div className="flex items-center space-x-4 mb-4">
                 <div className="icon-container bg-success-500">
@@ -803,6 +814,7 @@ const AdminDashboard = () => {
               <button
                 onClick={handleCloseSystemHealthReport}
                 className="btn-secondary text-sm px-4 py-2 flex items-center space-x-2 hover:bg-error-500/20 hover:border-error-500/50 transition-all duration-200"
+                title="Close System Health Report"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -812,6 +824,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Database Status */}
               <div className="card hover-lift p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-dark-100">Database</h4>
@@ -832,6 +845,8 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Collections Overview */}
               <div className="card hover-lift p-6">
                 <h4 className="text-lg font-semibold text-dark-100 mb-4">Collections</h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -843,6 +858,8 @@ const AdminDashboard = () => {
                   ))}
                 </div>
               </div>
+
+              {/* System Info */}
               <div className="card hover-lift p-6">
                 <h4 className="text-lg font-semibold text-dark-100 mb-4">System Info</h4>
                 <div className="space-y-2">
@@ -861,10 +878,34 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Relationship Health */}
+            {systemHealth.relationships && systemHealth.relationships.checks && (
+              <div className="mt-6">
+                <h4 className="text-xl font-semibold text-dark-100 mb-4">Relationship Health</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {systemHealth.relationships.checks.map((check, index) => (
+                    <div key={index} className="card p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-dark-100 font-medium">{check.name}</span>
+                        <span className={`badge ${check.status === 'healthy' ? 'badge-success' : 'badge-error'}`}>
+                          {check.status}
+                        </span>
+                      </div>
+                      {check.invalidReferences > 0 && (
+                        <p className="text-error-400 text-sm mt-2">
+                          {check.invalidReferences} invalid references found
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* User Management Section */}
+        {/* User Management */}
         <div className="mb-12">
           <h3 className="text-3xl font-bold text-dark-100 mb-8 flex items-center">
             <div className="icon-container bg-primary-500 mr-4">
@@ -883,7 +924,12 @@ const AdminDashboard = () => {
                   onClick={() => navigate('/users/new')}
                   className="btn-primary text-sm"
                 >
-                  Add User
+                  <span className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Add User</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -894,31 +940,57 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
-                        <span className="text-lg font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+                        <DatabaseValue data-field="userInitial" className="text-lg font-bold text-white">
+                          {user.username.charAt(0).toUpperCase()}
+                        </DatabaseValue>
                       </div>
                       <div>
-                        <div className="text-lg font-semibold text-dark-100">{user.username}</div>
+                        <div className="text-lg font-semibold text-dark-100">
+                          {user.username}
+                        </div>
                         <div className="text-sm text-dark-300">{user.email}</div>
+                        <div className="text-xs text-dark-400">
+                          Created: {new Date(user.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-4">
-                      <span className={`badge ${user.role === 'admin' ? 'badge-primary' : 'badge-success'}`}>
+                      <span className={`badge ${user.role === 'admin'
+                          ? 'badge-primary'
+                          : 'badge-success'
+                        }`}>
                         {user.role}
+                      </span>
+                      
+                      {/* --- NUEVO: Mostrar la comisión del usuario en el listado --- */}
+                      <span className="text-sm font-medium text-dark-200 mx-2">
+                        Comisión: {user.commission || 0}
                       </span>
 
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="btn-primary text-sm px-4 py-2"
+                          className="btn-primary text-sm"
                         >
-                          Edit
+                          <span className="flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Edit</span>
+                          </span>
                         </button>
+
                         <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="btn-error text-sm px-4 py-2"
+                          className="btn-error text-sm"
                         >
-                          Delete
+                          <span className="flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete</span>
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -927,9 +999,11 @@ const AdminDashboard = () => {
               ))}
             </div>
 
+            {/* Pagination Controls */}
             {totalUsers > 0 && (
               <div className="px-6 py-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
+                  {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-dark-300">Rows per page:</span>
                     <select
@@ -942,21 +1016,28 @@ const AdminDashboard = () => {
                       <option value={20}>20</option>
                     </select>
                   </div>
+
+                  {/* Page info */}
                   <div className="text-sm text-dark-300">
-                    Page {currentPage} of {getTotalPages()}
+                    Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalUsers)} of {totalUsers} users
                   </div>
+
+                  {/* Pagination buttons */}
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="btn-secondary text-sm px-3 py-1 disabled:opacity-50"
+                      className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
+                    <span className="text-sm text-dark-300 px-2">
+                      Page {currentPage} of {getTotalPages()}
+                    </span>
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === getTotalPages()}
-                      className="btn-secondary text-sm px-3 py-1 disabled:opacity-50"
+                      className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -970,62 +1051,69 @@ const AdminDashboard = () => {
         {/* Edit User Modal */}
         {editingUser && (
           <div className="modal-backdrop">
-            <div className="modal-content p-8 max-w-2xl">
+            <div className="modal-content p-8">
               <div className="text-center mb-8">
                 <h3 className="text-3xl font-bold text-dark-100 mb-3 font-poppins">Edit User</h3>
-                <p className="text-dark-300">Update information and security settings</p>
+                <p className="text-dark-300">Update user information</p>
               </div>
 
-              <form onSubmit={handleUpdateUser} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-dark-200 mb-2">Username</label>
-                    <input
-                      type="text"
-                      value={editForm.username}
-                      onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-dark-200 mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="input-field"
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleUpdateUser} className="space-y-8">
+                <div>
+                  <label className="block text-sm font-semibold text-dark-200 mb-4">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="input-field"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-dark-200 mb-2">Role</label>
-                    <select
-                      value={editForm.role}
-                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                      className="input-field"
-                    >
-                      <option value="seller">Seller</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-dark-200 mb-2">Comisión %</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editForm.comision}
-                      onChange={(e) => setEditForm({ ...editForm, comision: e.target.value })}
-                      className="input-field"
-                      placeholder="%"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-dark-200 mb-4">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="input-field"
+                    required
+                  />
                 </div>
 
-                {/* --- NUEVA FUNCIONALIDAD: Toggle de Seguridad --- */}
+                <div>
+                  <label className="block text-sm font-semibold text-dark-200 mb-4">
+                    Role
+                  </label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="seller">Seller</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {/* --- NUEVO: Input para la comisión --- */}
+                <div>
+                  <label className="block text-sm font-semibold text-dark-200 mb-4">
+                    Comisión
+                  </label>
+                  <input
+                    type="number"
+                    value={editForm.commission}
+                    onChange={(e) => setEditForm({ ...editForm, commission: e.target.value })}
+                    className="input-field"
+                    placeholder="Ej: 10"
+                  />
+                </div>
+                {/* --- FIN NUEVO --- */}
+
+                {/* --- INICIO CAMBIOS: Vencimiento y Ojitos --- */}
                 <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/20 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-primary-400 uppercase tracking-wider">Forzar Vencimiento</h4>
@@ -1044,33 +1132,65 @@ const AdminDashboard = () => {
 
                 {editForm.forcePasswordExpiration && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                    <div>
-                      <label className="block text-xs font-semibold text-primary-400 mb-2 uppercase">Nueva Clave Provisoria</label>
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-primary-400 mb-2 uppercase">Nueva Clave</label>
                       <input
-                        type="password"
+                        type={showAdminPass ? "text" : "password"}
                         value={editForm.password}
                         onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                        className="input-field border-primary-500/50"
-                        placeholder="Mínimo 6 caracteres"
+                        className="input-field pr-10"
+                        placeholder="Nueva Clave"
                         required={editForm.forcePasswordExpiration}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPass(!showAdminPass)}
+                        className="absolute bottom-0 right-0 h-10 px-3 flex items-center text-dark-400 hover:text-primary-400 transition-colors"
+                      >
+                        {showAdminPass ? (
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-primary-400 mb-2 uppercase">Confirmar Clave</label>
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-primary-400 mb-2 uppercase">Confirmar</label>
                       <input
-                        type="password"
+                        type={showAdminConfirm ? "text" : "password"}
                         value={editForm.confirmPassword}
                         onChange={(e) => setEditForm({ ...editForm, confirmPassword: e.target.value })}
-                        className="input-field border-primary-500/50"
-                        placeholder="Repita la contraseña"
+                        className="input-field pr-10"
+                        placeholder="Confirmar"
                         required={editForm.forcePasswordExpiration}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminConfirm(!showAdminConfirm)}
+                        className="absolute bottom-0 right-0 h-10 px-3 flex items-center text-dark-400 hover:text-primary-400 transition-colors"
+                      >
+                        {showAdminConfirm ? (
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
                   </div>
                 )}
-                {/* ------------------------------------------- */}
+                {/* --- FIN CAMBIOS --- */}
 
-                <div className="flex justify-end space-x-4 pt-4 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
                   <button
                     type="button"
                     onClick={() => setEditingUser(null)}

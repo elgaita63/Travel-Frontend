@@ -26,7 +26,7 @@ if (import.meta.env.PROD) {
 }
 
 // Front Version ************************
-export const FRONTEND_VERSION = '3.0.0NVT'; //NonVolatileTranslation 
+export const FRONTEND_VERSION = '3.1.0CPC'; //ChangePass and Commision
 // **************************************
 
 // Export API_BASE_URL for components that need direct URL access
