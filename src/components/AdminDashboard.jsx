@@ -22,7 +22,7 @@ const AdminDashboard = () => {
     username: '',
     email: '',
     role: '',
-    commission: '', // --- NUEVO: Campo para la comisión
+    comision: '', // CORREGIDO: ahora coincide con la BD (comision en lugar de commission)
     forcePasswordExpiration: false,
     password: '',
     confirmPassword: ''
@@ -74,15 +74,12 @@ const AdminDashboard = () => {
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      // Fetch users first and get the result
       const usersData = await fetchUsers();
       await fetchRecentActivity();
-      // Fetch stats using context methods
       await fetchSystemStats();
-      // Fetch business stats with the fetched users
       await fetchBusinessStats(usersData);
     } catch (error) {
-      setError('Failed to load dashboard data');
+      setError('Error al cargar los datos del panel');
     } finally {
       setLoading(false);
     }
@@ -113,13 +110,11 @@ const AdminDashboard = () => {
         setRecentActivity(response.data.data.activities);
         setTotalActivities(response.data.data.pagination.totalCount);
       } else {
-        // Fallback to empty array if API fails
         setRecentActivity([]);
         setTotalActivities(0);
       }
     } catch (error) {
       console.error('Error fetching recent activity:', error);
-      // Fallback to empty array if API fails
       setRecentActivity([]);
       setTotalActivities(0);
     }
@@ -133,7 +128,7 @@ const AdminDashboard = () => {
       username: user.username,
       email: user.email,
       role: user.role,
-      commission: user.commission || '', // --- NUEVO: Cargar comisión al editar
+      comision: user.comision || '', // CORREGIDO: comision
       forcePasswordExpiration: false,
       password: '',
       confirmPassword: ''
@@ -149,24 +144,23 @@ const AdminDashboard = () => {
       }
     }
     try {
-        await api.put(`/api/users/${editingUser.id}`, editForm);
+      await api.put(`/api/users/${editingUser.id}`, editForm);
       setEditingUser(null);
       fetchUsers();
     } catch (error) {
-      setError('Failed to update user');
+      setError('Error al actualizar el usuario');
       console.error('Error updating user:', error);
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('¿Estás seguro de que querés eliminar este usuario?')) {
       try {
         await api.delete(`/api/users/${userId}`);
         fetchUsers();
-        // Refresh system stats to update analytics
         refreshStats();
       } catch (error) {
-        setError('Failed to delete user');
+        setError('Error al eliminar el usuario');
         console.error('Error deleting user:', error);
       }
     }
@@ -174,7 +168,7 @@ const AdminDashboard = () => {
 
   const handleRowsPerPageChange = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
-    setCurrentPage(1); // Reset to first page when changing rows per page
+    setCurrentPage(1); 
   };
 
   const handlePageChange = (newPage) => {
@@ -185,10 +179,9 @@ const AdminDashboard = () => {
     return Math.ceil(totalUsers / rowsPerPage);
   };
 
-  // Activity pagination handlers
   const handleActivityRowsPerPageChange = (newRowsPerPage) => {
     setActivityRowsPerPage(newRowsPerPage);
-    setActivityCurrentPage(1); // Reset to first page when changing rows per page
+    setActivityCurrentPage(1); 
   };
 
   const handleActivityPageChange = (newPage) => {
@@ -212,56 +205,56 @@ const AdminDashboard = () => {
     setTimeout(() => {
       setSystemMessage('');
       setSystemMessageType('');
-    }, 2500); // Reduced to 2.5 seconds for better UX
+    }, 2500); 
   };
 
   const handleSystemHealthCheck = async () => {
     try {
       setSystemLoading(true);
-      showSystemMessage('Starting system health check...', 'info');
+      showSystemMessage('Iniciando chequeo de salud del sistema...', 'info');
       
       const response = await api.get('/api/system/health');
       
       if (response.data.success) {
         setSystemHealth(response.data.data);
         const healthData = response.data.data;
-        const status = healthData.status === 'healthy' ? 'healthy' : 'issues detected';
+        const status = healthData.status === 'healthy' ? 'óptimo' : 'con problemas';
         showSystemMessage(
-          `System health check completed: ${status.toUpperCase()}. Database: ${healthData.database.status}, Collections: ${healthData.collections.found}/${healthData.collections.expected}`, 
+          `Chequeo completado: ${status.toUpperCase()}. Base de datos: ${healthData.database.status}, Colecciones: ${healthData.collections.found}/${healthData.collections.expected}`, 
           healthData.status === 'healthy' ? 'success' : 'warning'
         );
       }
     } catch (error) {
       console.error('System health check error:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
-      showSystemMessage(`System health check failed: ${errorMsg}`, 'error');
+      const errorMsg = error.response?.data?.message || error.message || 'Error desconocido';
+      showSystemMessage(`Fallo en el chequeo del sistema: ${errorMsg}`, 'error');
     } finally {
       setSystemLoading(false);
     }
   };
 
   const handleBackupDatabase = async () => {
-    if (!window.confirm('This will create a backup of the entire database. Continue?')) {
+    if (!window.confirm('Esto creará un respaldo de toda la base de datos. ¿Querés continuar?')) {
       return;
     }
     
     try {
       setSystemLoading(true);
-      showSystemMessage('Creating database backup...', 'info');
+      showSystemMessage('Creando respaldo de la base de datos...', 'info');
       
       const response = await api.post('/api/system/backup');
       
       if (response.data.success) {
         const backupInfo = response.data.data;
         showSystemMessage(
-          `Database backup SUCCESS: Created ${backupInfo.backupFile} (${backupInfo.sizeFormatted}) at ${new Date().toLocaleTimeString()}`, 
+          `Respaldo EXITOSO: Se creó ${backupInfo.backupFile} (${backupInfo.sizeFormatted}) a las ${new Date().toLocaleTimeString()}`, 
           'success'
         );
       }
     } catch (error) {
       console.error('Database backup error:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
-      showSystemMessage(`Database backup FAILED: ${errorMsg}`, 'error');
+      const errorMsg = error.response?.data?.message || error.message || 'Error desconocido';
+      showSystemMessage(`Fallo en el respaldo: ${errorMsg}`, 'error');
     } finally {
       setSystemLoading(false);
     }
@@ -269,28 +262,28 @@ const AdminDashboard = () => {
 
 
   const handleClearCache = async () => {
-    if (!window.confirm('This will clear temporary files and cache. Continue?')) {
-      showSystemMessage('Cache clear cancelled by user', 'info');
+    if (!window.confirm('Esto limpiará los archivos temporales y la caché. ¿Querés continuar?')) {
+      showSystemMessage('Limpieza de caché cancelada', 'info');
       return;
     }
     
     try {
       setSystemLoading(true);
-      showSystemMessage('Clearing system cache...', 'info');
+      showSystemMessage('Limpiando caché del sistema...', 'info');
       
       const response = await api.post('/api/system/clear-cache');
       
       if (response.data.success) {
         const cacheInfo = response.data.data;
         showSystemMessage(
-          `Cache clear SUCCESS: Removed ${cacheInfo.cleared.length} items at ${new Date().toLocaleTimeString()}`, 
+          `Limpieza EXITOSA: Se removieron ${cacheInfo.cleared.length} elementos a las ${new Date().toLocaleTimeString()}`, 
           'success'
         );
       }
     } catch (error) {
       console.error('Clear cache error:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
-      showSystemMessage(`Cache clear FAILED: ${errorMsg}`, 'error');
+      const errorMsg = error.response?.data?.message || error.message || 'Error desconocido';
+      showSystemMessage(`Fallo al limpiar caché: ${errorMsg}`, 'error');
     } finally {
       setSystemLoading(false);
     }
@@ -298,7 +291,7 @@ const AdminDashboard = () => {
 
   const handleCloseSystemHealthReport = () => {
     setSystemHealth(null);
-    showSystemMessage('System health report closed', 'info');
+    showSystemMessage('Reporte de salud cerrado', 'info');
   };
 
   if (loading) {
@@ -314,7 +307,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading users...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando usuarios...</p>
       </div>
     );
   }
@@ -325,10 +318,10 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            <CurrencyDisplay>Admin Dashboard</CurrencyDisplay>
+            <CurrencyDisplay>Panel de Administración</CurrencyDisplay>
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            <CurrencyDisplay>Comprehensive business management and system administration</CurrencyDisplay>
+            <CurrencyDisplay>Gestión integral del negocio y administración del sistema</CurrencyDisplay>
           </p>
         </div>
 
@@ -393,7 +386,7 @@ const AdminDashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <CurrencyDisplay>Business Overview</CurrencyDisplay>
+              <CurrencyDisplay>Resumen del Negocio</CurrencyDisplay>
             </h3>
             <button
               onClick={async () => {
@@ -405,7 +398,7 @@ const AdminDashboard = () => {
               <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+              <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
             </button>
           </div>
 
@@ -420,7 +413,7 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-success-400 text-sm font-medium"><CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay></span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Sales in</CurrencyDisplay> <CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas en</CurrencyDisplay> <CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-success-400">
                 {loading ? (
                   <div className="animate-pulse bg-success-400/20 h-8 w-32 rounded"></div>
@@ -428,7 +421,7 @@ const AdminDashboard = () => {
                   formatCurrencyFullJSX(businessStats.usdSales, 'USD', '...')
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay> <CurrencyDisplay>transactions</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay> <CurrencyDisplay>transacciones</CurrencyDisplay></p>
             </div>
 
             {/* ARS Sales */}
@@ -441,7 +434,7 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-warning-400 text-sm font-medium"><CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay></span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Sales in</CurrencyDisplay> <CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas en</CurrencyDisplay> <CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-warning-400">
                 {loading ? (
                   <div className="animate-pulse bg-warning-400/20 h-8 w-32 rounded"></div>
@@ -449,7 +442,7 @@ const AdminDashboard = () => {
                   formatCurrencyFullJSX(businessStats.arsSales, 'ARS', '...')
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay> <CurrencyDisplay>transactions</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay> <CurrencyDisplay>transacciones</CurrencyDisplay></p>
             </div>
 
             {/* Total Sales */}
@@ -460,9 +453,9 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <span className="text-primary-400 text-sm font-medium">Active</span>
+                <span className="text-primary-400 text-sm font-medium">Activas</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total Sales</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas Totales</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-primary-400">
                 {loading ? (
                   <div className="animate-pulse bg-primary-400/20 h-8 w-16 rounded"></div>
@@ -470,7 +463,7 @@ const AdminDashboard = () => {
                   businessStats.totalSales
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2">Completed transactions</p>
+              <p className="text-sm text-dark-400 mt-2">Transacciones completadas</p>
             </div>
 
             {/* Total Clients */}
@@ -481,9 +474,9 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                   </svg>
                 </div>
-                <span className="text-accent-400 text-sm font-medium">Growing</span>
+                <span className="text-accent-400 text-sm font-medium">Creciendo</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total Passengers</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Pasajeros</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-accent-400">
                 {loading ? (
                   <div className="animate-pulse bg-accent-400/20 h-8 w-16 rounded"></div>
@@ -491,13 +484,13 @@ const AdminDashboard = () => {
                   businessStats.totalClients
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Registered passengers</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Pasajeros registrados</CurrencyDisplay></p>
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="card-glass p-6">
-            <h4 className="text-xl font-semibold text-dark-100 mb-6"><CurrencyDisplay>Quick Actions</CurrencyDisplay></h4>
+            <h4 className="text-xl font-semibold text-dark-100 mb-6"><CurrencyDisplay>Acciones Rápidas</CurrencyDisplay></h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <button
                 onClick={() => navigate('/clients')}
@@ -510,8 +503,8 @@ const AdminDashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-dark-100 group-hover:text-accent-400 transition-colors"><CurrencyDisplay>Manage Passengers</CurrencyDisplay></div>
-                    <div className="text-xs text-dark-400"><CurrencyDisplay>Passenger database</CurrencyDisplay></div>
+                    <div className="text-sm font-semibold text-dark-100 group-hover:text-accent-400 transition-colors"><CurrencyDisplay>Gestionar Pasajeros</CurrencyDisplay></div>
+                    <div className="text-xs text-dark-400"><CurrencyDisplay>Base de datos de pasajeros</CurrencyDisplay></div>
                   </div>
                 </div>
               </button>
@@ -527,8 +520,8 @@ const AdminDashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-dark-100 group-hover:text-success-400 transition-colors"><CurrencyDisplay>Admin Insights</CurrencyDisplay></div>
-                    <div className="text-xs text-dark-400"><CurrencyDisplay>Analytics & reports</CurrencyDisplay></div>
+                    <div className="text-sm font-semibold text-dark-100 group-hover:text-success-400 transition-colors"><CurrencyDisplay>Estadísticas</CurrencyDisplay></div>
+                    <div className="text-xs text-dark-400"><CurrencyDisplay>Análisis y reportes</CurrencyDisplay></div>
                   </div>
                 </div>
               </button>
@@ -544,8 +537,8 @@ const AdminDashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-dark-100 group-hover:text-warning-400 transition-colors">View Sales</div>
-                    <div className="text-xs text-dark-400">All transactions</div>
+                    <div className="text-sm font-semibold text-dark-100 group-hover:text-warning-400 transition-colors">Ver Ventas</div>
+                    <div className="text-xs text-dark-400">Todas las transacciones</div>
                   </div>
                 </div>
               </button>
@@ -561,7 +554,7 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <CurrencyDisplay>System Analytics</CurrencyDisplay>
+            <CurrencyDisplay>Análisis del Sistema</CurrencyDisplay>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -573,11 +566,11 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="text-success-400 text-sm font-medium">Healthy</span>
+                <span className="text-success-400 text-sm font-medium">Saludable</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>System Uptime</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Tiempo en línea</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-success-400">{systemStats.systemUptime}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Last 30 days</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Últimos 30 días</CurrencyDisplay></p>
             </div>
 
             {/* Total Users */}
@@ -588,11 +581,11 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                   </svg>
                 </div>
-                <span className="text-primary-400 text-sm font-medium">Active</span>
+                <span className="text-primary-400 text-sm font-medium">Activo</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total Users</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Usuarios</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-primary-400">{systemStats.totalUsers}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Registered users</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Usuarios registrados</CurrencyDisplay></p>
             </div>
 
             {/* Total Providers */}
@@ -603,11 +596,11 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <span className="text-accent-400 text-sm font-medium">Partners</span>
+                <span className="text-accent-400 text-sm font-medium">Socios</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total Providers</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Proveedores</CurrencyDisplay></h4>
               <p className="text-3xl font-bold text-accent-400">{systemStats.totalProviders}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Service providers</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Proveedores de servicios</CurrencyDisplay></p>
             </div>
           </div>
         </div>
@@ -620,12 +613,12 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <CurrencyDisplay>Recent Activity</CurrencyDisplay>
+            <CurrencyDisplay>Actividad Reciente</CurrencyDisplay>
           </h3>
 
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10">
-              <h4 className="text-lg font-medium text-dark-100"><CurrencyDisplay>System Activity Log</CurrencyDisplay></h4>
+              <h4 className="text-lg font-medium text-dark-100"><CurrencyDisplay>Registro de Actividad del Sistema</CurrencyDisplay></h4>
             </div>
             <div className="divide-y divide-white/10">
               {recentActivity.map((activity) => (
@@ -659,7 +652,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm text-dark-300">Rows per page:</span>
+                    <span className="text-sm text-dark-300">Filas por página:</span>
                     <select
                       value={activityRowsPerPage}
                       onChange={(e) => handleActivityRowsPerPageChange(Number(e.target.value))}
@@ -673,7 +666,7 @@ const AdminDashboard = () => {
 
                   {/* Page info */}
                   <div className="text-sm text-dark-300">
-                    Showing {((activityCurrentPage - 1) * activityRowsPerPage) + 1} to {Math.min(activityCurrentPage * activityRowsPerPage, totalActivities)} of {totalActivities} activities
+                    Mostrando {((activityCurrentPage - 1) * activityRowsPerPage) + 1} a {Math.min(activityCurrentPage * activityRowsPerPage, totalActivities)} de {totalActivities} actividades
                   </div>
 
                   {/* Pagination buttons */}
@@ -683,17 +676,17 @@ const AdminDashboard = () => {
                       disabled={activityCurrentPage === 1}
                       className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Previous
+                      Anterior
                     </button>
                     <span className="text-sm text-dark-300 px-2">
-                      Page {activityCurrentPage} of {getActivityTotalPages()}
+                      Página {activityCurrentPage} de {getActivityTotalPages()}
                     </span>
                     <button
                       onClick={() => handleActivityPageChange(activityCurrentPage + 1)}
                       disabled={activityCurrentPage === getActivityTotalPages()}
                       className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Next
+                      Siguiente
                     </button>
                   </div>
                 </div>
@@ -711,7 +704,7 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <CurrencyDisplay>System Settings</CurrencyDisplay>
+            <CurrencyDisplay>Configuración del Sistema</CurrencyDisplay>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -724,8 +717,8 @@ const AdminDashboard = () => {
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-dark-100"><CurrencyDisplay>Database Management</CurrencyDisplay></h4>
-                  <p className="text-sm text-dark-300"><CurrencyDisplay>Manage database operations</CurrencyDisplay></p>
+                  <h4 className="text-lg font-semibold text-dark-100"><CurrencyDisplay>Gestión de Base de Datos</CurrencyDisplay></h4>
+                  <p className="text-sm text-dark-300"><CurrencyDisplay>Administrar operaciones de la base de datos</CurrencyDisplay></p>
                 </div>
               </div>
               <div className="space-y-3">
@@ -742,7 +735,7 @@ const AdminDashboard = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                     )}
-                    <span>{systemLoading ? 'Backing up...' : 'Backup Database'}</span>
+                    <span>{systemLoading ? 'Respaldando...' : 'Respaldar Base de Datos'}</span>
                   </span>
                 </button>
               </div>
@@ -757,8 +750,8 @@ const AdminDashboard = () => {
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-dark-100">System Maintenance</h4>
-                  <p className="text-sm text-dark-300">System health and maintenance</p>
+                  <h4 className="text-lg font-semibold text-dark-100">Mantenimiento del Sistema</h4>
+                  <p className="text-sm text-dark-300">Salud y mantenimiento del sistema</p>
                 </div>
               </div>
               <div className="space-y-3">
@@ -775,7 +768,7 @@ const AdminDashboard = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     )}
-                    <span>{systemLoading ? 'Checking...' : 'System Health Check'}</span>
+                    <span>{systemLoading ? 'Revisando...' : 'Chequeo de Salud'}</span>
                   </span>
                 </button>
                 <button 
@@ -791,7 +784,7 @@ const AdminDashboard = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     )}
-                    <span>{systemLoading ? 'Clearing...' : 'Clear Cache'}</span>
+                    <span>{systemLoading ? 'Limpiando...' : 'Limpiar Caché'}</span>
                   </span>
                 </button>
               </div>
@@ -809,17 +802,17 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                System Health Report
+                Reporte de Salud del Sistema
               </h3>
               <button
                 onClick={handleCloseSystemHealthReport}
                 className="btn-secondary text-sm px-4 py-2 flex items-center space-x-2 hover:bg-error-500/20 hover:border-error-500/50 transition-all duration-200"
-                title="Close System Health Report"
+                title="Cerrar Reporte"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <span>Close</span>
+                <span>Cerrar</span>
               </button>
             </div>
 
@@ -827,18 +820,18 @@ const AdminDashboard = () => {
               {/* Database Status */}
               <div className="card hover-lift p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-semibold text-dark-100">Database</h4>
+                  <h4 className="text-lg font-semibold text-dark-100">Base de Datos</h4>
                   <span className={`badge ${systemHealth.database.connected ? 'badge-success' : 'badge-error'}`}>
                     {systemHealth.database.status}
                   </span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-dark-300">Collections:</span>
+                    <span className="text-dark-300">Colecciones:</span>
                     <span className="text-dark-100">{systemHealth.collections.found}/{systemHealth.collections.expected}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-dark-300">Status:</span>
+                    <span className="text-dark-300">Estado:</span>
                     <span className={`${systemHealth.status === 'healthy' ? 'text-success-400' : 'text-error-400'}`}>
                       {systemHealth.status}
                     </span>
@@ -848,7 +841,7 @@ const AdminDashboard = () => {
 
               {/* Collections Overview */}
               <div className="card hover-lift p-6">
-                <h4 className="text-lg font-semibold text-dark-100 mb-4">Collections</h4>
+                <h4 className="text-lg font-semibold text-dark-100 mb-4">Colecciones</h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {Object.entries(systemHealth.collections.counts || {}).map(([collection, count]) => (
                     <div key={collection} className="flex justify-between">
@@ -861,14 +854,14 @@ const AdminDashboard = () => {
 
               {/* System Info */}
               <div className="card hover-lift p-6">
-                <h4 className="text-lg font-semibold text-dark-100 mb-4">System Info</h4>
+                <h4 className="text-lg font-semibold text-dark-100 mb-4">Info del Sistema</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-dark-300">Uptime:</span>
+                    <span className="text-dark-300">Tiempo activo:</span>
                     <span className="text-dark-100">{Math.floor(systemHealth.system.uptime / 3600)}h</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-dark-300">Memory:</span>
+                    <span className="text-dark-300">Memoria:</span>
                     <span className="text-dark-100">{Math.round(systemHealth.system.memory.used / 1024 / 1024)}MB</span>
                   </div>
                   <div className="flex justify-between">
@@ -882,7 +875,7 @@ const AdminDashboard = () => {
             {/* Relationship Health */}
             {systemHealth.relationships && systemHealth.relationships.checks && (
               <div className="mt-6">
-                <h4 className="text-xl font-semibold text-dark-100 mb-4">Relationship Health</h4>
+                <h4 className="text-xl font-semibold text-dark-100 mb-4">Salud de Relaciones</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {systemHealth.relationships.checks.map((check, index) => (
                     <div key={index} className="card p-4">
@@ -894,7 +887,7 @@ const AdminDashboard = () => {
                       </div>
                       {check.invalidReferences > 0 && (
                         <p className="text-error-400 text-sm mt-2">
-                          {check.invalidReferences} invalid references found
+                          {check.invalidReferences} referencias inválidas encontradas
                         </p>
                       )}
                     </div>
@@ -913,13 +906,13 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
               </svg>
             </div>
-            User Management
+            Gestión de Usuarios
           </h3>
 
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10">
               <div className="flex items-center justify-between">
-                <h4 className="text-lg font-medium text-dark-100">System Users</h4>
+                <h4 className="text-lg font-medium text-dark-100">Usuarios del Sistema</h4>
                 <button
                   onClick={() => navigate('/users/new')}
                   className="btn-primary text-sm"
@@ -928,7 +921,7 @@ const AdminDashboard = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    <span>Add User</span>
+                    <span>Agregar Usuario</span>
                   </span>
                 </button>
               </div>
@@ -950,23 +943,25 @@ const AdminDashboard = () => {
                         </div>
                         <div className="text-sm text-dark-300">{user.email}</div>
                         <div className="text-xs text-dark-400">
-                          Created: {new Date(user.createdAt).toLocaleDateString()}
+                          Creado: {new Date(user.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                      <span className={`badge ${user.role === 'admin'
-                          ? 'badge-primary'
-                          : 'badge-success'
-                        }`}>
-                        {user.role}
-                      </span>
-                      
-                      {/* --- NUEVO: Mostrar la comisión del usuario en el listado --- */}
-                      <span className="text-sm font-medium text-dark-200 mx-2">
-                        Comisión: {user.commission || 0}
-                      </span>
+                    {/* --- NUEVO: Estética mejorada para los badges y comisiones --- */}
+                    <div className="flex items-center space-x-6">
+                      <div className="flex items-center space-x-3">
+                        <span className={`badge ${user.role === 'admin'
+                            ? 'badge-primary'
+                            : 'badge-success'
+                          }`}>
+                          {user.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                        </span>
+                        
+                        <span className="px-3 py-1 rounded-full bg-dark-600 border border-white/10 text-sm font-medium text-primary-400 shadow-sm">
+                          Comisión: {user.comision || 0}%
+                        </span>
+                      </div>
 
                       <div className="flex space-x-2">
                         <button
@@ -977,7 +972,7 @@ const AdminDashboard = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            <span>Edit</span>
+                            <span>Editar</span>
                           </span>
                         </button>
 
@@ -989,11 +984,12 @@ const AdminDashboard = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            <span>Delete</span>
+                            <span>Eliminar</span>
                           </span>
                         </button>
                       </div>
                     </div>
+                    {/* --- FIN NUEVO --- */}
                   </div>
                 </div>
               ))}
@@ -1005,7 +1001,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm text-dark-300">Rows per page:</span>
+                    <span className="text-sm text-dark-300">Filas por página:</span>
                     <select
                       value={rowsPerPage}
                       onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
@@ -1019,7 +1015,7 @@ const AdminDashboard = () => {
 
                   {/* Page info */}
                   <div className="text-sm text-dark-300">
-                    Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalUsers)} of {totalUsers} users
+                    Mostrando {((currentPage - 1) * rowsPerPage) + 1} a {Math.min(currentPage * rowsPerPage, totalUsers)} de {totalUsers} usuarios
                   </div>
 
                   {/* Pagination buttons */}
@@ -1029,17 +1025,17 @@ const AdminDashboard = () => {
                       disabled={currentPage === 1}
                       className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Previous
+                      Anterior
                     </button>
                     <span className="text-sm text-dark-300 px-2">
-                      Page {currentPage} of {getTotalPages()}
+                      Página {currentPage} de {getTotalPages()}
                     </span>
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === getTotalPages()}
                       className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Next
+                      Siguiente
                     </button>
                   </div>
                 </div>
@@ -1053,14 +1049,14 @@ const AdminDashboard = () => {
           <div className="modal-backdrop">
             <div className="modal-content p-8">
               <div className="text-center mb-8">
-                <h3 className="text-3xl font-bold text-dark-100 mb-3 font-poppins">Edit User</h3>
-                <p className="text-dark-300">Update user information</p>
+                <h3 className="text-3xl font-bold text-dark-100 mb-3 font-poppins">Editar Usuario</h3>
+                <p className="text-dark-300">Actualizar información del usuario</p>
               </div>
 
               <form onSubmit={handleUpdateUser} className="space-y-8">
                 <div>
                   <label className="block text-sm font-semibold text-dark-200 mb-4">
-                    Username
+                    Usuario
                   </label>
                   <input
                     type="text"
@@ -1086,34 +1082,31 @@ const AdminDashboard = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-dark-200 mb-4">
-                    Role
+                    Rol
                   </label>
                   <select
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                     className="input-field"
                   >
-                    <option value="seller">Seller</option>
-                    <option value="admin">Admin</option>
+                    <option value="seller">Vendedor</option>
+                    <option value="admin">Administrador</option>
                   </select>
                 </div>
 
-                {/* --- NUEVO: Input para la comisión --- */}
                 <div>
                   <label className="block text-sm font-semibold text-dark-200 mb-4">
                     Comisión
                   </label>
                   <input
                     type="number"
-                    value={editForm.commission}
-                    onChange={(e) => setEditForm({ ...editForm, commission: e.target.value })}
+                    value={editForm.comision}
+                    onChange={(e) => setEditForm({ ...editForm, comision: e.target.value })}
                     className="input-field"
                     placeholder="Ej: 10"
                   />
                 </div>
-                {/* --- FIN NUEVO --- */}
 
-                {/* --- INICIO CAMBIOS: Vencimiento y Ojitos --- */}
                 <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/20 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-primary-400 uppercase tracking-wider">Forzar Vencimiento</h4>
@@ -1188,7 +1181,6 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
-                {/* --- FIN CAMBIOS --- */}
 
                 <div className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
                   <button
@@ -1196,13 +1188,13 @@ const AdminDashboard = () => {
                     onClick={() => setEditingUser(null)}
                     className="btn-secondary"
                   >
-                    Cancel
+                    Cancelar
                   </button>
                   <button
                     type="submit"
                     className="btn-primary"
                   >
-                    Update User
+                    Actualizar Usuario
                   </button>
                 </div>
               </form>
