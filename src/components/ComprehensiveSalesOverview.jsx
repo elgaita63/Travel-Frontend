@@ -9,19 +9,16 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
   const [viewMode, setViewMode] = useState('detailed'); 
   const [selectedPeriod, setSelectedPeriod] = useState('all'); 
   const [allUsers, setAllUsers] = useState([]);
-  const [allServices, setAllServices] = useState([]); // Estado para los servicios maestros
+  const [allServices, setAllServices] = useState([]); 
   const [selectedSeller, setSelectedSeller] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Carga de usuarios para comisiones y saldos
         const userRes = await api.get('/api/users?limit=100');
         if (userRes.data.success) {
           setAllUsers(userRes.data.data.users);
         }
-        
-        // Carga de servicios para obtener los destinos reales
         const serviceRes = await api.get('/api/services?limit=1000');
         if (serviceRes.data.success) {
           setAllServices(serviceRes.data.data.services);
@@ -32,6 +29,14 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     };
     fetchData();
   }, []);
+
+  const getSafeId = (idObj) => {
+    if (!idObj) return null;
+    if (typeof idObj === 'string') return idObj;
+    if (idObj.$oid) return idObj.$oid;
+    if (idObj._id) return typeof idObj._id === 'string' ? idObj._id : idObj._id.$oid;
+    return idObj.toString();
+  };
 
   const uniqueSellers = React.useMemo(() => {
     if (!sales) return [];
@@ -48,9 +53,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
         averageProfitMargin: 0, topPerformingSale: null, worstPerformingSale: null
       };
     }
-
     const currencyFilteredSales = sales.filter(sale => sale.saleCurrency === selectedCurrency);
-
     const stats = currencyFilteredSales.reduce((acc, sale) => {
       acc.totalSales += 1;
       acc.totalRevenue += sale.totalSalePrice || 0;
@@ -58,26 +61,22 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
       acc.totalProfit += sale.profit || 0;
       return acc;
     }, { totalSales: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0 });
-
     stats.averageProfitMargin = stats.totalRevenue > 0 ? (stats.totalProfit / stats.totalRevenue) * 100 : 0;
     const sortedByProfit = [...currencyFilteredSales].sort((a, b) => (b.profit || 0) - (a.profit || 0));
     stats.topPerformingSale = sortedByProfit[0];
     stats.worstPerformingSale = sortedByProfit[sortedByProfit.length - 1];
-
     return stats;
   }, [sales, selectedCurrency]);
 
   const filteredSales = React.useMemo(() => {
     if (!sales) return [];
     let filtered = sales.filter(sale => sale.saleCurrency === selectedCurrency);
-    
     if (selectedSeller !== 'all') {
       filtered = filtered.filter(sale => {
         const name = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
         return name === selectedSeller;
       });
     }
-
     if (selectedPeriod !== 'all') {
       const now = new Date();
       const filterDate = new Date();
@@ -103,11 +102,25 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
           aValue = (a.createdBy?.fullName || a.createdBy?.username || '').toLowerCase();
           bValue = (b.createdBy?.fullName || b.createdBy?.username || '').toLowerCase();
           break;
+        case 'passenger':
+          aValue = (a.clientId?.name + ' ' + a.clientId?.surname || '').toLowerCase();
+          bValue = (b.clientId?.name + ' ' + b.clientId?.surname || '').toLowerCase();
+          break;
+        case 'destino':
+          const getDest = (s) => {
+            const serv = s.services?.[0];
+            const sId = getSafeId(serv?.serviceId);
+            const mServ = allServices.find(ms => getSafeId(ms._id) === sId);
+            return (mServ?.destino || serv?.serviceName || serv?.serviceTypeName || '').toLowerCase();
+          };
+          aValue = getDest(a);
+          bValue = getDest(b);
+          break;
         default: aValue = a[sortBy] || 0; bValue = b[sortBy] || 0;
       }
       return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
     });
-  }, [filteredSales, sortBy, sortOrder]);
+  }, [filteredSales, sortBy, sortOrder, allServices]);
 
   const handleSort = (field) => {
     if (sortBy === field) { setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); } 
@@ -127,7 +140,6 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     const symbolColor = currency === 'USD' ? 'text-green-300' : 'text-cyan-400'; 
     const symbol = currency === 'USD' ? 'U$D' : 'AR$';
     const amountColor = getAmountColor(amount);
-
     return (
       <div className={`text-right text-sm font-medium ${amountColor}`}>
         <span className={`${symbolColor} mr-1`}>{symbol}</span>
@@ -158,8 +170,8 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
       </div>
 
       <div className="px-2">
-        <p className="text-[14px] text-white/60 mb-2">
-          Puede seleccionar cada venta individual para ir al detalle de la misma y tambien seleccionar campo de Ordenamiento de la lista
+        <p className="text-[15px] text-white/60 mb-2 ">
+            ** Clickear en una venta individual para ir al detalle de la misma - Puede seleccionar un campo de Ordenamiento de la lista o bien filtrar por vendedor
         </p>        
         <div className="card overflow-hidden">
           <div className="overflow-x-auto w-full">
@@ -167,7 +179,12 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
               <thead className="bg-dark-700/50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer whitespace-nowrap" onClick={() => handleSort('createdAt')}>Fecha {getSortIcon('createdAt')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Pasajero / Destino</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">
+                    <div className="flex flex-col space-y-1">
+                      <span className="cursor-pointer" onClick={() => handleSort('passenger')}>Pasajero {getSortIcon('passenger')}</span>
+                      <span className="cursor-pointer text-[10px] text-dark-400" onClick={() => handleSort('destino')}>Destino {getSortIcon('destino')}</span>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">
                     <div className="flex flex-col space-y-1">
                       <span className="cursor-pointer" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</span>
@@ -196,71 +213,47 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                 {sortedSales.map((sale) => {
                   const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
                   const sellerName = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
-                  const sellerId = sale.createdBy?._id || sale.createdBy?.id || sale.createdBy;
-                  const userInMaster = allUsers.find(u => u._id === sellerId || u.id === sellerId);
+                  const sellerId = getSafeId(sale.createdBy);
+                  const userInMaster = allUsers.find(u => getSafeId(u._id) === sellerId);
                   const userComisionPct = Number(userInMaster?.comision || sale.createdBy?.comision || 0);
                   const saleProfit = Number(sale.profit || 0);
                   const comisionImporte = saleProfit * (userComisionPct / 100);
 
-                  // Obtención del destino cruzando con allServices
                   const serviceInfo = sale.services?.[0];
-                  const serviceId = serviceInfo?.serviceId?.$oid || serviceInfo?.serviceId || null;
-                  const masterService = allServices.find(s => (s._id?.$oid || s._id) === serviceId);
-                  const destinoDisplay = masterService?.destino || serviceInfo?.serviceName || 'N/A';
+                  const sId = getSafeId(serviceInfo?.serviceId);
+                  const masterService = allServices.find(s => getSafeId(s._id) === sId);
+                  
+                  const valorFinal = (masterService?.destino || serviceInfo?.serviceName || serviceInfo?.serviceTypeName || 'N/A').toUpperCase();
 
                   return (
                     <tr key={sale.id || sale._id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onSaleClick && onSaleClick(sale)}>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-dark-100">
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-dark-100">{new Date(sale.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-dark-100">
-                          {sale.clientId?.name} {sale.clientId?.surname}
-                        </div>
-                        <div className="text-xs text-dark-400 mt-0.5">
-                          {destinoDisplay}
-                        </div>
+                        <div className="text-sm font-medium text-dark-100">{sale.clientId?.name} {sale.clientId?.surname}</div>
+                        <div className="text-[11px] text-white/70 mt-0.5">{valorFinal}</div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-dark-100">{sellerName}</div>
                         <div className="mt-1">
                           {sale.saleCurrency === 'ARS' ? (
-                            <div className="text-sm font-bold text-primary-400 whitespace-nowrap">
-                              Saldo: {formatCurrency(userInMaster?.saldoArs || sale.createdBy?.saldoArs || 0, 'ARS')}
-                            </div>
+                            <div className="text-sm font-bold text-primary-400 whitespace-nowrap">Saldo: {formatCurrency(userInMaster?.saldoArs || sale.createdBy?.saldoArs || 0, 'ARS')}</div>
                           ) : (
-                            <div className="text-sm font-bold text-success-500 whitespace-nowrap">
-                              Saldo: {formatCurrency(userInMaster?.saldoUsd || sale.createdBy?.saldoUsd || 0, 'USD')}
-                            </div>
+                            <div className="text-sm font-bold text-success-500 whitespace-nowrap">Saldo: {formatCurrency(userInMaster?.saldoUsd || sale.createdBy?.saldoUsd || 0, 'USD')}</div>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <div className="text-sm font-bold text-accent-400">
-                          <CurrencyDisplay>{formatCurrency(comisionImporte, selectedCurrency)}</CurrencyDisplay>
-                        </div>
+                        <div className="text-sm font-bold text-accent-400"><CurrencyDisplay>{formatCurrency(comisionImporte, selectedCurrency)}</CurrencyDisplay></div>
                         <div className="text-[10px] text-dark-400">({userComisionPct}%)</div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
-                        <CurrencyDisplay>{formatCurrency(sale.totalSalePrice, selectedCurrency)}</CurrencyDisplay>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
-                        <CurrencyDisplay>{formatCurrency(sale.totalCost, selectedCurrency)}</CurrencyDisplay>
-                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100"><CurrencyDisplay>{formatCurrency(sale.totalSalePrice, selectedCurrency)}</CurrencyDisplay></td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100"><CurrencyDisplay>{formatCurrency(sale.totalCost, selectedCurrency)}</CurrencyDisplay></td>
                       <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <div className={`text-sm font-medium ${getAmountColor(sale.profit)}`}>
-                          <CurrencyDisplay>{formatCurrency(sale.profit, selectedCurrency)}</CurrencyDisplay>
-                        </div>
+                        <div className={`text-sm font-medium ${getAmountColor(sale.profit)}`}><CurrencyDisplay>{formatCurrency(sale.profit, selectedCurrency)}</CurrencyDisplay></div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium text-dark-100">
-                        {profitMargin.toFixed(1)}%
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <BalanceCell amount={sale.clientBalance || 0} currency={selectedCurrency} />
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <BalanceCell amount={sale.providerBalance || 0} currency={selectedCurrency} />
-                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium text-dark-100">{profitMargin.toFixed(1)}%</td>
+                      <td className="px-4 py-4 whitespace-nowrap"><BalanceCell amount={sale.clientBalance || 0} currency={selectedCurrency} /></td>
+                      <td className="px-4 py-4 whitespace-nowrap"><BalanceCell amount={sale.providerBalance || 0} currency={selectedCurrency} /></td>
                     </tr>
                   );
                 })}
