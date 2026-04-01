@@ -9,23 +9,30 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
   const [viewMode, setViewMode] = useState('detailed'); 
   const [selectedPeriod, setSelectedPeriod] = useState('all'); 
   const [allUsers, setAllUsers] = useState([]);
-  const [selectedSeller, setSelectedSeller] = useState('all'); // Estado para el filtro de vendedor
+  const [allServices, setAllServices] = useState([]); // Estado para los servicios maestros
+  const [selectedSeller, setSelectedSeller] = useState('all');
 
   useEffect(() => {
-    const fetchUsersData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/api/users?limit=100');
-        if (response.data.success) {
-          setAllUsers(response.data.data.users);
+        // Carga de usuarios para comisiones y saldos
+        const userRes = await api.get('/api/users?limit=100');
+        if (userRes.data.success) {
+          setAllUsers(userRes.data.data.users);
+        }
+        
+        // Carga de servicios para obtener los destinos reales
+        const serviceRes = await api.get('/api/services?limit=1000');
+        if (serviceRes.data.success) {
+          setAllServices(serviceRes.data.data.services);
         }
       } catch (err) {
-        console.error("Error cargando usuarios para comisiones", err);
+        console.error("Error cargando datos maestros", err);
       }
     };
-    fetchUsersData();
+    fetchData();
   }, []);
 
-  // Obtener lista única de vendedores para el dropdown
   const uniqueSellers = React.useMemo(() => {
     if (!sales) return [];
     const sellers = sales.map(sale => {
@@ -64,7 +71,6 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     if (!sales) return [];
     let filtered = sales.filter(sale => sale.saleCurrency === selectedCurrency);
     
-    // Filtro por Vendedor seleccionado
     if (selectedSeller !== 'all') {
       filtered = filtered.filter(sale => {
         const name = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
@@ -152,10 +158,9 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
       </div>
 
       <div className="px-2">
-        <p className="text-[11px] text-white/60 mb-2 italic">
-          Seleccionar cada venta individual para ir al detalle de la misma - Seleccionar campo de Ordenamiento de la lista
-        </p>
-        
+        <p className="text-[14px] text-white/60 mb-2">
+          Puede seleccionar cada venta individual para ir al detalle de la misma y tambien seleccionar campo de Ordenamiento de la lista
+        </p>        
         <div className="card overflow-hidden">
           <div className="overflow-x-auto w-full">
             <table className="min-w-full divide-y divide-white/10 table-auto">
@@ -197,7 +202,11 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                   const saleProfit = Number(sale.profit || 0);
                   const comisionImporte = saleProfit * (userComisionPct / 100);
 
-                  const destino = sale.services && sale.services.length > 0 ? sale.services[0].destino || 'N/A' : 'N/A';
+                  // Obtención del destino cruzando con allServices
+                  const serviceInfo = sale.services?.[0];
+                  const serviceId = serviceInfo?.serviceId?.$oid || serviceInfo?.serviceId || null;
+                  const masterService = allServices.find(s => (s._id?.$oid || s._id) === serviceId);
+                  const destinoDisplay = masterService?.destino || serviceInfo?.serviceName || 'N/A';
 
                   return (
                     <tr key={sale.id || sale._id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onSaleClick && onSaleClick(sale)}>
@@ -209,7 +218,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                           {sale.clientId?.name} {sale.clientId?.surname}
                         </div>
                         <div className="text-xs text-dark-400 mt-0.5">
-                          {destino}
+                          {destinoDisplay}
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
