@@ -953,6 +953,10 @@ const SalesList = () => {
                       <th className="w-48 px-6 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         Passenger
                       </th>
+                      {/* DESTINO AGREGADO AQUI */}
+                      <th className="w-32 px-6 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
+                        Destino
+                      </th>
                       <th className="w-32 px-6 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         Acompañantes
                       </th>
@@ -968,6 +972,10 @@ const SalesList = () => {
                       <th className="w-32 px-6 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         Profit
                       </th>
+                      {/* COMISION AGREGADA AQUI */}
+                      <th className="w-32 px-6 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
+                        Comisión
+                      </th>
                       <th className="w-28 px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         Status
                       </th>
@@ -980,8 +988,9 @@ const SalesList = () => {
                       <th className="w-32 px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         End Date
                       </th>
-                      <th className="w-32 px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
-                        Salesperson
+                      {/* SALESPERSON MODIFICADO AQUI */}
+                      <th className="w-40 px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
+                        Salesperson & Saldos
                       </th>
                       <th className="w-28 px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">
                         Created
@@ -992,6 +1001,10 @@ const SalesList = () => {
                     {sales.filter(sale => sale.saleCurrency === selectedCurrency).map((sale) => {
                       const earliestStartDate = getEarliestStartDate(sale);
                       const latestEndDate = getLatestEndDate(sale);
+                      
+                      // CALCULOS DE COMISION
+                      const userComisionPct = sale.createdBy?.comision || 0;
+                      const comisionImporte = (sale.profit || 0) * (userComisionPct / 100);
                       
                       return (
                       <tr key={sale.id || sale._id || Math.random()} className="table-row cursor-pointer">
@@ -1007,6 +1020,12 @@ const SalesList = () => {
                               className="text-sm text-dark-400"
                               title={sale.clientId?.email}
                             />
+                          </div>
+                        </td>
+                        {/* CELDA DESTINO AGREGADA AQUI */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-dark-100">
+                            {sale.services && sale.services.length > 0 ? sale.services[0].destino || 'N/A' : 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1039,6 +1058,13 @@ const SalesList = () => {
                             {sale.totalSalePrice > 0 ? Math.round((sale.profit / sale.totalSalePrice) * 100) : 0}% margin
                           </div>
                         </td>
+                        {/* CELDA COMISION AGREGADA AQUI */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-bold text-accent-400">
+                            <CurrencyDisplay>{formatCurrencyJSX(comisionImporte, selectedCurrency, 'en-US', '')}</CurrencyDisplay>
+                          </div>
+                          <div className="text-xs text-dark-400">({userComisionPct}%)</div>
+                        </td>
                         <td className="px-4 py-4">
                           <div className="flex justify-center">
                             <span className="badge badge-primary w-20 justify-center">
@@ -1064,17 +1090,21 @@ const SalesList = () => {
                             {latestEndDate ? latestEndDate.toLocaleDateString() : 'N/A'}
                           </div>
                         </td>
+                        {/* CELDA SALESPERSON MODIFICADA AQUI CON SALDOS */}
                         <td className="px-4 py-4">
                           <TruncatedText 
                             text={sale.createdBy?.fullName || sale.createdBy?.username || 'Unknown'}
                             className="text-sm text-dark-100"
                             title={sale.createdBy?.fullName || sale.createdBy?.username || 'Unknown'}
                           />
-                          <TruncatedText 
-                            text={sale.createdBy?.role || ''}
-                            className="text-xs text-dark-400"
-                            title={sale.createdBy?.role || ''}
-                          />
+                          <div className="flex flex-col mt-1 space-y-0.5">
+                            <div className="text-[10px] font-bold text-primary-400">
+                              ARS: {formatCurrencyJSX(sale.createdBy?.saldoArs || 0, 'ARS', 'es-AR', '')}
+                            </div>
+                            <div className="text-[10px] font-bold text-success-500">
+                              USD: {formatCurrencyJSX(sale.createdBy?.saldoUsd || 0, 'USD', 'en-US', '')}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           <TruncatedText 

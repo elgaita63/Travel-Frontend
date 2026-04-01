@@ -8,6 +8,21 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
   const [sortOrder, setSortOrder] = useState('desc');
   const [viewMode, setViewMode] = useState('detailed'); 
   const [selectedPeriod, setSelectedPeriod] = useState('all'); 
+  const [allUsers, setAllUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchUsersData = async () => {
+      try {
+        const response = await api.get('/api/users?limit=100');
+        if (response.data.success) {
+          setAllUsers(response.data.data.users);
+        }
+      } catch (err) {
+        console.error("Error cargando usuarios para comisiones", err);
+      }
+    };
+    fetchUsersData();
+  }, []);
 
   const summaryStats = React.useMemo(() => {
     if (!sales || sales.length === 0) {
@@ -48,6 +63,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
         case 'month': filterDate.setMonth(now.getMonth() - 1); break;
         case 'quarter': filterDate.setMonth(now.getMonth() - 3); break;
         case 'year': filterDate.setFullYear(now.getFullYear() - 1); break;
+        default: break;
       }
       filtered = filtered.filter(sale => new Date(sale.createdAt) >= filterDate);
     }
@@ -58,10 +74,11 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     return [...filteredSales].sort((a, b) => {
       let aValue, bValue;
       switch (sortBy) {
-        case 'totalSalePrice': aValue = a.totalSalePrice || 0; bValue = b.totalSalePrice || 0; break;
-        case 'totalCost': aValue = a.totalCost || 0; bValue = b.totalCost || 0; break;
-        case 'profit': aValue = a.profit || 0; bValue = b.profit || 0; break;
         case 'createdAt': aValue = new Date(a.createdAt); bValue = new Date(b.createdAt); break;
+        case 'seller': 
+          aValue = (a.createdBy?.fullName || a.createdBy?.username || '').toLowerCase();
+          bValue = (b.createdBy?.fullName || b.createdBy?.username || '').toLowerCase();
+          break;
         default: aValue = a[sortBy] || 0; bValue = b[sortBy] || 0;
       }
       return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
@@ -107,8 +124,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
 
   return (
     <div className="space-y-6">
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-2">
         <div className="card p-6">
           <p className="text-sm font-medium text-dark-300">Total Profit</p>
           <p className={`text-2xl font-semibold ${getAmountColor(summaryStats.totalProfit)}`}>
@@ -117,70 +133,99 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
         </div>
       </div>
 
-      {/* Sales Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-dark-700/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('createdAt')}>Fecha {getSortIcon('createdAt')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Pasajero</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Vendedor</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Precio</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Costo</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Ganancia</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-dark-300 uppercase tracking-wider">Margen</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Saldo-Pas</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider">Saldo-Prov</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-dark-300 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/10">
-              {sortedSales.map((sale) => {
-                const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
-                
-                // Nombre del vendedor en MAYÚSCULAS
-                const sellerName = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
-                
-                return (
-                  <tr key={sale.id || sale._id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onSaleClick && onSaleClick(sale)}>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-dark-100">
-                      {new Date(sale.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-dark-100">
-                      {sale.clientId?.name} {sale.clientId?.surname}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-dark-300">
-                      {sellerName}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
-                      <CurrencyDisplay>{formatCurrency(sale.totalSalePrice, selectedCurrency)}</CurrencyDisplay>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
-                      <CurrencyDisplay>{formatCurrency(sale.totalCost, selectedCurrency)}</CurrencyDisplay>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right">
-                      <div className={`text-sm font-medium ${getAmountColor(sale.profit)}`}>
-                        <CurrencyDisplay>{formatCurrency(sale.profit, selectedCurrency)}</CurrencyDisplay>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium text-dark-100">
-                      {profitMargin.toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <BalanceCell amount={sale.clientBalance || 0} currency={selectedCurrency} />
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <BalanceCell amount={sale.providerBalance || 0} currency={selectedCurrency} />
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-center">
-                      <button className="text-primary-400 hover:text-primary-300 text-sm font-medium">Ver Detalles</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <div className="px-2">
+        <p className="text-[11px] text-white/60 mb-2 italic">
+          Seleccionar cada venta individual para ir al detalle de la misma - Seleccionar campo de Ordenamiento de la lista
+        </p>
+        
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto w-full">
+            <table className="min-w-full divide-y divide-white/10 table-auto">
+              <thead className="bg-dark-700/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer whitespace-nowrap" onClick={() => handleSort('createdAt')}>Fecha {getSortIcon('createdAt')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Pasajero / Destino</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer whitespace-nowrap" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Comisión</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Precio</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Costo</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Ganancia</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Margen</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Saldo Pas</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Saldo Prov</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {sortedSales.map((sale) => {
+                  const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
+                  const sellerName = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
+                  const sellerId = sale.createdBy?._id || sale.createdBy?.id || sale.createdBy;
+                  const userInMaster = allUsers.find(u => u._id === sellerId || u.id === sellerId);
+                  const userComisionPct = Number(userInMaster?.comision || sale.createdBy?.comision || 0);
+                  const saleProfit = Number(sale.profit || 0);
+                  const comisionImporte = saleProfit * (userComisionPct / 100);
+
+                  const destino = sale.services && sale.services.length > 0 ? sale.services[0].destino || 'N/A' : 'N/A';
+
+                  return (
+                    <tr key={sale.id || sale._id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onSaleClick && onSaleClick(sale)}>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-dark-100">
+                        {new Date(sale.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-dark-100">
+                          {sale.clientId?.name} {sale.clientId?.surname}
+                        </div>
+                        <div className="text-xs text-dark-400 mt-0.5">
+                          {destino}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-dark-100">{sellerName}</div>
+                        <div className="mt-1">
+                          {sale.saleCurrency === 'ARS' ? (
+                            <div className="text-sm font-bold text-primary-400 whitespace-nowrap">
+                              Saldo: {formatCurrency(userInMaster?.saldoArs || sale.createdBy?.saldoArs || 0, 'ARS')}
+                            </div>
+                          ) : (
+                            <div className="text-sm font-bold text-success-500 whitespace-nowrap">
+                              Saldo: {formatCurrency(userInMaster?.saldoUsd || sale.createdBy?.saldoUsd || 0, 'USD')}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-bold text-accent-400">
+                          <CurrencyDisplay>{formatCurrency(comisionImporte, selectedCurrency)}</CurrencyDisplay>
+                        </div>
+                        <div className="text-[10px] text-dark-400">({userComisionPct}%)</div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
+                        <CurrencyDisplay>{formatCurrency(sale.totalSalePrice, selectedCurrency)}</CurrencyDisplay>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-dark-100">
+                        <CurrencyDisplay>{formatCurrency(sale.totalCost, selectedCurrency)}</CurrencyDisplay>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className={`text-sm font-medium ${getAmountColor(sale.profit)}`}>
+                          <CurrencyDisplay>{formatCurrency(sale.profit, selectedCurrency)}</CurrencyDisplay>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium text-dark-100">
+                        {profitMargin.toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <BalanceCell amount={sale.clientBalance || 0} currency={selectedCurrency} />
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <BalanceCell amount={sale.providerBalance || 0} currency={selectedCurrency} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
