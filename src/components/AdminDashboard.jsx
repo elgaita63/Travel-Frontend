@@ -168,6 +168,13 @@ const AdminDashboard = () => {
     }
   };
 
+  // NUEVA FUNCIÓN: Manejo de Pago (Log por ahora)
+  const handlePaySeller = (seller) => {
+    console.log(`%c 💰 Iniciando proceso de pago para: ${seller.username}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
+    console.log('Datos del vendedor:', seller);
+    alert(`Procesando pago para ${seller.username}. Revisar consola.`);
+  };
+
   const handleRowsPerPageChange = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
     setCurrentPage(1); 
@@ -932,69 +939,113 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {/* --- ENCABEZADOS DE LA TABLA --- */}
+            <div className="flex items-center justify-between px-6 py-3 bg-dark-700/50 border-b border-white/10 text-[11px] uppercase tracking-widest font-bold text-dark-400">
+              <div className="w-[25%]">Usuario</div>
+              <div className="w-[15%] text-center">Rol</div>
+              <div className="w-[10%] text-center">Comisión</div>
+              <div className="w-[25%] text-center">Balances</div>
+              <div className="w-[15%] text-center">Pago</div>
+              <div className="w-[10%] text-right">Acciones</div>
+            </div>
+
             <div className="divide-y divide-white/10">
-              {getPaginatedUsers().map((user) => (
-                <div key={user.id} className="px-6 py-4 hover:bg-white/5 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+              {getPaginatedUsers().map((userItem) => (
+                <div key={userItem.id} className="px-6 py-4 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center justify-between w-full">
+                    
+                    {/* --- Columna 1: Usuario --- */}
+                    <div className="w-[25%] flex items-center space-x-4">
                       <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
                         <DatabaseValue data-field="userInitial" className="text-lg font-bold text-white">
-                          {user.username.charAt(0).toUpperCase()}
+                          {userItem.username.charAt(0).toUpperCase()}
                         </DatabaseValue>
                       </div>
                       <div>
                         <div className="text-lg font-semibold text-dark-100">
-                          {user.username}
+                          {userItem.username}
                         </div>
-                        <div className="text-sm text-dark-300">{user.email}</div>
+                        <div className="text-sm text-dark-300">{userItem.email}</div>
                         <div className="text-xs text-dark-400">
-                          Creado: {new Date(user.createdAt).toLocaleDateString()}
+                          Creado: {new Date(userItem.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
 
-                    {/* --- NUEVO: Estética mejorada para los badges y comisiones --- */}
-                    <div className="flex items-center space-x-6">
-                      <div className="flex items-center space-x-3">
-                        <span className={`badge ${user.role === 'admin'
-                            ? 'badge-primary'
-                            : 'badge-success'
-                          }`}>
-                          {user.role === 'admin' ? 'Administrador' : 'Vendedor'}
-                        </span>
-                        
-                        <span className="px-3 py-1 rounded-full bg-dark-600 border border-white/10 text-sm font-medium text-primary-400 shadow-sm">
-                          Comisión: {user.comision || 0}%
+                    {/* --- Columna 2: Rol --- */}
+                    <div className="w-[15%] flex justify-center">
+                      <span className={`badge ${userItem.role === 'admin'
+                          ? 'badge-primary'
+                          : 'badge-success'
+                        }`}>
+                        {userItem.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                      </span>
+                    </div>
+
+                    {/* --- Columna 3: Comisión --- */}
+                    <div className="w-[10%] flex justify-center">
+                      <span className="px-3 py-1 rounded-full bg-dark-600 border border-white/10 text-sm font-medium text-primary-400 shadow-sm">
+                        Comisión: {userItem.comision || 0}%
+                      </span>
+                    </div>
+
+                    {/* --- Columna 4: Balances (Ex Billetera) --- */}
+                    <div className="w-[25%] flex justify-center space-x-3">
+                      <div className="px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 shadow-sm text-center min-w-[90px]">
+                        <span className="block text-[10px] uppercase font-bold text-primary-400 leading-none mb-1">Saldo ARS</span>
+                        <span className="text-sm font-mono font-bold text-primary-300">
+                          {formatCurrencyFullJSX(userItem.saldoArs || 0, 'ARS')}
                         </span>
                       </div>
-
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className="btn-primary text-sm"
-                        >
-                          <span className="flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Editar</span>
-                          </span>
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="btn-error text-sm"
-                        >
-                          <span className="flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span>Eliminar</span>
-                          </span>
-                        </button>
+                      <div className="px-3 py-1.5 rounded-lg bg-success-500/10 border border-success-500/20 shadow-sm text-center min-w-[90px]">
+                        <span className="block text-[10px] uppercase font-bold text-success-500 leading-none mb-1">Saldo USD</span>
+                        <span className="text-sm font-mono font-bold text-success-400">
+                          {formatCurrencyFullJSX(userItem.saldoUsd || 0, 'USD')}
+                        </span>
                       </div>
                     </div>
-                    {/* --- FIN NUEVO --- */}
+
+                    {/* --- Columna 5: Botón de pago --- */}
+                    <div className="w-[15%] flex justify-center">
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={() => handlePaySeller(userItem)}
+                          className="btn-secondary text-sm px-3 py-1.5 border-success-500/30 hover:bg-success-500/20 group transition-all"
+                          title="Pagar Comisión"
+                        >
+                          <span className="flex items-center space-x-1">
+                            <svg className="w-3.5 h-3.5 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                            <span className="text-white font-semibold">Pago al vendedor</span>
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* --- Columna 6: Acciones --- */}
+                    <div className="w-[10%] flex justify-end space-x-2">
+                      <button
+                        onClick={() => handleEditUser(userItem)}
+                        className="btn-primary text-sm p-2 rounded-lg"
+                        title="Editar"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteUser(userItem.id)}
+                        className="btn-error text-sm p-2 rounded-lg"
+                        title="Eliminar"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               ))}
