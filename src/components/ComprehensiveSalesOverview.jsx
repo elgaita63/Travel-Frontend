@@ -9,6 +9,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
   const [viewMode, setViewMode] = useState('detailed'); 
   const [selectedPeriod, setSelectedPeriod] = useState('all'); 
   const [allUsers, setAllUsers] = useState([]);
+  const [selectedSeller, setSelectedSeller] = useState('all'); // Estado para el filtro de vendedor
 
   useEffect(() => {
     const fetchUsersData = async () => {
@@ -23,6 +24,15 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     };
     fetchUsersData();
   }, []);
+
+  // Obtener lista única de vendedores para el dropdown
+  const uniqueSellers = React.useMemo(() => {
+    if (!sales) return [];
+    const sellers = sales.map(sale => {
+      return (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
+    });
+    return ['all', ...new Set(sellers)];
+  }, [sales]);
 
   const summaryStats = React.useMemo(() => {
     if (!sales || sales.length === 0) {
@@ -54,6 +64,14 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     if (!sales) return [];
     let filtered = sales.filter(sale => sale.saleCurrency === selectedCurrency);
     
+    // Filtro por Vendedor seleccionado
+    if (selectedSeller !== 'all') {
+      filtered = filtered.filter(sale => {
+        const name = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
+        return name === selectedSeller;
+      });
+    }
+
     if (selectedPeriod !== 'all') {
       const now = new Date();
       const filterDate = new Date();
@@ -68,7 +86,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
       filtered = filtered.filter(sale => new Date(sale.createdAt) >= filterDate);
     }
     return filtered;
-  }, [sales, selectedPeriod, selectedCurrency]);
+  }, [sales, selectedPeriod, selectedCurrency, selectedSeller]);
 
   const sortedSales = React.useMemo(() => {
     return [...filteredSales].sort((a, b) => {
@@ -145,7 +163,21 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer whitespace-nowrap" onClick={() => handleSort('createdAt')}>Fecha {getSortIcon('createdAt')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Pasajero / Destino</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer whitespace-nowrap" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">
+                    <div className="flex flex-col space-y-1">
+                      <span className="cursor-pointer" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</span>
+                      <select 
+                        className="bg-dark-800 border border-white/10 rounded text-[10px] py-1 px-1 focus:outline-none focus:border-primary-500 text-dark-100 font-normal normal-case"
+                        value={selectedSeller}
+                        onChange={(e) => setSelectedSeller(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {uniqueSellers.map(seller => (
+                          <option key={seller} value={seller}>{seller === 'all' ? 'TODOS' : seller}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Comisión</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Precio</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-dark-300 uppercase tracking-wider whitespace-nowrap">Costo</th>
