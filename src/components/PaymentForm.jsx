@@ -12,7 +12,7 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
     notes: ''
   });
   const [receiptFile, setReceiptFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null); // NUEVO: Estado para la vista previa
+  const [imagePreview, setImagePreview] = useState(null); 
   const [currencies, setCurrencies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +31,8 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
   const [extractedCurrency, setExtractedCurrency] = useState('');
   const [showExchangeRate, setShowExchangeRate] = useState(false);
 
+  // LÓGICA DE CONTROL PARA PAGOS A VENDEDOR
+  const isSellerPayment = paymentType === 'seller';
 
   useEffect(() => {
     fetchCurrencies();
@@ -44,6 +46,12 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
   }, [formData.currencyType]);
 
   useEffect(() => {
+    // Si es pago a vendedor, bloqueamos cualquier cálculo de conversión automática
+    if (isSellerPayment) {
+      setConvertedAmount(null);
+      return;
+    }
+
     if (exchangeRate && formData.amount && formData.currencyType && formData.currencyType !== saleCurrency) {
       const amount = parseFloat(formData.amount);
       const rate = parseFloat(exchangeRate);
@@ -58,7 +66,7 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
     } else {
       setConvertedAmount(null);
     }
-  }, [exchangeRate, formData.amount, formData.currencyType, saleCurrency]);
+  }, [exchangeRate, formData.amount, formData.currencyType, saleCurrency, isSellerPayment]);
 
   const fetchCurrencies = async () => {
     try {
@@ -96,7 +104,8 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
     setError('');
     
     if (name === 'currencyType') {
-      if (value && value !== saleCurrency) {
+      // Solo mostramos el campo de Tipo de Cambio si NO es un pago a vendedor
+      if (!isSellerPayment && value && value !== saleCurrency) {
         setShowExchangeRate(true);
         setExchangeRate('');
         setConvertedAmount(null);
@@ -114,13 +123,12 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       setReceiptFile(file);
       setExtractionError('');
       
-      // NUEVO: Generar vista previa de la imagen
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => setImagePreview(e.target.result);
         reader.readAsDataURL(file);
       } else {
-        setImagePreview(null); // No previsualizar si es PDF u otro
+        setImagePreview(null); 
       }
     }
   };
@@ -160,7 +168,8 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
             currencyType: extractedCurr
           }));
           
-          if (extractedCurr !== saleCurrency) {
+          // Lógica condicional OCR para Tipo de Cambio
+          if (!isSellerPayment && extractedCurr !== saleCurrency) {
             setShowExchangeRate(true);
             setExchangeRate('');
             setConvertedAmount(null);
@@ -225,7 +234,8 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       submitData.append('date', formData.date);
       submitData.append('notes', formData.notes);
       
-      if (formData.currencyType !== saleCurrency) {
+      // Lógica de envío condicional: Si es vendedor, no enviamos datos de conversión
+      if (!isSellerPayment && formData.currencyType !== saleCurrency) {
         if (!exchangeRate) {
           setError(`Se requiere el tipo de cambio para convertir ${formData.currencyType} a ${saleCurrency}`);
           setLoading(false);
@@ -241,7 +251,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
         submitData.append('receipt', receiptFile);
       }
 
-      // DETERMINAR ENDPOINT SEGÚN TIPO
       const endpoint = paymentType === 'client' 
         ? '/api/payments/client'
         : paymentType === 'provider'
@@ -254,17 +263,17 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
 
       if (response.data.success) {
         const payment = response.data.data.payment;
-        setGeneratedPaymentId(payment._id);
+        setGeneratedPaymentId(payment._id || payment.id);
         
-        // El pago a vendedor no genera recibo provisional de cliente habitualmente
-        if (paymentType !== 'seller') {
+        // REPARACIÓN DEFINITIVA: Solo intentamos mostrar recibo si REALMENTE hay un archivo.
+        // Esto aplica para pasajero, proveedor o vendedor indistintamente.
+        if (receiptFile) {
           setShowReceipt(true);
         } else {
+          // Si no hay archivo, refrescamos la tabla y cerramos el formulario de inmediato.
           onPaymentAdded(payment);
-          onCancel(); // Cerrar modal si es vendedor
+          onCancel(); 
         }
-        
-        if (paymentType !== 'seller') onPaymentAdded(payment);
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Error al guardar el pago');
@@ -284,13 +293,17 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       notes: ''
     });
     setReceiptFile(null);
-    setImagePreview(null); // NUEVO: Resetear vista previa
+    setImagePreview(null); 
     setExchangeRate('');
     setConvertedAmount(null);
     setShowAddMethod(false);
     setNewMethodName('');
     setExtractedCurrency('');
     setShowExchangeRate(false);
+    
+    // Al cerrar el recibo, debemos informar que se agregó el pago y cerrar el form
+    onPaymentAdded();
+    onCancel();
   };
 
   if (showReceipt) {
@@ -302,12 +315,11 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-md mb-4">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Monto y Fecha */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-dark-200 mb-2">Monto *</label>
             <input type="number" id="amount" name="amount" value={formData.amount} onChange={handleChange} required step="0.01" className="input-field" placeholder="Ingresá el monto" />
-            {convertedAmount && (
+            {!isSellerPayment && convertedAmount && (
               <p className="mt-1 text-sm text-dark-400">≈ U${convertedAmount.toFixed(2)} USD {exchangeRate && <span className="ml-2 text-xs">(Cambio: {parseFloat(exchangeRate).toFixed(4)})</span>}</p>
             )}
           </div>
@@ -317,7 +329,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
           </div>
         </div>
 
-        {/* Moneda y Método */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="currencyType" className="block text-sm font-medium text-dark-200 mb-2">Tipo de Moneda *</label>
@@ -347,7 +358,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
           </div>
         </div>
 
-        {/* Sección de Recibo y Vista Previa (MODIFICADA) */}
         <div className="bg-dark-700/50 p-4 rounded-lg border border-white/10">
           <label htmlFor="receipt" className="block text-sm font-medium text-dark-200 mb-3">Imagen con datos del Pago (Recibo)</label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -364,7 +374,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
               {extractionError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2">{extractionError}</div>}
             </div>
 
-            {/* Bloque de Vista Previa */}
             {imagePreview ? (
               <div className="border-2 border-dashed border-white/20 rounded-lg p-2 flex items-center justify-center">
                 <img src={imagePreview} alt="Preview" className="max-w-full h-32 object-contain" />
@@ -382,7 +391,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
           </div>
         </div>
 
-        {/* Cambio si es necesario */}
         {showExchangeRate && formData.currencyType && formData.currencyType !== saleCurrency && (
           <div className="bg-primary-500/5 border border-primary-500/20 rounded-lg p-4">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
