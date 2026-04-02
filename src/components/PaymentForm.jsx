@@ -241,9 +241,12 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
         submitData.append('receipt', receiptFile);
       }
 
+      // DETERMINAR ENDPOINT SEGÚN TIPO
       const endpoint = paymentType === 'client' 
         ? '/api/payments/client'
-        : '/api/payments/provider';
+        : paymentType === 'provider'
+          ? '/api/payments/provider'
+          : '/api/payments/seller-payout';
 
       const response = await api.post(endpoint, submitData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -252,8 +255,16 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       if (response.data.success) {
         const payment = response.data.data.payment;
         setGeneratedPaymentId(payment._id);
-        setShowReceipt(true);
-        onPaymentAdded(payment);
+        
+        // El pago a vendedor no genera recibo provisional de cliente habitualmente
+        if (paymentType !== 'seller') {
+          setShowReceipt(true);
+        } else {
+          onPaymentAdded(payment);
+          onCancel(); // Cerrar modal si es vendedor
+        }
+        
+        if (paymentType !== 'seller') onPaymentAdded(payment);
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Error al guardar el pago');
@@ -374,7 +385,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
         {/* Cambio si es necesario */}
         {showExchangeRate && formData.currencyType && formData.currencyType !== saleCurrency && (
           <div className="bg-primary-500/5 border border-primary-500/20 rounded-lg p-4">
-             {/* ... (lógica de cambio mantenida igual) ... */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">Tipo de Cambio *</label>

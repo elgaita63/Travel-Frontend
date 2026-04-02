@@ -75,7 +75,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
       switch (sortBy) {
         case 'createdAt': aV = new Date(a.createdAt); bV = new Date(b.createdAt); break;
         case 'passenger': aV = (a.clientId?.name + a.clientId?.surname).toLowerCase(); bV = (b.clientId?.name + b.clientId?.surname).toLowerCase(); break;
-        case 'seller': aV = (a.createdBy?.fullName || '').toLowerCase(); bV = (b.createdBy?.fullName || '').toLowerCase(); break;
+        case 'seller': aV = (a.createdBy?.fullName || '').toLowerCase(); bV = (a.createdBy?.fullName || '').toLowerCase(); break;
         default: aV = a[sortBy] || 0; bV = b[sortBy] || 0;
       }
       return sortOrder === 'asc' ? (aV > bV ? 1 : -1) : (aV < bV ? 1 : -1);
@@ -117,6 +117,25 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     );
   };
 
+  // Funciones de estilo extraídas de SaleSummary
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case 'open': return 'bg-yellow-500 text-yellow-900';
+      case 'closed': return 'bg-green-500 text-green-900';
+      case 'cancelled': return 'bg-red-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'open': return '🔓';
+      case 'closed': return '🔒';
+      case 'cancelled': return '❌';
+      default: return '📄';
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-20 w-20 border-4 border-t-primary-500"></div></div>;
 
   return (
@@ -146,6 +165,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-dark-300 uppercase cursor-pointer" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</th>
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-dark-300 uppercase">Est.</th>
                   <th className="px-4 py-3 text-right text-sm font-semibold text-dark-300 uppercase">Comisión</th>
                   <th className="px-4 py-3 text-right text-sm font-semibold text-dark-300 uppercase">
                     <div className="flex flex-col leading-tight"><span>Precio</span><span>Costo</span><span>Ganancia</span></div>
@@ -189,6 +209,12 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                           Saldo: {formatCurrency(userInMaster?.[sale.saleCurrency === 'ARS' ? 'saldoArs' : 'saldoUsd'] || 0, sale.saleCurrency)}
                         </div>
                       </td>
+                      <td className="px-2 py-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter shadow-sm ${getStatusStyles(sale.status)}`}>
+                          <span className="mr-1">{getStatusIcon(sale.status)}</span>
+                          {sale.status === 'open' ? 'OPN' : sale.status === 'closed' ? 'CLD' : 'CAN'}
+                        </span>
+                      </td>
                       <td className="px-4 py-4 text-right">
                         <div className="text-sm font-bold text-accent-400"><CurrencyDisplay>{formatCurrency(comisionImp, selectedCurrency)}</CurrencyDisplay></div>
                         <div className="text-[10px] text-dark-400">({comisionPct}%)</div>
@@ -214,7 +240,7 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                     <div className="text-xs text-dark-300 uppercase mb-1">Balance Vendedores</div>
                     <BalanceCell amount={totals.sumVendedores} currency={selectedCurrency} className="text-lg font-bold" />
                   </td>
-                  <td colSpan="3" className="px-4 py-6 text-right">
+                  <td colSpan="4" className="px-4 py-6 text-right">
                     <div className="text-base font-bold text-dark-200 uppercase">Balance Pasajeros/Proveedor</div>
                   </td>
                   <td className="px-4 py-6 space-y-2">

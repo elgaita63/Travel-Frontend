@@ -22,17 +22,17 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
       console.log('ProviderCard - Provider keys:', Object.keys(provider));
 
       // Use populated provider data directly if available
-      let providerName = 'Unknown Provider';
+      let providerName = 'Proveedor Desconocido';
 
       if (provider.providerId && typeof provider.providerId === 'object') {
         // Provider is populated from database (from providers array structure)
-        providerName = provider.providerId.name || provider.providerId.destino || 'Unknown Provider';
+        providerName = provider.providerId.name || provider.providerId.destino || 'Proveedor Desconocido';
       } else if (provider.name) {
         // Provider name is directly available (already extracted)
         providerName = provider.name;
       } else if (typeof provider === 'object' && provider._id) {
         // Provider object might have name directly
-        providerName = provider.name || 'Unknown Provider';
+        providerName = provider.name || 'Proveedor Desconocido';
       }
 
       // Extract documents - check multiple possible locations
@@ -64,7 +64,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
     setupProviderDetails();
   }, [provider, saleCurrency]);
 
-  if (loadingProvider) return <p className="text-dark-300">Loading provider...</p>;
+  if (loadingProvider) return <p className="text-dark-300">Cargando proveedor...</p>;
   if (errorProvider) return <ErrorDisplay message={errorProvider} />;
 
   // File handling functions
@@ -114,23 +114,23 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
       // Check if fileObject exists but is not a File (might be serialized)
       if (file.fileObject && typeof file.fileObject === 'object' && Object.keys(file.fileObject).length === 0) {
         console.log('⚠️ fileObject is empty object - file was serialized and lost');
-        alert('File was uploaded but the file data was lost during processing. This happens when files are saved to the database.\n\nFile: ' + (file.filename || file.name || 'Unknown') + '\n\nPlease re-upload the file if you need to view it.');
+        alert('El archivo se cargó pero los datos se perdieron durante el procesamiento. Por favor, re-cargue el archivo.');
         return;
       }
       
       // Check if file has empty URL (stored in database but not served)
       if (file.url === '') {
         console.log('⚠️ File has empty URL - needs server-side file serving implementation');
-        alert('File is stored in the database but not accessible for viewing.\n\nFile: ' + (file.filename || file.name || 'Unknown') + '\n\nThis requires implementing a file serving system on the backend to generate proper URLs for uploaded files.');
+        alert('El archivo está en la base de datos pero no tiene una URL de acceso.');
         return;
       }
       
       // If no valid file source found, show error
       console.log('❌ No valid file source found');
-      alert('File was uploaded but URL is not available. This may be due to upload failure or server configuration.\n\nCurrent file: ' + (file.filename || file.name || 'Unknown'));
+      alert('Archivo no disponible: ' + (file.filename || file.name || 'Desconocido'));
     } catch (error) {
       console.error('Error opening file:', error);
-      alert('Error opening file: ' + error.message);
+      alert('Error al abrir el archivo: ' + error.message);
     }
   };
 
@@ -149,33 +149,81 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
 
   return (
     <>
-      <div className="bg-dark-700/50 border border-white/10 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-dark-100">
-              {providerDetails.name}
-            </h3>
+      <div className="bg-dark-800/40 rounded-xl border border-white/5 overflow-hidden transition-all hover:border-white/10">
+        <div className="p-4">
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-400">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-bold text-dark-100 uppercase tracking-tight leading-tight">
+                  {providerDetails.name}
+                </h4>
+                <p className="text-xs text-dark-400 font-medium mt-0.5">SERVICIO {serviceIndex + 1} • PROVEEDOR {providerIndex + 1}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleViewDocuments}
+                disabled={!providerDetails.documents || providerDetails.documents.length === 0}
+                className={`inline-flex items-center justify-center w-8 h-8 transition-colors rounded-full ${
+                  providerDetails.documents && providerDetails.documents.length > 0
+                    ? 'text-primary-400 hover:bg-primary-500/10'
+                    : 'text-gray-500 cursor-not-allowed'
+                }`}
+                title={
+                  providerDetails.documents && providerDetails.documents.length > 0
+                    ? `Ver ${providerDetails.documents.length} archivo(s)`
+                    : 'No hay archivos cargados'
+                }
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          <button
-            onClick={handleViewDocuments}
-            disabled={!providerDetails.documents || providerDetails.documents.length === 0}
-            className={`inline-flex items-center justify-center w-8 h-8 transition-colors ${
-              providerDetails.documents && providerDetails.documents.length > 0
-                ? 'text-primary-400 hover:text-primary-300'
-                : 'text-gray-500 cursor-not-allowed'
-            }`}
-            title={
-              providerDetails.documents && providerDetails.documents.length > 0
-                ? `View ${providerDetails.documents.length} file(s)`
-                : 'No files uploaded for this provider'
-            }
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" strokeWidth={2} />
-            </svg>
-          </button>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-dark-900/40 p-3 rounded-lg border border-white/5">
+              <p className="text-[10px] font-semibold text-dark-400 uppercase tracking-wider mb-1">Costo</p>
+              <div className="text-sm font-bold text-dark-100">
+                {providerDetails.costProvider !== null ? (
+                  <CurrencyDisplay>{getCurrencySymbol(providerDetails.currency)}{providerDetails.costProvider.toFixed(2)}</CurrencyDisplay>
+                ) : (
+                  <span className="text-dark-500">No definido</span>
+                )}
+              </div>
+            </div>
+            <div className="bg-dark-900/40 p-3 rounded-lg border border-white/5">
+              <p className="text-[10px] font-semibold text-dark-400 uppercase tracking-wider mb-1">Moneda</p>
+              <div className="text-sm font-bold text-dark-100">{providerDetails.currency}</div>
+            </div>
+          </div>
+
+          {(providerDetails.startDate || providerDetails.endDate) && (
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5">
+              {providerDetails.startDate && (
+                <div>
+                  <label className="block text-[10px] font-bold text-dark-400 uppercase tracking-widest mb-1">Fecha de Inicio</label>
+                  <p className="text-xs text-dark-200 font-medium">
+                    {new Date(providerDetails.startDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              {providerDetails.endDate && (
+                <div>
+                  <label className="block text-[10px] font-bold text-dark-400 uppercase tracking-widest mb-1">Fecha de Fin</label>
+                  <p className="text-xs text-dark-200 font-medium">
+                    {new Date(providerDetails.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -185,7 +233,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
           <div className="bg-dark-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-dark-100">
-                Files for {providerDetails.name}
+                Archivos de {providerDetails.name}
               </h3>
               <button
                 onClick={() => setShowViewModal(false)}
@@ -227,7 +275,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
                             </svg>
                           ) : (
                             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           )}
                         </div>
@@ -235,13 +283,13 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
                         {/* File Info */}
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-dark-100 truncate">
-                            {file.filename || file.name || `Document ${index + 1}`}
+                            {file.filename || file.name || `Documento ${index + 1}`}
                           </h4>
                           <div className="flex items-center space-x-4 text-xs text-dark-400">
                             {file.size && <span>{formatFileSize(file.size)}</span>}
                             {file.uploadDate && <span>{new Date(file.uploadDate).toLocaleDateString()}</span>}
                             <span className="capitalize">
-                              {file.type ? file.type.split('/')[1] : (file.filename ? file.filename.split('.').pop() : 'file')}
+                              {file.type ? file.type.split('/')[1] : (file.filename ? file.filename.split('.').pop() : 'archivo')}
                             </span>
                           </div>
                         </div>
@@ -251,72 +299,40 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-        // Handle different document scenarios
-        let fileUrl = '';
-        let canView = false;
-
-                          if (file.url && file.url.startsWith('http')) {
-          // Full URL provided
-                            fileUrl = file.url;
-          canView = true;
-                          } else if (file.url && file.url.trim() !== '') {
-          // Relative URL - construct full URL
-                            fileUrl = `${api.getUri()}${file.url}`;
-          canView = true;
-                          } else if (file.fileObject) {
-          // File object available - create object URL for viewing
-          try {
-                              fileUrl = URL.createObjectURL(file.fileObject);
-            canView = true;
-          } catch (error) {
-            console.error('Error creating object URL:', error);
-            fileUrl = '#';
-            canView = false;
-          }
-        } else {
-          // No URL or file object available - file was uploaded but not accessible
-          fileUrl = '#';
-          canView = false;
-        }
-
-                          if (canView) {
-                            window.open(fileUrl, '_blank');
-                          } else {
-                            alert(`File was uploaded but URL is not available. This may be due to upload failure or server configuration.\n\nCurrent file: ${file.filename || file.name || 'Unknown'}`);
-                          }
+                          handleOpenFile(file);
                         }}
                         className="text-primary-400 hover:text-primary-300 p-1 ml-2"
-                        title="View file"
+                        title="Ver archivo"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       </button>
-              </div>
-              </div>
+                    </div>
+                  </div>
                 ))}
-            </div>
+              </div>
             ) : (
               <div className="text-center py-8 text-dark-400">
                 <svg className="w-12 h-12 mx-auto mb-4 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>No files uploaded for this provider yet.</p>
-                <p className="text-sm mt-1">Files can be uploaded during the service configuration process.</p>
-            </div>
+                <p>No hay archivos cargados para este proveedor.</p>
+                <p className="text-sm mt-1">Los archivos pueden cargarse durante la configuración del servicio.</p>
+              </div>
             )}
 
             {/* Modal Actions */}
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-white/10">
-          <button
+            <div className="flex justify-end mt-6 pt-4 border-t border-white/10">
+              <button
                 onClick={() => setShowViewModal(false)}
                 className="px-4 py-2 text-dark-300 hover:text-dark-100 border border-white/10 rounded-lg transition-colors"
-          >
-                Close
-          </button>
-      </div>
-    </div>
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
@@ -324,8 +340,8 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
 };
 
 // Component to display individual provider with name fetching
-const ProviderDisplay = ({ provider, providerIndex }) => {
-  const [providerName, setProviderName] = useState(provider.providerName || provider.name || 'Loading...');
+const ProviderDisplay = ({ provider, providerIndex, saleCurrency }) => {
+  const [providerName, setProviderName] = useState(provider.providerName || provider.name || 'Cargando...');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -344,11 +360,11 @@ const ProviderDisplay = ({ provider, providerIndex }) => {
       if (response.data.success) {
         setProviderName(response.data.data.provider.name);
       } else {
-        setProviderName('Unknown Provider');
+        setProviderName('Proveedor Desconocido');
       }
     } catch (error) {
       console.error('Error fetching provider name:', error);
-      setProviderName('Unknown Provider');
+      setProviderName('Proveedor Desconocido');
     } finally {
       setLoading(false);
     }
@@ -359,7 +375,7 @@ const ProviderDisplay = ({ provider, providerIndex }) => {
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
         <span className="text-sm text-dark-100 font-medium flex-1 truncate">
-          {loading ? 'Loading...' : providerName}
+          {loading ? 'Cargando...' : providerName}
         </span>
       </div>
       {provider.costProvider && (
@@ -381,7 +397,7 @@ const SaleSummary = () => {
   const [showServices, setShowServices] = useState(false);
   const [showProviders, setShowProviders] = useState(false);
   const [showPassengers, setShowPassengers] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -412,13 +428,10 @@ const SaleSummary = () => {
 
       // Validate ObjectId format
       if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
-        setError('Invalid sale ID format. The ID should be a 24-character hexadecimal string.');
+        setError('Formato de ID de venta inválido. El ID debe ser una cadena hexadecimal de 24 caracteres.');
         setLoading(false);
         return;
       }
-
-      // console.log('SaleSummary - ID from URL params:', id);
-      // console.log('SaleSummary - API URL:', `/api/sales/${id}`);
 
       // Add cache-busting parameter to ensure fresh data
       const response = await api.get(`/api/sales/${id}?t=${Date.now()}`);
@@ -433,21 +446,21 @@ const SaleSummary = () => {
       console.error('Error fetching sale:', error);
 
       if (error.response?.status === 404) {
-        setError('The requested sale was not found. This could mean the sale has been deleted, the ID is incorrect, or the sale never existed.');
+        setError('La venta solicitada no fue encontrada. Esto podría significar que la venta fue eliminada, el ID es incorrecto o nunca existió.');
       } else if (error.response?.status === 401) {
-        setError('You are not authorized to view this sale. Please log in again or contact your administrator.');
+        setError('No estás autorizado para ver esta venta. Por favor inicia sesión de nuevo o contacta a tu administrador.');
       } else if (error.response?.status === 403) {
-        setError('Access denied. You do not have permission to view this sale. Contact your administrator for access.');
+        setError('Acceso denegado. No tienes permiso para ver esta venta. Contacta a tu administrador.');
       } else if (error.response?.status === 400) {
-        setError('Invalid sale ID format. The ID should be a 24-character hexadecimal string. Please check the URL and try again.');
+        setError('Formato de ID de venta inválido. El ID debe ser una cadena hexadecimal de 24 caracteres.');
       } else if (error.response?.data?.message) {
         setError(error.response.data.message);
       } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        setError('Unable to connect to the server. Please check your internet connection and try again.');
+        setError('Imposible conectar con el servidor. Por favor revisa tu conexión a internet.');
       } else if (error.code === 'ECONNREFUSED') {
-        setError('Server is not responding. Please check if the backend server is running and try again.');
+        setError('El servidor no responde. Por favor revisa si el servidor está en línea e intenta de nuevo.');
       } else {
-        setError('An unexpected error occurred while loading the sale details. Please try again or contact support.');
+        setError('Ocurrió un error inesperado al cargar los detalles de la venta.');
       }
     } finally {
       setLoading(false);
@@ -500,22 +513,20 @@ const SaleSummary = () => {
         navigate('/sales');
       } else {
         console.error('Delete sale failed:', response.data.message);
-        alert('Failed to delete sale. Please try again.');
+        alert('Fallo al eliminar la venta. Por favor intenta de nuevo.');
       }
     } catch (error) {
       console.error('Error deleting sale:', error);
       if (error.response?.data?.message) {
-        alert(`Error deleting sale: ${error.response.data.message}`);
+        alert(`Error al eliminar la venta: ${error.response.data.message}`);
       } else {
-        alert('An error occurred while deleting the sale. Please try again.');
+        alert('Ocurrió un error al eliminar la venta. Por favor intenta de nuevo.');
       }
     } finally {
       setIsDeleting(false);
-      setShowDeleteModal(false);
+      setShowDeleteConfirm(false);
     }
   };
-
-
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -535,20 +546,10 @@ const SaleSummary = () => {
     }
   };
 
-  const getDocumentIcon = (type) => {
-    switch (type) {
-      case 'ticket': return '🎫';
-      case 'invoice': return '📄';
-      case 'contract': return '📋';
-      case 'receipt': return '🧾';
-      default: return '📎';
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner message="Loading sale details..." />
+        <LoadingSpinner message="Cargando detalles de la venta..." />
       </div>
     );
   }
@@ -559,10 +560,10 @@ const SaleSummary = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-              Sale Not Found
+              Venta No Encontrada
             </h1>
             <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-              The requested sale could not be found
+              La venta solicitada no pudo ser encontrada
             </p>
           </div>
 
@@ -575,35 +576,35 @@ const SaleSummary = () => {
                   </svg>
                 </div>
                 <h3 className="text-3xl font-semibold text-dark-100">
-                  Sale Not Found
+                  Venta No Encontrada
                 </h3>
               </div>
               <p className="text-dark-300 mb-6 max-w-md mx-auto text-lg">
                 {error}
               </p>
               <p className="text-dark-400 mb-8 text-sm">
-                Sale ID: {id}
+                ID de Venta: {id}
               </p>
 
               {/* Helpful suggestions */}
               <div className="bg-dark-600 rounded-lg p-6 mb-8 text-left">
-                <h4 className="text-lg font-semibold text-dark-100 mb-4">What you can do:</h4>
+                <h4 className="text-lg font-semibold text-dark-100 mb-4">Qué podés hacer:</h4>
                 <ul className="space-y-2 text-dark-300">
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Check if the sale ID is correct and try again</span>
+                    <span>Verificar que el ID de la venta es correcto e intentar de nuevo</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Go back to the sales list to browse all available sales</span>
+                    <span>Volver a la lista de ventas para explorar todas las ventas disponibles</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Create a new sale if this one was accidentally deleted</span>
+                    <span>Crear una nueva venta si esta fue eliminada por accidente</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Contact support if you believe this is an error</span>
+                    <span>Contactar al soporte si crees que esto es un error</span>
                   </li>
                 </ul>
               </div>
@@ -613,19 +614,19 @@ const SaleSummary = () => {
                   onClick={() => navigate('/sales')}
                   className="btn-secondary"
                 >
-                  Back to Sales List
+                  Volver a la Lista
                 </button>
                 <button
                   onClick={() => navigate('/sales/new')}
                   className="btn-secondary"
                 >
-                  Create New Sale
+                  Crear Nueva Venta
                 </button>
                 <button
                   onClick={fetchSale}
                   className="btn-primary"
                 >
-                  Try Again
+                  Reintentar
                 </button>
               </div>
             </div>
@@ -641,10 +642,10 @@ const SaleSummary = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-              Sale Not Found
+              Venta No Encontrada
             </h1>
             <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-              The requested sale could not be found
+              La venta solicitada no pudo ser encontrada
             </p>
           </div>
 
@@ -657,35 +658,35 @@ const SaleSummary = () => {
                   </svg>
                 </div>
                 <h3 className="text-3xl font-semibold text-dark-100">
-                  Sale Not Found
+                  Venta No Encontrada
                 </h3>
               </div>
               <p className="text-dark-300 mb-6 max-w-md mx-auto text-lg">
-                The sale you're looking for doesn't exist or has been removed.
+                La venta que buscas no existe o ha sido removida.
               </p>
               <p className="text-dark-400 mb-8 text-sm">
-                Sale ID: {id}
+                ID de Venta: {id}
               </p>
 
               {/* Helpful suggestions */}
               <div className="bg-dark-600 rounded-lg p-6 mb-8 text-left">
-                <h4 className="text-lg font-semibold text-dark-100 mb-4">What you can do:</h4>
+                <h4 className="text-lg font-semibold text-dark-100 mb-4">Qué podés hacer:</h4>
                 <ul className="space-y-2 text-dark-300">
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Check if the sale ID is correct and try again</span>
+                    <span>Verificar que el ID de la venta es correcto e intentar de nuevo</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Go back to the sales list to browse all available sales</span>
+                    <span>Volver a la lista de ventas para explorar todas las ventas disponibles</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Create a new sale if this one was accidentally deleted</span>
+                    <span>Crear una nueva venta si esta fue eliminada por accidente</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-primary-400 mr-2">•</span>
-                    <span>Contact support if you believe this is an error</span>
+                    <span>Contactar al soporte si crees que esto es un error</span>
                   </li>
                 </ul>
               </div>
@@ -695,19 +696,19 @@ const SaleSummary = () => {
                   onClick={() => navigate('/sales')}
                   className="btn-secondary"
                 >
-                  Back to Sales List
+                  Volver a la Lista
                 </button>
                 <button
                   onClick={() => navigate('/sales/new')}
                   className="btn-secondary"
                 >
-                  Create New Sale
+                  Crear Nueva Venta
                 </button>
                 <button
                   onClick={fetchSale}
                   className="btn-primary"
                 >
-                  Try Again
+                  Reintentar
                 </button>
               </div>
             </div>
@@ -717,6 +718,10 @@ const SaleSummary = () => {
     );
   }
 
+  const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
+  const sellerComisionPct = sale.createdBy?.comision || 0;
+  const sellerComisionAmount = (sale.profit || 0) * (sellerComisionPct / 100);
+
   return (
     <div className="min-h-screen bg-dark-800 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -724,32 +729,21 @@ const SaleSummary = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-dark-100">Sale Summary</h1>
-              <p className="text-dark-300 mt-2">Sale ID: {sale.id}</p>
+              <h1 className="text-3xl font-bold text-dark-100">Resumen de Venta</h1>
+              <p className="text-dark-300 mt-2">ID de Venta: {sale.id}</p>
             </div>
             <div className="flex space-x-3">
-              <span className={`inline-flex items-center px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(sale.status)}`}>
-                <span className="mr-1">{getStatusIcon(sale.status)}</span>
-                {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
-              </span>
               <button
                 onClick={checkSaleStatus}
                 className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
-                title="Check and update sale status"
+                title="Chequear y actualizar estatus de venta"
               >
-                🔄 Check Status
+                🔄 Chequear Estatus
               </button>
-              {/* <button
-                onClick={fetchSale}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                title="Refresh data"
-              >
-                🔄 Refresh
-              </button> */}
               <button
                 onClick={() => navigate(`/sales/${sale.id}/edit`)}
                 className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-                title="Edit Sale"
+                title="Editar Venta"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -758,16 +752,16 @@ const SaleSummary = () => {
               <button
                 onClick={() => navigate('/sales')}
                 className="px-4 py-2 bg-dark-600 text-white rounded-md hover:bg-dark-700"
-                title="Back to Sales"
+                title="Volver a Ventas"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <button
-                onClick={() => setShowDeleteModal(true)}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                title="Delete Sale"
+                title="Eliminar Venta"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -782,18 +776,18 @@ const SaleSummary = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Sale Information */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Sale Information</h2>
+              <h2 className="text-xl font-semibold text-dark-100 mb-4">Información de la Venta</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-dark-200">Created By</label>
+                  <label className="block text-sm font-medium text-dark-200">Creado Por</label>
                   <p className="text-dark-100">{sale.createdBy?.username}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark-200">Created Date</label>
+                  <label className="block text-sm font-medium text-dark-200">Fecha de Creación</label>
                   <p className="text-dark-100">{new Date(sale.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark-200">Last Updated</label>
+                  <label className="block text-sm font-medium text-dark-200">Última Actualización</label>
                   <p className="text-dark-100">{new Date(sale.updatedAt).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -803,7 +797,7 @@ const SaleSummary = () => {
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-dark-100">
-                  Passengers ({sale.passengers.length})
+                  Pasajeros ({sale.passengers.length})
                 </h2>
                 <button
                   onClick={() => setShowPassengers(!showPassengers)}
@@ -823,22 +817,7 @@ const SaleSummary = () => {
               {showPassengers && (
                 <div className="space-y-4">
                   {sale.passengers.map((passengerSale, index) => {
-                    // Debug logging
-                    console.log(`Passenger ${index}:`, passengerSale);
-                    console.log(`Passenger ${index} passengerId:`, passengerSale.passengerId);
-                    console.log(`Passenger ${index} isMainClient:`, passengerSale.isMainClient);
-                    
-                    // Show all passengers (both main client and companions)
-                    // Handle both cases: passengerId as object or passengerId as reference
                     const passengerData = passengerSale.passengerId || passengerSale;
-                    
-                    // Additional debug logging for main client
-                    if (passengerSale.isMainClient) {
-                      console.log(`Main client passengerData:`, passengerData);
-                      console.log(`Main client email:`, passengerData?.email);
-                      console.log(`Main client phone:`, passengerData?.phone);
-                    }
-                    
                     if (passengerData) {
                       return (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -847,7 +826,7 @@ const SaleSummary = () => {
                               {passengerData?.name} {passengerData?.surname}
                               {passengerSale.isMainClient && (
                                 <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
-                                  Main Passenger
+                                  Pasajero Principal
                                 </span>
                               )}
                             </h3>
@@ -855,14 +834,14 @@ const SaleSummary = () => {
                               Email: {passengerData?.email || 'N/A'}
                             </p>
                             <p className="text-sm text-dark-300">
-                              Phone: {passengerData?.phone || 'N/A'}
+                              Teléfono: {passengerData?.phone || 'N/A'}
                             </p>
                             <p className="text-sm text-dark-400">
-                              Passport: {passengerData?.passportNumber || 'N/A'}
+                              Pasaporte: {passengerData?.passportNumber || 'N/A'}
                             </p>
                             {passengerSale.notes && (
                               <p className="text-sm text-dark-400 mt-1">
-                                Notes: {passengerSale.notes}
+                                Notas: {passengerSale.notes}
                               </p>
                             )}
                           </div>
@@ -879,7 +858,7 @@ const SaleSummary = () => {
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-dark-100">
-                  Services ({sale.services.length})
+                  Servicios ({sale.services.length})
                 </h2>
                 <button
                   onClick={() => setShowServices(!showServices)}
@@ -899,10 +878,6 @@ const SaleSummary = () => {
 
               {showServices && (
                 <div className="space-y-4">
-                  {/* Debug: Log sale data */}
-                  {console.log('Sale data:', sale)}
-                  {console.log('Sale services:', sale.services)}
-                  {/* Destination - Simple City Display */}
                   {sale.destination && sale.destination.city && (
                     <div className="bg-blue-600/20 border border-blue-500/30 rounded-lg p-4">
                       <div className="flex items-center">
@@ -910,19 +885,13 @@ const SaleSummary = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span className="text-blue-100 font-medium">City: {sale.destination.city}</span>
+                        <span className="text-blue-100 font-medium">Ciudad: {sale.destination.city}</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Individual Service Cards with Price and Dates */}
                   <div className="space-y-4">
                     {(sale.services || []).map((serviceSale, index) => {
-                      // Debug: Log the service data to understand the structure
-                      console.log('ServiceSale data:', serviceSale);
-                      console.log('ServiceSale keys:', Object.keys(serviceSale));
-                      
-                      // Handle service data extraction based on actual schema
                       let serviceName = 'Unknown Service';
                       let serviceType = 'Unknown Type';
                       let serviceDescription = '';
@@ -932,37 +901,30 @@ const SaleSummary = () => {
                       let startDate = null;
                       let endDate = null;
                       
-                      // Extract service name
                       if (serviceSale.serviceName) {
                         serviceName = serviceSale.serviceName;
                       } else if (serviceSale.serviceId && typeof serviceSale.serviceId === 'object') {
                         serviceName = serviceSale.serviceId.destino || serviceSale.serviceId.title || 'Unknown Service';
                       }
                       
-                      // Extract service type
                       if (serviceSale.serviceTypeName) {
                         serviceType = serviceSale.serviceTypeName;
                       } else if (serviceSale.serviceTemplateId) {
-                        // Check serviceTemplateId first (for services added via new flow)
                         if (typeof serviceSale.serviceTemplateId === 'object') {
                           serviceType = serviceSale.serviceTemplateId.name || serviceSale.serviceTemplateId.category || serviceSale.serviceTemplateId.serviceType?.name || 'Unknown Type';
                         } else {
-                          // serviceTemplateId is a string ID - we'll need to get the name from the populated data
-                          // If not populated, keep as unknown for now
                           serviceType = 'Unknown Type';
                         }
                       } else if (serviceSale.serviceId && typeof serviceSale.serviceId === 'object') {
                         serviceType = serviceSale.serviceId.typeId?.name || serviceSale.serviceId.category || serviceSale.serviceId.type || 'Unknown Type';
                       }
                       
-                      // Extract service description
                       if (serviceSale.serviceInfo) {
                         serviceDescription = serviceSale.serviceInfo;
                       } else if (serviceSale.serviceId && typeof serviceSale.serviceId === 'object') {
                         serviceDescription = serviceSale.serviceId.description || serviceSale.serviceId.destino || '';
                       }
                       
-                      // Clean up any "undefined" values and remove "undefined -" prefix
                       if (serviceDescription && serviceDescription.includes('undefined -')) {
                         serviceDescription = serviceDescription.replace('undefined -', '').trim();
                       }
@@ -970,12 +932,10 @@ const SaleSummary = () => {
                         serviceDescription = '';
                       }
                       
-                      // Extract service notes
                       if (serviceSale.notes) {
                         serviceNotes = serviceSale.notes;
                       }
                       
-                      // Clean up any "undefined" values and remove "undefined -" prefix from notes
                       if (serviceNotes && serviceNotes.includes('undefined -')) {
                         serviceNotes = serviceNotes.replace('undefined -', '').trim();
                       }
@@ -983,51 +943,32 @@ const SaleSummary = () => {
                         serviceNotes = '';
                       }
                       
-                      // Remove "Service:" prefix from notes
                       if (serviceNotes && serviceNotes.startsWith('Service: ')) {
                         serviceNotes = serviceNotes.replace(/^Service: /, '').trim();
                       }
                       
-                      
-                      // Extract pricing information - use costProvider instead of priceClient
-                      // Handle costProvider = 0 case by checking for null/undefined explicitly
                       serviceCost = serviceSale.costProvider !== null && serviceSale.costProvider !== undefined 
                         ? serviceSale.costProvider 
                         : (serviceSale.priceClient || serviceSale.originalAmount);
                       serviceCurrency = serviceSale.currency || serviceSale.originalCurrency || sale.saleCurrency;
                       
-                      // Extract date information
                       if (serviceSale.serviceDates) {
                         startDate = serviceSale.serviceDates.startDate;
                         endDate = serviceSale.serviceDates.endDate;
                       } else {
-                        // Fallback for other date field names
                         startDate = serviceSale.startDate || serviceSale.checkIn;
                         endDate = serviceSale.endDate || serviceSale.checkOut;
                       }
-                      
-                      // Debug: Log the extracted values
-                      console.log('Extracted values:', {
-                        serviceName,
-                        serviceType,
-                        serviceDescription,
-                        serviceNotes,
-                        serviceCost,
-                        serviceCurrency,
-                        startDate,
-                        endDate
-                      });
 
                       return (
                         <div key={index} className="bg-green-600/20 border border-green-500/30 rounded-lg p-4">
-                          {/* Service Type and Description - Top Section */}
                           <div className="mb-3">
                             <div className="flex justify-between items-start mb-2">
                               <div>
-                                <span className="text-lg font-bold text-green-200">Type: {serviceType}</span>
+                                <span className="text-lg font-bold text-green-200">Tipo: {serviceType}</span>
                                 {serviceNotes && (
                                   <div className="mt-2">
-                                    <span className="text-sm font-medium text-green-200">Notes: </span>
+                                    <span className="text-sm font-medium text-green-200">Notas: </span>
                                     <span className="text-sm text-green-100">
                                       {serviceNotes}
                                     </span>
@@ -1044,12 +985,11 @@ const SaleSummary = () => {
                             </div>
                           </div>
                           
-                          {/* Start and End Dates - Fourth Row */}
                           {(startDate || endDate) && (
                             <div className="grid grid-cols-2 gap-4 pt-3 border-t border-green-500/20">
                               {startDate && (
                                 <div>
-                                  <label className="block text-xs font-medium text-green-200">Start Date</label>
+                                  <label className="block text-xs font-medium text-green-200">Fecha de Inicio</label>
                                   <p className="text-green-100 font-medium">
                                     {new Date(startDate).toLocaleDateString()}
                                   </p>
@@ -1057,7 +997,7 @@ const SaleSummary = () => {
                               )}
                               {endDate && (
                                 <div>
-                                  <label className="block text-xs font-medium text-green-200">End Date</label>
+                                  <label className="block text-xs font-medium text-green-200">Fecha de Fin</label>
                                   <p className="text-green-100 font-medium">
                                     {new Date(endDate).toLocaleDateString()}
                                   </p>
@@ -1077,13 +1017,11 @@ const SaleSummary = () => {
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-dark-100">
-                  Providers ({(() => {
-                    // Calculate unique providers count
+                  Proveedores ({(() => {
                     const seenProviders = new Set();
                     let providerCount = 0;
 
                     sale.services.forEach((serviceSale) => {
-                      // Handle multiple providers per service (prioritize this over single provider)
                       if (serviceSale.providers && serviceSale.providers.length > 0) {
                         serviceSale.providers.forEach((provider) => {
                           const providerKey = provider.providerId?._id || provider.providerId || provider._id;
@@ -1093,7 +1031,6 @@ const SaleSummary = () => {
                           }
                         });
                       }
-                      // Handle single provider per service (only if no providers array exists)
                       else if (serviceSale.providerId && (!serviceSale.providers || serviceSale.providers.length === 0)) {
                         const providerKey = serviceSale.providerId?._id || serviceSale.providerId;
                         if (!seenProviders.has(providerKey)) {
@@ -1125,36 +1062,28 @@ const SaleSummary = () => {
               {showProviders && (
                 <div className="space-y-4">
                   {(() => {
-                    // Collect all unique providers across all services with aggregated documents
-                    const providerDataMap = new Map(); // Map to store aggregated provider data by unique provider ID
+                    const providerDataMap = new Map(); 
 
                     sale.services.forEach((serviceSale, serviceIndex) => {
-                      // Handle multiple providers per service (prioritize this over single provider)
                       if (serviceSale.providers && serviceSale.providers.length > 0) {
                         serviceSale.providers.forEach((provider, providerIndex) => {
-                          // Use only provider ID as the key for deduplication
                           const providerId = provider.providerId?._id || provider.providerId || provider._id;
                           const providerKey = providerId || 'unknown';
 
                           if (!providerDataMap.has(providerKey)) {
-                            // First time seeing this provider - initialize with base data
                             const providerObj = provider.providerId || provider;
                             providerDataMap.set(providerKey, {
                               ...providerObj,
                               uniqueKey: providerKey,
-                              allDocuments: [], // Array to collect all documents for this provider
-                              services: [] // Array to track which services this provider appears in
+                              allDocuments: [], 
+                              services: [] 
                             });
                           }
 
-                          // Add documents from this provider instance to its document collection
                           const providerData = providerDataMap.get(providerKey);
-                          // Documents should be specific to this provider instance in this service
                           const documentsToAdd = provider.documents || provider.providerId?.documents || [];
                           if (documentsToAdd && documentsToAdd.length > 0) {
-                            // Ensure we're adding document objects with proper structure
                             const validDocuments = documentsToAdd.filter(doc => doc && (doc.url || doc.filename || doc.name));
-                            // Only add documents that aren't already in the collection (avoid duplicates)
                             validDocuments.forEach(doc => {
                               const docUrl = doc.url || doc.filename || doc.name;
                               if (!providerData.allDocuments.some(existing => (existing.url || existing.filename || existing.name) === docUrl)) {
@@ -1162,7 +1091,6 @@ const SaleSummary = () => {
                               }
                             });
                           }
-                          // Track this service for the provider
                           providerData.services.push({
                             serviceIndex,
                             serviceName: serviceSale.serviceName || 'Unknown Service',
@@ -1170,22 +1098,19 @@ const SaleSummary = () => {
                           });
                         });
                       }
-                      // Handle single provider per service (only if no providers array exists)
                       else if (serviceSale.providerId && (!serviceSale.providers || serviceSale.providers.length === 0)) {
                         const providerKey = serviceSale.providerId?._id || serviceSale.providerId;
 
                         if (!providerDataMap.has(providerKey)) {
-                          // First time seeing this provider - initialize with base data
                           const providerObj = serviceSale.providerId?._id ? serviceSale.providerId : { _id: providerKey };
                           providerDataMap.set(providerKey, {
                             ...providerObj,
                             uniqueKey: providerKey,
-                            allDocuments: [], // Array to collect all documents
-                            services: [] // Array to track which services this provider appears in
+                            allDocuments: [],
+                            services: []
                           });
                         }
 
-                        // Add documents from this service to the provider's document collection
                         const providerData = providerDataMap.get(providerKey);
                         if (serviceSale.documents && serviceSale.documents.length > 0) {
                           const validDocuments = serviceSale.documents.filter(doc => doc && (doc.url || doc.filename || doc.name));
@@ -1204,18 +1129,14 @@ const SaleSummary = () => {
                       }
                     });
 
-                    // Convert map to array and update documents property
                     const allProviders = Array.from(providerDataMap.values()).map(provider => {
                       const providerObj = {
                         ...provider,
-                        documents: provider.allDocuments || [] // Use aggregated documents
+                        documents: provider.allDocuments || [] 
                       };
-                      console.log(`🔍 Provider ${provider.uniqueKey} - Documents count:`, providerObj.documents.length);
-                      console.log(`🔍 Provider ${provider.uniqueKey} - Documents:`, providerObj.documents);
                       return providerObj;
                     });
 
-                    // Render each unique provider only once
                     return allProviders.map((provider) => (
                       <ProviderCard
                         key={provider.uniqueKey}
@@ -1230,12 +1151,11 @@ const SaleSummary = () => {
               )}
             </div>
 
-
             {/* Notes */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Notes</h2>
+              <h2 className="text-xl font-semibold text-dark-100 mb-4">Notas</h2>
               <p className="text-dark-200">
-                Sale with {sale.services?.length || 0} service template instance{(sale.services?.length || 0) !== 1 ? 's' : ''}.
+                Venta con {sale.services?.length || 0} instancias de plantilla de servicio.
               </p>
             </div>
 
@@ -1253,29 +1173,29 @@ const SaleSummary = () => {
           <div className="space-y-6">
             {/* Financial Summary */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Financial Summary</h2>
+              <h2 className="text-xl font-semibold text-dark-100 mb-4">Resumen Financiero</h2>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-dark-300">Total Sale Price:</span>
+                  <span className="text-dark-300">Precio Total Venta:</span>
                   <span className="font-semibold text-dark-100">
                     <CurrencyDisplay>{formatCurrencyFull(sale.totalSalePrice || 0, sale.saleCurrency)}</CurrencyDisplay>
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-300">Total Cost:</span>
+                  <span className="text-dark-300">Costo Total:</span>
                   <span className="font-semibold text-dark-100">
                     <CurrencyDisplay>{formatCurrencyFull(sale.totalCost || 0, sale.saleCurrency)}</CurrencyDisplay>
                   </span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between">
-                    <span className="text-dark-300">Profit:</span>
+                    <span className="text-dark-300">Ganancia:</span>
                     <span className={`font-bold text-lg ${(sale.profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       <CurrencyDisplay>{formatCurrencyFull(sale.profit || 0, sale.saleCurrency)}</CurrencyDisplay>
                     </span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-dark-300">Profit Margin:</span>
+                    <span className="text-dark-300">Margen de Ganancia:</span>
                     <span className={`font-semibold ${(() => {
                       const margin = (sale.totalSalePrice || 0) > 0 ? ((sale.profit || 0) / (sale.totalSalePrice || 0)) * 100 : 0;
                       return margin >= 0 ? 'text-green-600' : 'text-red-600';
@@ -1290,147 +1210,54 @@ const SaleSummary = () => {
               </div>
             </div>
 
-            {/* Payment Balances */}
+            {/* Profit Chart */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Payment Balances</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-dark-300">Passenger Payments:</span>
-                  <span className="font-semibold text-dark-100">
-                    <CurrencyDisplay>{formatCurrencyFull(sale.totalClientPayments, sale.saleCurrency)}</CurrencyDisplay>
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-dark-300">Provider Payments:</span>
-                  <span className="font-semibold text-dark-100">
-                    <CurrencyDisplay>{formatCurrencyFull(sale.totalProviderPayments, sale.saleCurrency)}</CurrencyDisplay>
-                  </span>
-                </div>
-                <div className="border-t pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-dark-300">Passenger Balance:</span>
-                    <span className={`font-bold text-lg ${(() => {
-                      const totalPassengerPrice = sale.totalSalePrice || 0;
-                      const totalClientPayments = sale.totalClientPayments || 0;
-                      const balance = totalPassengerPrice - totalClientPayments;
-                      return balance <= 0 ? 'text-green-600' : 'text-red-600';
-                    })()}`}>
-                      {(() => {
-                      const totalPassengerPrice = sale.totalSalePrice || 0;
-                      const totalClientPayments = sale.totalClientPayments || 0;
-                      const balance = totalPassengerPrice - totalClientPayments;
-                      return <CurrencyDisplay>{formatCurrencyFull(balance, sale.saleCurrency)}</CurrencyDisplay>;
-                      })()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-dark-300">Provider Balance:</span>
-                    <span className={`font-bold text-lg ${(() => {
-                      const totalServiceCost = sale.services?.reduce((total, service) => {
-                        const costProvider = service.costProvider !== null && service.costProvider !== undefined 
-                          ? service.costProvider 
-                          : (service.priceClient || service.originalAmount);
-                        return total + (parseFloat(costProvider) || 0);
-                      }, 0) || 0;
-                      const totalProviderPayments = sale.totalProviderPayments || 0;
-                      const balance = totalServiceCost - totalProviderPayments;
-                      return balance >= 0 ? 'text-green-600' : 'text-red-600';
-                    })()}`}>
-                      {(() => {
-                        const totalServiceCost = sale.services?.reduce((total, service) => {
-                          const costProvider = service.costProvider !== null && service.costProvider !== undefined 
-                            ? service.costProvider 
-                            : (service.priceClient || service.originalAmount);
-                          return total + (parseFloat(costProvider) || 0);
-                        }, 0) || 0;
-                        const totalProviderPayments = sale.totalProviderPayments || 0;
-                        const balance = totalServiceCost - totalProviderPayments;
-                        return <CurrencyDisplay>{formatCurrencyFull(balance, sale.saleCurrency)}</CurrencyDisplay>;
-                      })()}
-                    </span>
-                  </div>
-                </div>
+              <h2 className="text-xl font-semibold text-dark-100 mb-4">Análisis de Ganancias</h2>
+              <ProfitChart sale={sale} />
+              <div className="text-[10px] text-center font-bold text-dark-500 uppercase tracking-widest leading-relaxed mt-4">
+                Leyenda: relación entre precio de venta, costo y ganancia bruta.
               </div>
             </div>
-
-            {/* Profit Chart */}
-            <ProfitChart sale={sale} />
           </div>
         </div>
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
-          <div className="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-dark-100">
-                Delete Sale
-              </h3>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-dark-400 hover:text-dark-100 transition-colors"
-                disabled={isDeleting}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-900/95 backdrop-blur-sm">
+          <div className="w-full max-w-md p-8 bg-dark-800 border border-white/10 rounded-2xl shadow-2xl animate-scaleIn">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-red-500/10 rounded-full text-red-500">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
             </div>
-
-            <div className="mb-6">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-lg font-medium text-dark-100">Are you sure?</h4>
-                  <p className="text-sm text-dark-300">This action cannot be undone.</p>
-                </div>
-              </div>
-              
-              <p className="text-dark-300 mb-4">
-                You are about to permanently delete this sale record. The sale data including passenger information, service details, provider assignments, and payment records associated with this sale will be removed. Note: The underlying provider, service, and passenger entities will remain in the system.
-              </p>
-              
-              <div className="bg-dark-700/50 border border-red-500/30 rounded-lg p-3">
-                <p className="text-sm text-dark-200 font-medium">Sale ID: {sale?.id}</p>
-                <p className="text-sm text-dark-300">Created: {sale?.createdAt ? new Date(sale.createdAt).toLocaleDateString() : 'N/A'}</p>
-                <p className="text-sm text-dark-300">Status: {sale?.status?.charAt(0).toUpperCase() + sale?.status?.slice(1) || 'N/A'}</p>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-dark-300 hover:text-dark-100 border border-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
+            <h2 className="text-2xl font-bold text-dark-100 text-center mb-2 uppercase">Acción Irreversible</h2>
+            <p className="text-dark-300 text-center mb-8 leading-relaxed">
+              Estás a punto de eliminar permanentemente este registro de venta. Los datos de la venta incluyendo información de pasajeros, detalles de servicios, asignaciones de proveedores y registros de pagos asociados con esta venta serán eliminados. Nota: Las entidades subyacentes de proveedores, servicios y pasajeros permanecerán en el sistema.
+            </p>
+            <div className="flex flex-col space-y-3">
               <button
                 onClick={handleDeleteSale}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
               >
                 {isDeleting ? (
                   <>
                     <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    <span>Deleting...</span>
+                    <span>ELIMINANDO...</span>
                   </>
                 ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Delete Sale</span>
-                  </>
+                  <span>CONFIRMAR ELIMINACIÓN</span>
                 )}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="w-full py-4 bg-dark-700 hover:bg-dark-600 text-dark-100 font-bold uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+              >
+                Cancelar / Volver
               </button>
             </div>
           </div>

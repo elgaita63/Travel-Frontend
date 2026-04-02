@@ -994,13 +994,13 @@ const AdminDashboard = () => {
                       <div className="px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 shadow-sm text-center min-w-[90px]">
                         <span className="block text-[10px] uppercase font-bold text-primary-400 leading-none mb-1">Saldo ARS</span>
                         <span className="text-sm font-mono font-bold text-primary-300">
-                          {formatCurrencyFullJSX(userItem.saldoArs || 0, 'ARS')}
+                          {formatCurrencyFullJSX(userItem.balance.ars || 0, 'ARS')}
                         </span>
                       </div>
                       <div className="px-3 py-1.5 rounded-lg bg-success-500/10 border border-success-500/20 shadow-sm text-center min-w-[90px]">
                         <span className="block text-[10px] uppercase font-bold text-success-500 leading-none mb-1">Saldo USD</span>
                         <span className="text-sm font-mono font-bold text-success-400">
-                          {formatCurrencyFullJSX(userItem.saldoUsd || 0, 'USD')}
+                          {formatCurrencyFullJSX(userItem.balance.usd || 0, 'USD')}
                         </span>
                       </div>
                     </div>

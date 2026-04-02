@@ -7,13 +7,16 @@ import ProvisionalReceipt from './ProvisionalReceipt';
 import PaymentEditModal from './PaymentEditModal';
 import CurrencyDisplay from './CurrencyDisplay';
 import { formatMethodName, formatMethodNameShort } from '../utils/paymentMethodUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
+  const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProviderForm, setShowProviderForm] = useState(false);
+  const [showSellerForm, setShowSellerForm] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
   const [completedReceipts, setCompletedReceipts] = useState(new Set());
@@ -83,6 +86,7 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     setPayments(prev => [newPayment, ...prev]);
     setShowClientForm(false);
     setShowProviderForm(false);
+    setShowSellerForm(false);
     onPaymentAdded && onPaymentAdded();
   };
 
@@ -259,9 +263,9 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
   };
 
   const getPaymentTypeColor = (type) => {
-    return type === 'client' 
-      ? 'bg-success-500/20 text-success-400 border border-success-500/30' 
-      : 'bg-primary-500/20 text-primary-400 border border-primary-500/30';
+    if (type === 'client') return 'bg-success-500/20 text-success-400 border border-success-500/30';
+    if (type === 'provider') return 'bg-primary-500/20 text-primary-400 border border-primary-500/30';
+    return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
   };
 
   const getReceiptIcon = (filename) => {
@@ -299,6 +303,9 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
         <div className="flex space-x-3">
           <button onClick={() => setShowClientForm(true)} className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">+ Pago de Pasajero</button>
           <button onClick={() => setShowProviderForm(true)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">+ Pago a Proveedor</button>
+          {user?.role === 'admin' && (
+            <button onClick={() => setShowSellerForm(true)} className="px-3 py-1 bg-cyan-600 text-white text-sm rounded-md hover:bg-cyan-700">+ Pago al Vendedor</button>
+          )}
         </div>
       </div>
 
@@ -310,6 +317,10 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
 
       <Modal isOpen={showProviderForm} onClose={() => setShowProviderForm(false)} title="Registrar Pago a Proveedor" size="lg">
         <PaymentForm saleId={saleId} paymentType="provider" onPaymentAdded={handlePaymentAdded} onCancel={() => setShowProviderForm(false)} saleCurrency={saleCurrency} />
+      </Modal>
+
+      <Modal isOpen={showSellerForm} onClose={() => setShowSellerForm(false)} title="Registrar Pago al Vendedor" size="lg">
+        <PaymentForm saleId={saleId} paymentType="seller" onPaymentAdded={handlePaymentAdded} onCancel={() => setShowSellerForm(false)} saleCurrency={saleCurrency} />
       </Modal>
 
       <PaymentEditModal payment={editingPayment} isOpen={showEditModal} onClose={handleCancelEdit} onSave={handleSavePayment} onDeleteSuccess={handleDeleteSuccess} saving={saving} saleCurrency={saleCurrency} />
@@ -341,7 +352,7 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
                 <tr key={payment.id || payment._id || `payment-${index}`} className="hover:bg-white/5 transition-colors cursor-pointer" onDoubleClick={() => handleRowDoubleClick(payment)}>
                   <td className="px-3 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPaymentTypeColor(payment.type)}`}>
-                      {payment.type === 'client' ? 'Pasajero' : 'Proveedor'}
+                      {payment.type === 'client' ? 'Pasajero' : payment.type === 'provider' ? 'Proveedor' : 'Vendedor'}
                     </span>
                   </td>
                   <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
