@@ -113,14 +113,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    // Usamos replace para limpiar el historial y evitar rebotes del router
-    window.location.replace('/login');
+    // Al setear el usuario en nulo y el token en nulo, el ProtectedRoute
+    // de tu App.jsx (o equivalente) detectará que ya no hay sesión y 
+    // te redirigirá automáticamente a /login usando el enrutador de React,
+    // sin hacer un hard-reload de la página y eliminando el pestañeo.
   };
-
+  
   const value = {
     token,
     user,
