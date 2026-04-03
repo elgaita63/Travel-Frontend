@@ -83,20 +83,20 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
   }, [filteredSales, sortBy, sortOrder]);
 
   const totals = React.useMemo(() => {
-    const sellersIds = new Set();
+    let sumVendedores = 0;
     let sumPasajero = 0;
     let sumProveedor = 0;
     filteredSales.forEach(s => {
-      const sId = getSafeId(s.createdBy);
-      if (sId) sellersIds.add(sId);
+      // Sumamos el balance pendiente de la venta específica
+      const vBalance = s.sellerBalance 
+        ? (selectedCurrency === 'ARS' ? (s.sellerBalance.ars || 0) : (s.sellerBalance.usd || 0))
+        : 0;
+      sumVendedores += vBalance;
       sumPasajero += (s.clientBalance || 0);
       sumProveedor += (s.providerBalance || 0);
     });
-    const sumVendedores = allUsers
-      .filter(u => sellersIds.has(getSafeId(u._id)))
-      .reduce((acc, u) => acc + (u[selectedCurrency === 'ARS' ? 'saldoArs' : 'saldoUsd'] || 0), 0);
     return { sumVendedores, sumPasajero, sumProveedor };
-  }, [filteredSales, allUsers, selectedCurrency]);
+  }, [filteredSales, selectedCurrency]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -117,7 +117,6 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     );
   };
 
-  // Funciones de estilo extraídas de SaleSummary
   const getStatusStyles = (status) => {
     switch (status) {
       case 'open': return 'bg-yellow-500 text-yellow-900';
@@ -180,8 +179,13 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                 {sortedSales.map((sale) => {
                   const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
                   const sellerName = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
-                  const sellerId = getSafeId(sale.createdBy);
-                  const userInMaster = allUsers.find(u => getSafeId(u._id) === sellerId);
+                  
+                  // --- OBTENER EL BALANCE PENDIENTE DE COBRAR DE ESTA VENTA ---
+                  const currentSaleBalance = sale.sellerBalance 
+                    ? (sale.saleCurrency === 'ARS' ? (sale.sellerBalance.ars || 0) : (sale.sellerBalance.usd || 0))
+                    : 0;
+
+                  const userInMaster = allUsers.find(u => getSafeId(u._id) === getSafeId(sale.createdBy));
                   const comisionPct = Number(userInMaster?.comision || sale.createdBy?.comision || 0);
                   const comisionImp = (sale.profit || 0) * (comisionPct / 100);
                   const sInfo = sale.services?.[0];
@@ -205,8 +209,8 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-dark-100">{sellerName}</div>
-                        <div className="text-[11px] font-bold text-primary-400 mt-1">
-                          Saldo: {formatCurrency(userInMaster?.[sale.saleCurrency === 'ARS' ? 'saldoArs' : 'saldoUsd'] || 0, sale.saleCurrency)}
+                        <div className="text-[11px] font-bold text-accent-400 mt-1">
+                          Pendiente: {formatCurrency(currentSaleBalance, sale.saleCurrency)}
                         </div>
                       </td>
                       <td className="px-2 py-4 text-center">
