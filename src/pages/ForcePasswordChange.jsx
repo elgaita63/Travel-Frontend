@@ -10,6 +10,8 @@ const ForcePasswordChange = () => {
   const { version } = useAuth();
   
   const userId = location.state?.userId;
+  // Agregamos el username si viene en el state para que Chrome sepa a quién pertenece la clave
+  const username = location.state?.username || 'user'; 
 
   const [formData, setFormData] = useState({
     currentPassword: '',
@@ -20,7 +22,6 @@ const ForcePasswordChange = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Estados para los ojitos
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -64,17 +65,11 @@ const ForcePasswordChange = () => {
     }
   };
 
-  /**
-   * EyeBtn Corregido: Centrado vertical absoluto respecto al input
-   */
   const EyeBtn = ({ show, onShow, onHide }) => (
     <button
       type="button"
-      onMouseDown={onShow}
-      onMouseUp={onHide}
-      onMouseLeave={onHide}
-      onTouchStart={onShow}
-      onTouchEnd={onHide}
+      onMouseDown={onShow} onMouseUp={onHide} onMouseLeave={onHide}
+      onTouchStart={onShow} onTouchEnd={onHide}
       className="absolute inset-y-0 right-0 pr-4 flex items-center text-dark-400 hover:text-primary-400 transition-colors select-none"
     >
       {show ? (
@@ -102,77 +97,63 @@ const ForcePasswordChange = () => {
 
         <div className="card-glass p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* CAMPO OCULTO: Esto ayuda a que Chrome sugiera la clave vinculada a un usuario */}
+            <input type="text" name="username" value={username} readOnly style={{ display: 'none' }} autoComplete="username" />
+
             {error && <div className="notification border-error-500 text-error-400 p-2 text-sm">{error}</div>}
             {success && <div className="notification border-success-500 text-success-400 p-2 text-sm">{success}</div>}
 
-            {/* Password Actual */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-primary-400 uppercase">Contraseña Actual</label>
+              <label className="block text-xs font-semibold text-primary-400 uppercase tracking-wider">Contraseña Actual</label>
               <div className="relative">
                 <input 
                   type={showCurrent ? "text" : "password"} 
                   name="currentPassword" 
-                  required 
                   autoComplete="current-password"
                   value={formData.currentPassword} 
                   onChange={handleChange} 
                   className="input-field pr-12" 
-                  placeholder="Ingrese su clave actual"
+                  required
                 />
-                <EyeBtn 
-                  show={showCurrent} 
-                  onShow={() => setShowCurrent(true)} 
-                  onHide={() => setShowCurrent(false)} 
-                />
+                <EyeBtn show={showCurrent} onShow={() => setShowCurrent(true)} onHide={() => setShowCurrent(false)} />
               </div>
             </div>
 
-            {/* Nueva Password */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-primary-400 uppercase">Nueva Contraseña</label>
+              <label className="block text-xs font-semibold text-primary-400 uppercase tracking-wider">Nueva Contraseña</label>
               <div className="relative">
                 <input 
                   type={showNew ? "text" : "password"} 
                   name="newPassword" 
-                  required 
                   autoComplete="new-password"
                   value={formData.newPassword} 
                   onChange={handleChange} 
                   className="input-field pr-12" 
-                  placeholder="Mínimo 8 caracteres (Mayús., Núm., Símb.)"
+                  placeholder="Mínimo 8 caracteres"
+                  required
                 />
-                <EyeBtn 
-                  show={showNew} 
-                  onShow={() => setShowNew(true)} 
-                  onHide={() => setShowNew(false)} 
-                />
+                <EyeBtn show={showNew} onShow={() => setShowNew(true)} onHide={() => setShowNew(false)} />
               </div>
             </div>
 
-            {/* Confirmar Nueva Password */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-primary-400 uppercase">Confirmar Nueva Contraseña</label>
+              <label className="block text-xs font-semibold text-primary-400 uppercase tracking-wider">Confirmar</label>
               <div className="relative">
                 <input 
                   type={showConfirm ? "text" : "password"} 
                   name="confirmPassword" 
-                  required 
                   autoComplete="new-password"
                   value={formData.confirmPassword} 
                   onChange={handleChange} 
                   className="input-field pr-12" 
-                  placeholder="Repita la nueva clave"
+                  required
                 />
-                <EyeBtn 
-                  show={showConfirm} 
-                  onShow={() => setShowConfirm(true)} 
-                  onHide={() => setShowConfirm(false)} 
-                />
+                <EyeBtn show={showConfirm} onShow={() => setShowConfirm(true)} onHide={() => setShowConfirm(false)} />
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold">
-              {loading ? 'Procesando...' : 'Actualizar y Volver a Ingresar'}
+            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold uppercase tracking-widest text-sm">
+              {loading ? 'Procesando...' : 'Actualizar y Entrar'}
             </button>
           </form>
         </div>

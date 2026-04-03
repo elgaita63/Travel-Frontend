@@ -35,9 +35,9 @@ const UserSettings = () => {
     confirm: false
   });
 
-  const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
-  };
+  // Handlers para el efecto "Hold to show"
+  const handleShow = (field) => setShowPasswords(prev => ({ ...prev, [field]: true }));
+  const handleHide = (field) => setShowPasswords(prev => ({ ...prev, [field]: false }));
 
   const tabs = [
     { id: 'profile', name: 'Perfil', icon: (
@@ -81,7 +81,6 @@ const UserSettings = () => {
       updateUser(response.data.data.user);
       showMessage('¡Perfil actualizado con éxito!', 'success');
     } catch (error) {
-      // Captura el mensaje de error del servidor si existe
       const errorMsg = error.response?.data?.message || 'Error al actualizar el perfil.';
       showMessage(errorMsg, 'error');
     } finally { setLoading(false); }
@@ -103,7 +102,6 @@ const UserSettings = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswords({ current: false, new: false, confirm: false });
     } catch (error) {
-      // AQUÍ EL CAMBIO: Capturamos el mensaje específico del modelo (Historial o Complejidad)
       const errorMsg = error.response?.data?.message || 'Error al actualizar la contraseña.';
       showMessage(errorMsg, 'error');
     } finally { setLoading(false); }
@@ -118,6 +116,24 @@ const UserSettings = () => {
   };
 
   const timezones = ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Argentina/Buenos_Aires', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai'];
+
+  const EyeBtn = ({ field, show }) => (
+    <button
+      type="button"
+      onMouseDown={() => handleShow(field)}
+      onMouseUp={() => handleHide(field)}
+      onMouseLeave={() => handleHide(field)}
+      onTouchStart={() => handleShow(field)}
+      onTouchEnd={() => handleHide(field)}
+      className="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-100 transition-colors select-none"
+    >
+      {show ? (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+      ) : (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.048 10.048 0 012.859-4.859M9.868 9.868A3 3 0 1014.132 14.132M18.143 18.143L19 19M3 3l1.5 1.5m1.5 1.5l1.5 1.5M21 21l-1.5-1.5m-1.5-1.5l-1.5-1.5" /></svg>
+      )}
+    </button>
+  );
 
   return (
     <div className="space-y-6">
@@ -154,7 +170,6 @@ const UserSettings = () => {
                     type="text" 
                     value={profileData.username} 
                     className="input-field bg-dark-800/50 cursor-not-allowed text-dark-400 border-white/5" 
-                    placeholder="Nombre de Usuario" 
                     disabled 
                     readOnly 
                   />
@@ -165,7 +180,6 @@ const UserSettings = () => {
                     type="email" 
                     value={profileData.email} 
                     className="input-field bg-dark-800/50 cursor-not-allowed text-dark-400 border-white/5" 
-                    placeholder="Correo Electrónico" 
                     disabled 
                     readOnly 
                   />
@@ -233,12 +247,19 @@ const UserSettings = () => {
 
           {activeTab === 'security' && (
             <form onSubmit={handlePasswordSubmit} className="space-y-6 max-w-md">
-              {/* Bloque informativo de requisitos */}
+              {/* Ajuste Gaita: Email como username oculto para disparar sugerencias de Chrome */}
+              <input 
+                type="text" 
+                name="email" 
+                value={profileData.email} 
+                autoComplete="username" 
+                style={{ display: 'none' }} 
+                readOnly 
+              />
+
               <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg text-xs text-primary-300 space-y-1">
                 <p className="font-bold uppercase mb-1">Requisitos de seguridad:</p>
-                <p>• Mínimo 8 caracteres</p>
-                <p>• Al menos una mayúscula y una minúscula</p>
-                <p>• Al menos un número y un símbolo (!@#$%...)</p>
+                <p>• Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo</p>
                 <p>• No puede ser igual a las últimas 5 utilizadas</p>
               </div>
 
@@ -252,18 +273,9 @@ const UserSettings = () => {
                     className="input-field pr-10" 
                     placeholder="Ingresá tu contraseña actual" 
                     required 
+                    autoComplete="current-password"
                   />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('current')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-100"
-                  >
-                    {showPasswords.current ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.048 10.048 0 012.859-4.859M9.868 9.868A3 3 0 1014.132 14.132M18.143 18.143L19 19M3 3l1.5 1.5m1.5 1.5l1.5 1.5M21 21l-1.5-1.5m-1.5-1.5l-1.5-1.5" /></svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
+                  <EyeBtn field="current" show={showPasswords.current} />
                 </div>
               </div>
 
@@ -277,18 +289,9 @@ const UserSettings = () => {
                     className="input-field pr-10" 
                     placeholder="Ingresá tu nueva contraseña" 
                     required 
+                    autoComplete="new-password"
                   />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('new')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-100"
-                  >
-                    {showPasswords.new ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.048 10.048 0 012.859-4.859M9.868 9.868A3 3 0 1014.132 14.132M18.143 18.143L19 19M3 3l1.5 1.5m1.5 1.5l1.5 1.5M21 21l-1.5-1.5m-1.5-1.5l-1.5-1.5" /></svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
+                  <EyeBtn field="new" show={showPasswords.new} />
                 </div>
               </div>
 
@@ -302,18 +305,9 @@ const UserSettings = () => {
                     className="input-field pr-10" 
                     placeholder="Repetí tu nueva contraseña" 
                     required 
+                    autoComplete="new-password"
                   />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('confirm')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-400 hover:text-dark-100"
-                  >
-                    {showPasswords.confirm ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.048 10.048 0 012.859-4.859M9.868 9.868A3 3 0 1014.132 14.132M18.143 18.143L19 19M3 3l1.5 1.5m1.5 1.5l1.5 1.5M21 21l-1.5-1.5m-1.5-1.5l-1.5-1.5" /></svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
+                  <EyeBtn field="confirm" show={showPasswords.confirm} />
                 </div>
               </div>
               <div className="flex justify-end pt-6 border-t border-white/10 mt-6">

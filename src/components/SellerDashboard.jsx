@@ -20,27 +20,22 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch sales data and statistics
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
         
-        // Fetch recent sales for current seller (limit to 3)
+        // Fetch ventas recientes (limitado a 3)
         const salesResponse = await api.get('/api/sales/seller/monthly-sales?limit=3');
-
-        // Fetch monthly stats for current salesperson (this also provides the stats data)
+        // Fetch estadísticas mensuales
         const monthlyStatsResponse = await api.get('/api/sales/seller/monthly-stats');
-
-        // Fetch currency-specific stats for current seller
+        // Fetch estadísticas por moneda
         const currencyResponse = await api.get('/api/sales/currency-stats');
 
         if (salesResponse.data.success) {
-          // Transform sales data to match component expectations
           const transformedSales = salesResponse.data.data.sales.map(sale => ({
             id: sale._id,
-            customer: sale.clientId ? `${sale.clientId.name} ${sale.clientId.surname}` : 'Unknown Client',
+            customer: sale.clientId ? `${sale.clientId.name} ${sale.clientId.surname}` : 'Cliente Desconocido',
             phone: sale.clientId?.phone || 'N/A',
             amount: sale.totalSalePrice || 0,
             profit: sale.profit || 0,
@@ -54,7 +49,6 @@ const SellerDashboard = () => {
           const statsData = monthlyStatsResponse.data.data;
           const overview = statsData.overview;
           
-          // Extract USD and ARS sales from currency stats
           let usdSales = 0;
           let arsSales = 0;
           
@@ -78,7 +72,7 @@ const SellerDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard data');
+        setError('Error al cargar los datos del panel');
       } finally {
         setLoading(false);
       }
@@ -87,18 +81,14 @@ const SellerDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (activeDropdown && !event.target.closest('.relative')) {
         setActiveDropdown(null);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeDropdown]);
 
   if (loading) {
@@ -106,7 +96,7 @@ const SellerDashboard = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-dark-300">Loading dashboard data...</p>
+          <p className="text-dark-300">Cargando datos del panel...</p>
         </div>
       </div>
     );
@@ -133,18 +123,16 @@ const SellerDashboard = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            Seller Dashboard
+            Panel del Vendedor
           </h1>
           <p className="text-xl text-dark-300 max-w-2xl mx-auto">
-            Welcome back, <span className="font-semibold text-primary-400">{user?.username || 'Seller'}</span>! 
-            Here's your comprehensive sales overview and performance metrics.
+            Hola, <span className="font-semibold text-primary-400">{user?.username || 'Vendedor'}</span>! 
+            Este es tu resumen de ventas y métricas de rendimiento.
           </p>
         </div>
-          
 
-        {/* Overall Stats Cards */}
+        {/* Totales */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {/* USD Sales Card */}
           <div className="card-neon hover-lift p-8">
             <div className="flex items-center justify-between mb-8">
               <div className="icon-container bg-success-500">
@@ -153,17 +141,15 @@ const SellerDashboard = () => {
                 </svg>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-success-300 notranslate">USD Sales</div>
-                <div className="text-xs text-success-400">All time</div>
+                <div className="text-sm font-medium text-success-300 uppercase tracking-wider">Ventas USD</div>
+                <div className="text-xs text-success-400">Histórico</div>
               </div>
             </div>
-            
-            <h3 className="text-2xl font-bold text-dark-100 mb-3 notranslate">Sales in USD</h3>
-            <p className="text-5xl font-bold text-success-400 mb-3 notranslate">{formatCurrencyEllipsis(stats.usdSales, 'USD')}</p>
-            <p className="text-sm text-success-300 notranslate">USD transactions</p>
+            <h3 className="text-2xl font-bold text-dark-100 mb-3">Ventas en USD</h3>
+            <p className="text-5xl font-bold text-success-400 mb-3">{formatCurrencyEllipsis(stats.usdSales, 'USD')}</p>
+            <p className="text-sm text-success-300">Transacciones en USD</p>
           </div>
 
-          {/* ARS Sales Card */}
           <div className="card-neon hover-lift p-8">
             <div className="flex items-center justify-between mb-8">
               <div className="icon-container bg-warning-500">
@@ -172,18 +158,17 @@ const SellerDashboard = () => {
                 </svg>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-warning-300 notranslate">ARS Sales</div>
-                <div className="text-xs text-warning-400">All time</div>
+                <div className="text-sm font-medium text-warning-300 uppercase tracking-wider">Ventas ARS</div>
+                <div className="text-xs text-warning-400">Histórico</div>
               </div>
             </div>
-            
-            <h3 className="text-2xl font-bold text-dark-100 mb-3 notranslate">Sales in ARS</h3>
-            <p className="text-5xl font-bold text-warning-400 mb-3 notranslate">{formatCurrencyEllipsis(stats.arsSales, 'ARS')}</p>
-            <p className="text-sm text-warning-300 notranslate">ARS transactions</p>
+            <h3 className="text-2xl font-bold text-dark-100 mb-3">Ventas en ARS</h3>
+            <p className="text-5xl font-bold text-warning-400 mb-3">{formatCurrencyEllipsis(stats.arsSales, 'ARS')}</p>
+            <p className="text-sm text-warning-300">Transacciones en ARS</p>
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Acciones Rápidas */}
         <div className="card-glass p-8 mb-12">
           <h3 className="text-3xl font-bold text-dark-100 mb-8 flex items-center">
             <div className="icon-container bg-accent-500 mr-4">
@@ -191,49 +176,49 @@ const SellerDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            Quick Actions
+            Acciones Rápidas
           </h3>
           
           <div className="flex justify-center">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
-            <button 
-              onClick={() => navigate('/sales/new')}
-              className="group card hover-lift p-8"
-            >
-              <div className="flex items-center space-x-6">
-                <div className="icon-container bg-primary-500 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
+              <button 
+                onClick={() => navigate('/sales/new')}
+                className="group card hover-lift p-8"
+              >
+                <div className="flex items-center space-x-6">
+                  <div className="icon-container bg-primary-500 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-2xl font-bold text-dark-100 mb-3 group-hover:text-primary-400 transition-colors">Nueva Venta</div>
+                    <div className="text-dark-300 group-hover:text-primary-300 transition-colors">Registrá una nueva reserva.</div>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <div className="text-2xl font-bold text-dark-100 mb-3 group-hover:text-primary-400 transition-colors">Add New Sale</div>
-                  <div className="text-dark-300 group-hover:text-primary-300 transition-colors">Record a new travel booking and expand your business</div>
+              </button>
+              
+              <button 
+                onClick={() => navigate('/sales/monthly')}
+                className="group card hover-lift p-8"
+              >
+                <div className="flex items-center space-x-6">
+                  <div className="icon-container bg-accent-500 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-2xl font-bold text-dark-100 mb-3 group-hover:text-accent-400 transition-colors">Ventas del Mes</div>
+                    <div className="text-dark-300 group-hover:text-accent-300 transition-colors">Revisá todas tus ventas y ganancias de este mes.</div>
+                  </div>
                 </div>
-              </div>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/sales/monthly')}
-              className="group card hover-lift p-8"
-            >
-              <div className="flex items-center space-x-6">
-                <div className="icon-container bg-accent-500 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <div className="text-2xl font-bold text-dark-100 mb-3 group-hover:text-accent-400 transition-colors">Monthly Sales</div>
-                  <div className="text-dark-300 group-hover:text-accent-300 transition-colors">View all sales and profit for this month</div>
-                </div>
-              </div>
-            </button>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Recent Sales Section */}
+        {/* Últimas Ventas */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-3xl font-bold text-dark-100 flex items-center">
@@ -242,13 +227,13 @@ const SellerDashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              Recent Sales
+              Últimas Ventas
             </h3>
             <button 
               onClick={() => navigate('/sales')}
               className="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
             >
-              View All →
+              Ver Todas →
             </button>
           </div>
             
@@ -257,20 +242,20 @@ const SellerDashboard = () => {
               <div className="card p-8 text-center">
                 <div className="text-dark-400 mb-4">
                   <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-dark-200 mb-2">No Sales Yet</h3>
-                <p className="text-dark-400 mb-4">Start by creating your first sale to see it here.</p>
+                <h3 className="text-xl font-semibold text-dark-200 mb-2">Sin ventas registradas</h3>
+                <p className="text-dark-400 mb-4">Comenzá creando tu primera venta para verla aquí.</p>
                 <button 
                   onClick={() => navigate('/sales/new')}
                   className="btn-primary"
                 >
-                  Create First Sale
+                  Crear mi primera venta
                 </button>
               </div>
             ) : (
-              sales.map((sale, index) => (
+              sales.map((sale) => (
               <div
                 key={sale.id}
                 className="card hover-lift p-6"
@@ -298,7 +283,7 @@ const SellerDashboard = () => {
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {new Date(sale.date).toLocaleDateString('en-US', { 
+                        {new Date(sale.date).toLocaleDateString('es-AR', { 
                           year: 'numeric', 
                           month: 'long', 
                           day: 'numeric' 
@@ -309,7 +294,7 @@ const SellerDashboard = () => {
                   
                   <div className="flex items-center space-x-6">
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-dark-100 mb-3 notranslate">
+                      <div className="text-3xl font-bold text-dark-100 mb-3">
                         {formatCurrencyCompact(sale.amount)}
                       </div>
                     </div>
@@ -333,7 +318,7 @@ const SellerDashboard = () => {
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-dark-200 hover:bg-white/5 hover:text-white transition-colors"
                             >
-                              View Details
+                              Ver Detalles
                             </button>
                             <button
                               onClick={() => {
@@ -342,17 +327,16 @@ const SellerDashboard = () => {
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-dark-200 hover:bg-white/5 hover:text-white transition-colors"
                             >
-                              Edit Sale
+                              Editar Venta
                             </button>
                             <button
                               onClick={() => {
-                                // Handle delete functionality
-                                // console.log('Delete sale:', sale.id);
+                                // Lógica de eliminación si corresponde
                                 setActiveDropdown(null);
                               }}
                               className="w-full px-4 py-2 text-left text-sm text-error-400 hover:bg-error-500/10 hover:text-error-300 transition-colors"
                             >
-                              Delete Sale
+                              Eliminar Venta
                             </button>
                           </div>
                         </div>

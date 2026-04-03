@@ -10,7 +10,6 @@ const Login = () => {
   
   // --- ESTADO PARA EL OJITO ---
   const [showPassword, setShowPassword] = useState(false);
-  // ----------------------------------------------------
 
   const { login, version } = useAuth();
   const navigate = useNavigate();
@@ -31,15 +30,11 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-
-              if (result.requirePasswordChange) {
-                // Usamos result.userId que viene del context
-                navigate('/force-password-change', { state: { userId: result.userId } });
-              } else {
-                setTimeout(() => navigate('/dashboard'), 100);
-              }
-
-
+        if (result.requirePasswordChange) {
+          navigate('/force-password-change', { state: { userId: result.userId } });
+        } else {
+          setTimeout(() => navigate('/dashboard'), 100);
+        }
       } else {
         setError(result.message);
       }
@@ -51,6 +46,10 @@ const Login = () => {
       }
     } finally { setLoading(false); }
   };
+
+  // Handlers para el efecto OnHold
+  const handleShow = () => setShowPassword(true);
+  const handleHide = () => setShowPassword(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-6 px-4 bg-dark-900">
@@ -70,11 +69,20 @@ const Login = () => {
 
         <div className="card-glass p-8">
           <form className="space-y-8" onSubmit={handleSubmit}>
-            {error && <div className="notification border-error-500 text-error-400 p-2">{error}</div>}
+            {error && <div className="notification border-error-500 text-error-400 p-2 text-sm">{error}</div>}
             
-            <input type="email" name="email" required value={formData.email} onChange={handleChange} className="input-field" placeholder="Email" />
+            <input 
+              type="email" 
+              name="email" 
+              required 
+              value={formData.email} 
+              onChange={handleChange} 
+              className="input-field" 
+              placeholder="Email" 
+              autoComplete="username"
+            />
             
-            {/* CAMPO CON OJITO */}
+            {/* CAMPO CON OJITO ON-HOLD */}
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -84,26 +92,31 @@ const Login = () => {
                 onChange={handleChange} 
                 className="input-field pr-12" 
                 placeholder="Contraseña" 
+                autoComplete="current-password"
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-dark-400 hover:text-primary-400 transition-colors"
+                onMouseDown={handleShow}
+                onMouseUp={handleHide}
+                onMouseLeave={handleHide}
+                onTouchStart={handleShow}
+                onTouchEnd={handleHide}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-dark-400 hover:text-primary-400 transition-colors select-none"
               >
                 {showPassword ? (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 ) : (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                   </svg>
                 )}
               </button>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full btn-primary py-4">
+            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold">
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
