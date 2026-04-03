@@ -48,14 +48,13 @@ const styles = {
 };
 
 const AppRoutes = () => {
-  const { loading, isAuthenticated } = useAuth(); // <--- Agregado isAuthenticated
+  const { loading, isAuthenticated } = useAuth();
 
   if (loading) return null;
 
   return (
     <Routes>
       {/* RUTAS PÚBLICAS */}
-      {/* Si ya está autenticado, no lo dejamos entrar al login, lo mandamos al dashboard */}
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/force-password-change" element={<ForcePasswordChange />} />
       
@@ -73,11 +72,18 @@ const AppRoutes = () => {
       <Route path="/services/new" element={<ProtectedRoute><Layout><ServiceForm /></Layout></ProtectedRoute>} />
       <Route path="/services/:id" element={<ProtectedRoute><Layout><ServiceDetails /></Layout></ProtectedRoute>} />
       <Route path="/services/:id/edit" element={<ProtectedRoute><Layout><ServiceForm /></Layout></ProtectedRoute>} />
+      
+      {/* RUTAS DE VENTAS - EL ORDEN IMPORTA AQUÍ */}
       <Route path="/sales" element={<ProtectedRoute><Layout><SalesList /></Layout></ProtectedRoute>} />
       <Route path="/sales/monthly" element={<ProtectedRoute><Layout><MonthlySales /></Layout></ProtectedRoute>} />
       <Route path="/sales/wizard" element={<ProtectedRoute><Layout><SaleWizard /></Layout></ProtectedRoute>} />
+      
+      {/* ESTA ES LA LÍNEA QUE ARREGLA EL ERROR: Declaramos 'new' antes que ':id' */}
+      <Route path="/sales/new" element={<ProtectedRoute><Layout><SaleWizard /></Layout></ProtectedRoute>} />
+      
       <Route path="/sales/:id" element={<ProtectedRoute><Layout><SaleSummary /></Layout></ProtectedRoute>} />
       <Route path="/sales/:id/edit" element={<ProtectedRoute><Layout><SaleEdit /></Layout></ProtectedRoute>} />
+      
       <Route path="/inventory" element={<ProtectedRoute><Layout><InventoryDashboard /></Layout></ProtectedRoute>} />
       <Route path="/inventory/calendar" element={<ProtectedRoute><Layout><InventoryCalendar /></Layout></ProtectedRoute>} />
       <Route path="/cupos/new" element={<ProtectedRoute><Layout><CupoForm /></Layout></ProtectedRoute>} />
