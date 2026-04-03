@@ -31,11 +31,15 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        if (result.requirePasswordChange) {
-          navigate('/force-password-change', { state: { userId: result.data?.userId } });
-        } else {
-          setTimeout(() => navigate('/dashboard'), 100);
-        }
+
+              if (result.requirePasswordChange) {
+                // Usamos result.userId que viene del context
+                navigate('/force-password-change', { state: { userId: result.userId } });
+              } else {
+                setTimeout(() => navigate('/dashboard'), 100);
+              }
+
+
       } else {
         setError(result.message);
       }

@@ -81,7 +81,9 @@ const UserSettings = () => {
       updateUser(response.data.data.user);
       showMessage('¡Perfil actualizado con éxito!', 'success');
     } catch (error) {
-      showMessage('Error al actualizar el perfil.', 'error');
+      // Captura el mensaje de error del servidor si existe
+      const errorMsg = error.response?.data?.message || 'Error al actualizar el perfil.';
+      showMessage(errorMsg, 'error');
     } finally { setLoading(false); }
   };
 
@@ -101,7 +103,9 @@ const UserSettings = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswords({ current: false, new: false, confirm: false });
     } catch (error) {
-      showMessage('Error al actualizar la contraseña.', 'error');
+      // AQUÍ EL CAMBIO: Capturamos el mensaje específico del modelo (Historial o Complejidad)
+      const errorMsg = error.response?.data?.message || 'Error al actualizar la contraseña.';
+      showMessage(errorMsg, 'error');
     } finally { setLoading(false); }
   };
 
@@ -229,6 +233,15 @@ const UserSettings = () => {
 
           {activeTab === 'security' && (
             <form onSubmit={handlePasswordSubmit} className="space-y-6 max-w-md">
+              {/* Bloque informativo de requisitos */}
+              <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg text-xs text-primary-300 space-y-1">
+                <p className="font-bold uppercase mb-1">Requisitos de seguridad:</p>
+                <p>• Mínimo 8 caracteres</p>
+                <p>• Al menos una mayúscula y una minúscula</p>
+                <p>• Al menos un número y un símbolo (!@#$%...)</p>
+                <p>• No puede ser igual a las últimas 5 utilizadas</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">Contraseña Actual</label>
                 <div className="relative">

@@ -77,14 +77,14 @@ export const AuthProvider = ({ children }) => {
       }
 
       // CASO B: Cambio de contraseña obligatorio
+      // AuthContext.jsx - Línea ~84
       if (response.data?.requirePasswordChange) {
         return { 
           success: true, 
           requirePasswordChange: true, 
-          data: response.data.data 
+          userId: response.data.data?.userId // Sacamos el ID afuera para que sea fácil de leer
         };
       }
-
       // CASO C: Login exitoso (Normal o Sid)
       const responseData = response.data?.data || response.data;
       const newToken = responseData?.token;
