@@ -17,10 +17,20 @@ const ProfitChart = ({ sale }) => {
   const totalClientPayments = sale.totalClientPayments || 0;
   const totalProviderPayments = sale.totalProviderPayments || 0;
   
-  // Extraer datos del vendedor y calcular comisión
+  // 1) COMISIÓN: Total que le corresponde (independientemente de pagos)
   const sellerComisionPct = sale.createdBy?.comision || 0;
   const sellerComisionAmount = profit > 0 ? profit * (sellerComisionPct / 100) : 0;
-  const sellerBalance = 0; // Fijo en 0 por ahora
+
+  // 2) BALANCE: Lo que falta pagar de ESTA venta (Dato real del backend)
+  const sellerBalance = sale.saleCurrency === 'ARS' 
+    ? (sale.sellerBalance?.ars || 0) 
+    : (sale.sellerBalance?.usd || 0);
+
+  // 3) PAGOS REALIZADOS (Para la barrita violeta)
+  const totalSellerPayments = sellerComisionAmount - sellerBalance;
+  const sellerPaymentsPercent = sellerComisionAmount > 0 
+    ? (totalSellerPayments / sellerComisionAmount) * 100 
+    : 0;
 
   // Extraer status de la venta para el badge
   const saleStatus = sale.status || 'unknown';
@@ -37,13 +47,14 @@ const ProfitChart = ({ sale }) => {
   const statusDisplay = getStatusDisplay(saleStatus);
 
   // Calculate percentages for the chart
-  const maxValue = Math.max(totalSalePrice, totalCost, totalClientPayments, totalProviderPayments);
+  const maxValue = Math.max(totalSalePrice, totalCost, totalClientPayments, totalProviderPayments, sellerComisionAmount);
   const salePricePercent = maxValue > 0 ? (totalSalePrice / maxValue) * 100 : 0;
   const costPercent = maxValue > 0 ? (totalCost / maxValue) * 100 : 0;
   const clientPaymentsPercent = maxValue > 0 ? (totalClientPayments / maxValue) * 100 : 0;
   const providerPaymentsPercent = maxValue > 0 ? (totalProviderPayments / maxValue) * 100 : 0;
+  const comisionPercent = maxValue > 0 ? (sellerComisionAmount / maxValue) * 100 : 0;
 
-  // Format values with warnings for suspiciously large numbers (using full number format)
+  // Formateos
   const formattedSalePrice = { value: formatCurrencyFull(totalSalePrice, sale.saleCurrency), warning: false };
   const formattedCost = { value: formatCurrencyFull(totalCost, sale.saleCurrency), warning: false };
   const formattedClientPayments = { value: formatCurrencyFull(totalClientPayments, sale.saleCurrency), warning: false };
@@ -64,19 +75,12 @@ const ProfitChart = ({ sale }) => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm font-medium text-dark-200">Precio Total Venta</span>
-            <span 
-              className={`text-sm font-bold ${formattedSalePrice.warning ? 'text-red-500' : 'text-blue-500'}`}
-              style={{ color: formattedSalePrice.warning ? '#ef4444' : '#3b82f6' }}
-            >
+            <span className="text-sm font-bold text-blue-500">
               <CurrencyDisplay>{formattedSalePrice.value}</CurrencyDisplay>
-              {formattedSalePrice.warning && <span className="text-xs text-red-400 ml-1">⚠️</span>}
             </span>
           </div>
           <div className="w-full bg-dark-700 rounded-full h-3">
-            <div 
-              className="bg-primary-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${salePricePercent}%` }}
-            ></div>
+            <div className="bg-primary-500 h-3 rounded-full transition-all duration-300" style={{ width: `${salePricePercent}%` }}></div>
           </div>
         </div>
 
@@ -84,19 +88,12 @@ const ProfitChart = ({ sale }) => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm font-medium text-dark-200">Costo Total</span>
-            <span 
-              className={`text-sm font-bold ${formattedCost.warning ? 'text-red-500' : 'text-red-500'}`}
-              style={{ color: '#ef4444' }}
-            >
+            <span className="text-sm font-bold text-red-500">
               <CurrencyDisplay>{formattedCost.value}</CurrencyDisplay>
-              {formattedCost.warning && <span className="text-xs text-red-400 ml-1">⚠️</span>}
             </span>
           </div>
           <div className="w-full bg-dark-700 rounded-full h-3">
-            <div 
-              className="bg-error-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${costPercent}%` }}
-            ></div>
+            <div className="bg-error-500 h-3 rounded-full transition-all duration-300" style={{ width: `${costPercent}%` }}></div>
           </div>
         </div>
 
@@ -104,38 +101,27 @@ const ProfitChart = ({ sale }) => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm font-medium text-dark-200">Pagos de Pasajero</span>
-            <span 
-              className={`text-sm font-bold ${formattedClientPayments.warning ? 'text-red-500' : 'text-green-500'}`}
-              style={{ color: formattedClientPayments.warning ? '#ef4444' : '#22c55e' }}
-            >
+            <span className="text-sm font-bold text-green-500">
               <CurrencyDisplay>{formattedClientPayments.value}</CurrencyDisplay>
-              {formattedClientPayments.warning && <span className="text-xs text-red-400 ml-1">⚠️</span>}
             </span>
           </div>
           <div className="w-full bg-dark-700 rounded-full h-3">
-            <div 
-              className="bg-success-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${clientPaymentsPercent}%` }}
-            ></div>
+            <div className="bg-success-500 h-3 rounded-full transition-all duration-300" style={{ width: `${clientPaymentsPercent}%` }}></div>
           </div>
         </div>
 
-        {/* Provider Payments Bar */}
+        {/* NUEVA: Barra de Pagos al Vendedor (Violeta) */}
         <div>
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-medium text-dark-200">Pagos a Proveedor</span>
-            <span 
-              className={`text-sm font-bold ${formattedProviderPayments.warning ? 'text-red-500' : 'text-orange-500'}`}
-              style={{ color: formattedProviderPayments.warning ? '#ef4444' : '#f97316' }}
-            >
-              <CurrencyDisplay>{formattedProviderPayments.value}</CurrencyDisplay>
-              {formattedProviderPayments.warning && <span className="text-xs text-red-400 ml-1">⚠️</span>}
+            <span className="text-sm font-medium text-dark-200">Pagos Realizados al Vendedor</span>
+            <span className="text-sm font-bold text-purple-400">
+              <CurrencyDisplay>{formatCurrencyFull(totalSellerPayments, sale.saleCurrency)}</CurrencyDisplay>
             </span>
           </div>
           <div className="w-full bg-dark-700 rounded-full h-3">
             <div 
-              className="bg-warning-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${providerPaymentsPercent}%` }}
+              className="bg-purple-500 h-3 rounded-full transition-all duration-300" 
+              style={{ width: `${Math.min(100, Math.max(0, sellerPaymentsPercent))}%` }}
             ></div>
           </div>
         </div>
@@ -145,47 +131,35 @@ const ProfitChart = ({ sale }) => {
       <div className="mt-6 pt-4 border-t border-white/10">
         <div className="flex justify-between items-center">
           <span className="text-lg font-medium text-dark-200">Ganancia Neta</span>
-          <span className={`text-2xl font-bold ${
-            profit >= 0 ? 'text-success-400' : 'text-error-400'
-          } ${formattedProfit.warning ? 'text-red-500' : ''}`}>
+          <span className={`text-2xl font-bold ${profit >= 0 ? 'text-success-400' : 'text-error-400'}`}>
             <CurrencyDisplay>{formattedProfit.value}</CurrencyDisplay>
-            {formattedProfit.warning && <span className="text-xs text-red-400 ml-1">⚠️</span>}
           </span>
         </div>
         <div className="flex justify-between items-center mt-1">
           <span className="text-sm text-dark-400">Margen de Ganancia</span>
-          <span className={`text-sm font-semibold ${
-            profit >= 0 ? 'text-success-400' : 'text-error-400'
-          }`}>
+          <span className={`text-sm font-semibold ${profit >= 0 ? 'text-success-400' : 'text-error-400'}`}>
             {totalSalePrice > 0 ? ((profit / totalSalePrice) * 100).toFixed(1) : 0}%
           </span>
         </div>
       </div>
 
-      {/* Balance Summary con el Badge de Estado abajo */}
+      {/* Balance Summary */}
       <div className="mt-4 pt-4 border-t border-white/10">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-dark-800/50 p-3 rounded-lg border border-white/5">
             <div className="text-xs font-bold text-white mb-1 uppercase tracking-tight">Saldo Pasajero</div>
-            <div className={`text-2xl font-black ${(() => {
-              const balance = totalSalePrice - totalClientPayments;
-              return balance <= 0 ? 'text-success-400' : 'text-error-400';
-            })()}`}>
+            <div className={`text-2xl font-black ${totalSalePrice - totalClientPayments <= 0 ? 'text-success-400' : 'text-error-400'}`}>
               <CurrencyDisplay>{formatCurrencyFull(totalSalePrice - totalClientPayments, sale.saleCurrency)}</CurrencyDisplay>
             </div>
           </div>
           <div className="bg-dark-800/50 p-3 rounded-lg border border-white/5">
             <div className="text-xs font-bold text-white mb-1 uppercase tracking-tight">Saldo Proveedor</div>
-            <div className={`text-2xl font-black ${(() => {
-              const balance = totalCost - totalProviderPayments;
-              return balance >= 0 ? 'text-success-400' : 'text-error-400';
-            })()}`}>
+            <div className={`text-2xl font-black ${totalCost - totalProviderPayments >= 0 ? 'text-success-400' : 'text-error-400'}`}>
               <CurrencyDisplay>{formatCurrencyFull(totalCost - totalProviderPayments, sale.saleCurrency)}</CurrencyDisplay>
             </div>
           </div>
         </div>
 
-        {/* Badge debajo de los saldos */}
         <div className="flex justify-center">
           <div className="flex items-center space-x-2 bg-dark-900/40 px-4 py-2 rounded-full border border-white/5">
              <span className="text-xs font-bold text-dark-400 uppercase tracking-widest">Estado:</span>
@@ -197,11 +171,11 @@ const ProfitChart = ({ sale }) => {
         </div>
       </div>
 
-      {/* NUEVA SECCIÓN: Comisión del Vendedor */}
+      {/* SECCIÓN: Comisión del Vendedor */}
       <div className="mt-4 pt-4 border-t border-white/10">
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-accent-500/10 p-3 rounded-lg border border-accent-500/20">
-            <div className="text-xs font-bold text-accent-400 mb-1 uppercase tracking-tight">
+          <div className="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
+            <div className="text-xs font-bold text-purple-400 mb-1 uppercase tracking-tight">
               Comisión Vendedor ({sellerComisionPct}%)
             </div>
             <div className="text-xl font-black text-white">
@@ -210,9 +184,9 @@ const ProfitChart = ({ sale }) => {
           </div>
           <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
             <div className="text-xs font-bold text-blue-400 mb-1 uppercase tracking-tight">
-              Balance Vendedor
+              Balance Pendiente Vendedor
             </div>
-            <div className="text-xl font-black text-white">
+            <div className={`text-xl font-black ${sellerBalance <= 0 ? 'text-success-400' : 'text-blue-400'}`}>
               <CurrencyDisplay>{formattedSellerBalance.value}</CurrencyDisplay>
             </div>
           </div>
@@ -236,8 +210,8 @@ const ProfitChart = ({ sale }) => {
             <span>Pagos Pasajero</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-orange-500 rounded-sm mr-2 shadow-sm"></div>
-            <span>Pagos Proveedor</span>
+            <div className="w-3 h-3 bg-purple-500 rounded-sm mr-2 shadow-sm"></div>
+            <span>Pagos al Vendedor</span>
           </div>
         </div>
       </div>

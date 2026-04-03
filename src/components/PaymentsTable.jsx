@@ -44,7 +44,7 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     fetchPayments();
   }, [saleId]);
 
-  const fetchPayments = async () => {
+const fetchPayments = async () => {
     try {
       setLoading(true);
       
@@ -56,12 +56,31 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
       
       const response = await api.get(`/api/payments?saleId=${saleId}`);
 
-      if (response.data.success) {
-        setPayments(response.data.data.payments);
+if (response.data.success) {
+        // --- ORDENAMIENTO DOBLE PARA DESEMPATAR ---
+        const sortedPayments = response.data.data.payments.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+
+          // Si las fechas son distintas, ordenamos por fecha (descendente)
+          if (dateB !== dateA) {
+            return dateB - dateA;
+          }
+
+          // Si las fechas son iguales (mismo día), desempatamos con createdAt
+          // Esto asegura que el último que se grabó aparezca arriba
+          const createdA = new Date(a.createdAt || a._id.getTimestamp?.() || 0).getTime();
+          const createdB = new Date(b.createdAt || b._id.getTimestamp?.() || 0).getTime();
+          
+          return createdB - createdA;
+        });
+        
+        setPayments(sortedPayments);
+        // --------------------------------------------
         
         const respondedSet = new Set();
         const existingSet = new Set();
-        for (const payment of response.data.data.payments) {
+        for (const payment of sortedPayments) { // Usamos los ya ordenados
           const isResponded = await checkReceiptStatus(payment._id);
           if (isResponded) {
             respondedSet.add(payment._id);
@@ -82,6 +101,7 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     }
   };
 
+  
   const handlePaymentAdded = (newPayment) => {
     setPayments(prev => [newPayment, ...prev]);
     setShowClientForm(false);
@@ -262,9 +282,10 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
     return formatted;
   };
 
-  const getPaymentTypeColor = (type) => {
+const getPaymentTypeColor = (type) => {
     if (type === 'client') return 'bg-success-500/20 text-success-400 border border-success-500/30';
     if (type === 'provider') return 'bg-primary-500/20 text-primary-400 border border-primary-500/30';
+    if (type === 'commission') return 'bg-purple-500/20 text-purple-400 border border-purple-500/30'; // Color para la comisión
     return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
   };
 
@@ -350,12 +371,13 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
             <tbody className="divide-y divide-white/10">
               {payments.map((payment, index) => (
                 <tr key={payment.id || payment._id || `payment-${index}`} className="hover:bg-white/5 transition-colors cursor-pointer" onDoubleClick={() => handleRowDoubleClick(payment)}>
-                  <td className="px-3 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPaymentTypeColor(payment.type)}`}>
-                      {payment.type === 'client' ? 'Pasajero' : payment.type === 'provider' ? 'Proveedor' : 'Vendedor'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
+                      <td className="px-3 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPaymentTypeColor(payment.type)}`}>
+                          {payment.type === 'client' ? 'Pasajero' : 
+                          payment.type === 'provider' ? 'Proveedor' : 
+                          payment.type === 'commission' ? 'Comisión vendedor' : 'Pago Vendedor'}
+                        </span>
+                      </td>                  <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
                   <td className="px-3 py-4">
                     <div className="text-sm font-medium text-dark-100"><CurrencyDisplay>{formatCurrency(payment.amount, saleCurrency)}</CurrencyDisplay></div>
                     {payment.originalAmount && payment.originalCurrency && (

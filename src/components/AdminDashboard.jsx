@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { useAuth } from '../contexts/AuthContext'; // <--- AGREGADO
+import { useAuth } from '../contexts/AuthContext';
 import { useSystemStats } from '../contexts/SystemStatsContext';
 import { formatCurrencyCompact } from '../utils/formatNumbers';
 import { t, getCurrentLanguage } from '../utils/i18n';
@@ -11,7 +11,7 @@ import DatabaseValue from './DatabaseValue';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // <--- AGREGADO
+  const { user } = useAuth();
   const { systemStats, businessStats, fetchSystemStats, fetchBusinessStats, refreshStats } = useSystemStats();
   const { formatCurrency, formatCurrencyJSX, formatCurrencyFullJSX } = useCurrencyFormat();
 
@@ -24,7 +24,7 @@ const AdminDashboard = () => {
     username: '',
     email: '',
     role: '',
-    comision: '', // CORREGIDO: ahora coincide con la BD (comision en lugar de commission)
+    comision: '',
     forcePasswordExpiration: false,
     password: '',
     confirmPassword: ''
@@ -56,7 +56,6 @@ const AdminDashboard = () => {
     fetchAllData();
   }, []);
 
-  // Listen for language changes
   useEffect(() => {
     const handleLanguageChange = () => {
       setCurrentLanguage(getCurrentLanguage());
@@ -66,7 +65,6 @@ const AdminDashboard = () => {
     return () => window.removeEventListener('languageChanged', handleLanguageChange);
   }, []);
 
-  // Effect for activity pagination
   useEffect(() => {
     if (!loading) {
       fetchRecentActivity();
@@ -130,7 +128,7 @@ const AdminDashboard = () => {
       username: user.username,
       email: user.email,
       role: user.role,
-      comision: user.comision || '', // CORREGIDO: comision
+      comision: user.comision || '',
       forcePasswordExpiration: false,
       password: '',
       confirmPassword: ''
@@ -168,13 +166,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Manejo de Pago (Log por ahora)
-  const handlePaySeller = (seller) => {
-    console.log(`%c 💰 Iniciando proceso de pago para: ${seller.username}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
-    console.log('Datos del vendedor:', seller);
-    alert(`Procesando pago para ${seller.username}. Revisar consola.`);
-  };
-
   const handleRowsPerPageChange = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
     setCurrentPage(1); 
@@ -207,7 +198,6 @@ const AdminDashboard = () => {
     return users.slice(startIndex, endIndex);
   };
 
-  // System Management Functions
   const showSystemMessage = (message, type = 'success') => {
     setSystemMessage(message);
     setSystemMessageType(type);
@@ -221,9 +211,7 @@ const AdminDashboard = () => {
     try {
       setSystemLoading(true);
       showSystemMessage('Iniciando chequeo de salud del sistema...', 'info');
-      
       const response = await api.get('/api/system/health');
-      
       if (response.data.success) {
         setSystemHealth(response.data.data);
         const healthData = response.data.data;
@@ -246,13 +234,10 @@ const AdminDashboard = () => {
     if (!window.confirm('Esto creará un respaldo de toda la base de datos. ¿Querés continuar?')) {
       return;
     }
-    
     try {
       setSystemLoading(true);
       showSystemMessage('Creando respaldo de la base de datos...', 'info');
-      
       const response = await api.post('/api/system/backup');
-      
       if (response.data.success) {
         const backupInfo = response.data.data;
         showSystemMessage(
@@ -275,13 +260,10 @@ const AdminDashboard = () => {
       showSystemMessage('Limpieza de caché cancelada', 'info');
       return;
     }
-    
     try {
       setSystemLoading(true);
       showSystemMessage('Limpiando caché del sistema...', 'info');
-      
       const response = await api.post('/api/system/clear-cache');
-      
       if (response.data.success) {
         const cacheInfo = response.data.data;
         showSystemMessage(
@@ -327,10 +309,10 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            <CurrencyDisplay>Panel de Administración</CurrencyDisplay>
+            Panel de Administración
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            <CurrencyDisplay>Gestión integral del negocio y administración del sistema</CurrencyDisplay>
+            Gestión integral del negocio y administración del sistema
           </p>
         </div>
 
@@ -395,7 +377,7 @@ const AdminDashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <CurrencyDisplay>Resumen del Negocio</CurrencyDisplay>
+              Resumen del Negocio
             </h3>
             <button
               onClick={async () => {
@@ -412,7 +394,6 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* USD Sales */}
             <div className="card-neon hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-success-500">
@@ -420,9 +401,9 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
-                <span className="text-success-400 text-sm font-medium"><CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay></span>
+                <span className="text-success-400 text-sm font-medium">{t('usdSymbol')}</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas en</CurrencyDisplay> <CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Ventas en {t('usdSymbol')}</h4>
               <p className="text-3xl font-bold text-success-400">
                 {loading ? (
                   <div className="animate-pulse bg-success-400/20 h-8 w-32 rounded"></div>
@@ -430,10 +411,9 @@ const AdminDashboard = () => {
                   formatCurrencyFullJSX(businessStats.usdSales, 'USD', '...')
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('usdSymbol')}</CurrencyDisplay> <CurrencyDisplay>transacciones</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">{t('usdSymbol')} transacciones</p>
             </div>
 
-            {/* ARS Sales */}
             <div className="card-neon hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-warning-500">
@@ -441,9 +421,9 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
-                <span className="text-warning-400 text-sm font-medium"><CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay></span>
+                <span className="text-warning-400 text-sm font-medium">{t('arsSymbol')}</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas en</CurrencyDisplay> <CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Ventas en {t('arsSymbol')}</h4>
               <p className="text-3xl font-bold text-warning-400">
                 {loading ? (
                   <div className="animate-pulse bg-warning-400/20 h-8 w-32 rounded"></div>
@@ -451,10 +431,9 @@ const AdminDashboard = () => {
                   formatCurrencyFullJSX(businessStats.arsSales, 'ARS', '...')
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>{t('arsSymbol')}</CurrencyDisplay> <CurrencyDisplay>transacciones</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">{t('arsSymbol')} transacciones</p>
             </div>
 
-            {/* Total Sales */}
             <div className="card hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-primary-500">
@@ -464,7 +443,7 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-primary-400 text-sm font-medium">Activas</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Ventas Totales</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Ventas Totales</h4>
               <p className="text-3xl font-bold text-primary-400">
                 {loading ? (
                   <div className="animate-pulse bg-primary-400/20 h-8 w-16 rounded"></div>
@@ -475,7 +454,6 @@ const AdminDashboard = () => {
               <p className="text-sm text-dark-400 mt-2">Transacciones completadas</p>
             </div>
 
-            {/* Total Clients */}
             <div className="card hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-accent-500">
@@ -485,7 +463,7 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-accent-400 text-sm font-medium">Creciendo</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Pasajeros</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Total de Pasajeros</h4>
               <p className="text-3xl font-bold text-accent-400">
                 {loading ? (
                   <div className="animate-pulse bg-accent-400/20 h-8 w-16 rounded"></div>
@@ -493,13 +471,12 @@ const AdminDashboard = () => {
                   businessStats.totalClients
                 )}
               </p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Pasajeros registrados</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">Pasajeros registrados</p>
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="card-glass p-6">
-            <h4 className="text-xl font-semibold text-dark-100 mb-6"><CurrencyDisplay>Acciones Rápidas</CurrencyDisplay></h4>
+            <h4 className="text-xl font-semibold text-dark-100 mb-6">Acciones Rápidas</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <button
                 onClick={() => navigate('/clients')}
@@ -512,8 +489,8 @@ const AdminDashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-dark-100 group-hover:text-accent-400 transition-colors"><CurrencyDisplay>Gestionar Pasajeros</CurrencyDisplay></div>
-                    <div className="text-xs text-dark-400"><CurrencyDisplay>Base de datos de pasajeros</CurrencyDisplay></div>
+                    <div className="text-sm font-semibold text-dark-100 group-hover:text-accent-400 transition-colors">Gestionar Pasajeros</div>
+                    <div className="text-xs text-dark-400">Base de datos de pasajeros</div>
                   </div>
                 </div>
               </button>
@@ -529,8 +506,8 @@ const AdminDashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-dark-100 group-hover:text-success-400 transition-colors"><CurrencyDisplay>Estadísticas</CurrencyDisplay></div>
-                    <div className="text-xs text-dark-400"><CurrencyDisplay>Análisis y reportes</CurrencyDisplay></div>
+                    <div className="text-sm font-semibold text-dark-100 group-hover:text-success-400 transition-colors">Estadísticas</div>
+                    <div className="text-xs text-dark-400">Análisis y reportes</div>
                   </div>
                 </div>
               </button>
@@ -563,11 +540,10 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <CurrencyDisplay>Análisis del Sistema</CurrencyDisplay>
+            Análisis del Sistema
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {/* System Uptime */}
             <div className="card hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-success-500">
@@ -577,12 +553,11 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-success-400 text-sm font-medium">Saludable</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Tiempo en línea</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Tiempo en línea</h4>
               <p className="text-3xl font-bold text-success-400">{systemStats.systemUptime}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Últimos 30 días</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">Últimos 30 días</p>
             </div>
 
-            {/* Total Users */}
             <div className="card hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-primary-500">
@@ -592,12 +567,11 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-primary-400 text-sm font-medium">Activo</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Usuarios</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Total de Usuarios</h4>
               <p className="text-3xl font-bold text-primary-400">{systemStats.totalUsers}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Usuarios registrados</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">Usuarios registrados</p>
             </div>
 
-            {/* Total Providers */}
             <div className="card hover-lift p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="icon-container bg-accent-500">
@@ -607,9 +581,9 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-accent-400 text-sm font-medium">Socios</span>
               </div>
-              <h4 className="text-lg font-semibold text-dark-100 mb-2"><CurrencyDisplay>Total de Proveedores</CurrencyDisplay></h4>
+              <h4 className="text-lg font-semibold text-dark-100 mb-2">Total de Proveedores</h4>
               <p className="text-3xl font-bold text-accent-400">{systemStats.totalProviders}</p>
-              <p className="text-sm text-dark-400 mt-2"><CurrencyDisplay>Proveedores de servicios</CurrencyDisplay></p>
+              <p className="text-sm text-dark-400 mt-2">Proveedores de servicios</p>
             </div>
           </div>
         </div>
@@ -622,12 +596,12 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <CurrencyDisplay>Actividad Reciente</CurrencyDisplay>
+            Actividad Reciente
           </h3>
 
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10">
-              <h4 className="text-lg font-medium text-dark-100"><CurrencyDisplay>Registro de Actividad del Sistema</CurrencyDisplay></h4>
+              <h4 className="text-lg font-medium text-dark-100">Registro de Actividad del Sistema</h4>
             </div>
             <div className="divide-y divide-white/10">
               {recentActivity.map((activity) => (
@@ -655,11 +629,9 @@ const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* Activity Pagination Controls */}
             {totalActivities > 0 && (
               <div className="px-6 py-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
-                  {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-dark-300">Filas por página:</span>
                     <select
@@ -673,12 +645,10 @@ const AdminDashboard = () => {
                     </select>
                   </div>
 
-                  {/* Page info */}
                   <div className="text-sm text-dark-300">
                     Mostrando {((activityCurrentPage - 1) * activityRowsPerPage) + 1} a {Math.min(activityCurrentPage * activityRowsPerPage, totalActivities)} de {totalActivities} actividades
                   </div>
 
-                  {/* Pagination buttons */}
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleActivityPageChange(activityCurrentPage - 1)}
@@ -713,11 +683,10 @@ const AdminDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <CurrencyDisplay>Configuración del Sistema</CurrencyDisplay>
+            Configuración del Sistema
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Database Management */}
             <div className="card hover-lift p-6">
               <div className="flex items-center space-x-4 mb-4">
                 <div className="icon-container bg-primary-500">
@@ -726,8 +695,8 @@ const AdminDashboard = () => {
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-dark-100"><CurrencyDisplay>Gestión de Base de Datos</CurrencyDisplay></h4>
-                  <p className="text-sm text-dark-300"><CurrencyDisplay>Administrar operaciones de la base de datos</CurrencyDisplay></p>
+                  <h4 className="text-lg font-semibold text-dark-100">Gestión de Base de Datos</h4>
+                  <p className="text-sm text-dark-300">Administrar operaciones de la base de datos</p>
                 </div>
               </div>
               <div className="space-y-3">
@@ -750,7 +719,6 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* System Maintenance */}
             <div className="card hover-lift p-6">
               <div className="flex items-center space-x-4 mb-4">
                 <div className="icon-container bg-success-500">
@@ -826,7 +794,6 @@ const AdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Database Status */}
               <div className="card hover-lift p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-dark-100">Base de Datos</h4>
@@ -848,7 +815,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Collections Overview */}
               <div className="card hover-lift p-6">
                 <h4 className="text-lg font-semibold text-dark-100 mb-4">Colecciones</h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -861,7 +827,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* System Info */}
               <div className="card hover-lift p-6">
                 <h4 className="text-lg font-semibold text-dark-100 mb-4">Info del Sistema</h4>
                 <div className="space-y-2">
@@ -881,7 +846,6 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Relationship Health */}
             {systemHealth.relationships && systemHealth.relationships.checks && (
               <div className="mt-6">
                 <h4 className="text-xl font-semibold text-dark-100 mb-4">Salud de Relaciones</h4>
@@ -922,7 +886,6 @@ const AdminDashboard = () => {
             <div className="px-6 py-4 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-dark-100">Usuarios del Sistema</h4>
-                {/* CAMBIO FINAL: Solo el SuperAdmin (vos) ve este botón */}
                 {user?.isSuper && (
                   <button
                     onClick={() => navigate('/users/new')}
@@ -939,14 +902,13 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* --- ENCABEZADOS DE LA TABLA --- */}
+            {/* --- ENCABEZADOS DE LA TABLA (Ajustados) --- */}
             <div className="flex items-center justify-between px-6 py-3 bg-dark-700/50 border-b border-white/10 text-[11px] uppercase tracking-widest font-bold text-dark-400">
-              <div className="w-[25%]">Usuario</div>
+              <div className="w-[30%]">Usuario</div>
               <div className="w-[15%] text-center">Rol</div>
               <div className="w-[10%] text-center">Comisión</div>
-              <div className="w-[25%] text-center">Balances</div>
-              <div className="w-[15%] text-center">Pago</div>
-              <div className="w-[10%] text-right">Acciones</div>
+              <div className="w-[30%] text-center">Balances</div>
+              <div className="w-[15%] text-right">Acciones</div>
             </div>
 
             <div className="divide-y divide-white/10">
@@ -955,7 +917,7 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between w-full">
                     
                     {/* --- Columna 1: Usuario --- */}
-                    <div className="w-[25%] flex items-center space-x-4">
+                    <div className="w-[30%] flex items-center space-x-4">
                       <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
                         <DatabaseValue data-field="userInitial" className="text-lg font-bold text-white">
                           {userItem.username.charAt(0).toUpperCase()}
@@ -985,12 +947,12 @@ const AdminDashboard = () => {
                     {/* --- Columna 3: Comisión --- */}
                     <div className="w-[10%] flex justify-center">
                       <span className="px-3 py-1 rounded-full bg-dark-600 border border-white/10 text-sm font-medium text-primary-400 shadow-sm">
-                        Comisión: {userItem.comision || 0}%
+                        {userItem.comision || 0}%
                       </span>
                     </div>
 
-                    {/* --- Columna 4: Balances (Ex Billetera) --- */}
-                    <div className="w-[25%] flex justify-center space-x-3">
+                    {/* --- Columna 4: Balances --- */}
+                    <div className="w-[30%] flex justify-center space-x-3">
                       <div className="px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 shadow-sm text-center min-w-[90px]">
                         <span className="block text-[10px] uppercase font-bold text-primary-400 leading-none mb-1">Saldo ARS</span>
                         <span className="text-sm font-mono font-bold text-primary-300">
@@ -1005,26 +967,8 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* --- Columna 5: Botón de pago --- */}
-                    <div className="w-[15%] flex justify-center">
-                      {user?.role === 'admin' && (
-                        <button
-                          onClick={() => handlePaySeller(userItem)}
-                          className="btn-secondary text-sm px-3 py-1.5 border-success-500/30 hover:bg-success-500/20 group transition-all"
-                          title="Pagar Comisión"
-                        >
-                          <span className="flex items-center space-x-1">
-                            <svg className="w-3.5 h-3.5 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                            <span className="text-white font-semibold">Pago al vendedor</span>
-                          </span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* --- Columna 6: Acciones --- */}
-                    <div className="w-[10%] flex justify-end space-x-2">
+                    {/* --- Columna 5: Acciones (Ajustada) --- */}
+                    <div className="w-[15%] flex justify-end space-x-2">
                       <button
                         onClick={() => handleEditUser(userItem)}
                         className="btn-primary text-sm p-2 rounded-lg"
@@ -1051,11 +995,9 @@ const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* Pagination Controls */}
             {totalUsers > 0 && (
               <div className="px-6 py-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
-                  {/* Rows per page selector */}
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-dark-300">Filas por página:</span>
                     <select
@@ -1069,12 +1011,10 @@ const AdminDashboard = () => {
                     </select>
                   </div>
 
-                  {/* Page info */}
                   <div className="text-sm text-dark-300">
                     Mostrando {((currentPage - 1) * rowsPerPage) + 1} a {Math.min(currentPage * rowsPerPage, totalUsers)} de {totalUsers} usuarios
                   </div>
 
-                  {/* Pagination buttons */}
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
