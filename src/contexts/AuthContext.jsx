@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       // CASO A: Sesión activa detectada (Concurrencia en el Back)
       if (response.data?.hasActiveSession) {
         console.warn('⚠️ Sesión activa en otra pantalla. Forzando ingreso...');
-        // Intento 2: Forzamos el login (esto gatilla invalidateUserSessions en el back)
+        // Intento 2: Forzamos el login
         response = await api.post(apiConfig.endpoints.auth.login, { 
           email, 
           password, 
@@ -77,15 +77,15 @@ export const AuthProvider = ({ children }) => {
       }
 
       // CASO B: Cambio de contraseña obligatorio
-      // AuthContext.jsx - Línea ~84
       if (response.data?.requirePasswordChange) {
         return { 
           success: true, 
           requirePasswordChange: true, 
-          userId: response.data.data?.userId // Sacamos el ID afuera para que sea fácil de leer
+          userId: response.data.data?.userId 
         };
       }
-      // CASO C: Login exitoso (Normal o Sid)
+
+      // CASO C: Login exitoso
       const responseData = response.data?.data || response.data;
       const newToken = responseData?.token;
       const userData = responseData?.user;
@@ -108,19 +108,39 @@ export const AuthProvider = ({ children }) => {
       console.error('Login error detail:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Credenciales inválidas o error de servidor' 
+        message: error.response?.data?.message || 'Credenciales inválidas' 
       };
     }
   };
 
-const logout = () => {
+  // --- FUNCIÓN REGISTRAR V4.2.0: AHORA INCLUYE COMISIÓN ---
+  const register = async (username, email, password, role, comision) => {
+    try {
+      const response = await api.post('/api/auth/register', { 
+        username, 
+        email, 
+        password, 
+        role, 
+        comision 
+      });
+
+      if (response.data?.success) {
+        return { success: true };
+      }
+      return { success: false, message: response.data?.message || 'Error al registrar' };
+    } catch (error) {
+      console.error('Register error detail:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Error de conexión con el servidor' 
+      };
+    }
+  };
+
+  const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    // Al setear el usuario en nulo y el token en nulo, el ProtectedRoute
-    // de tu App.jsx (o equivalente) detectará que ya no hay sesión y 
-    // te redirigirá automáticamente a /login usando el enrutador de React,
-    // sin hacer un hard-reload de la página y eliminando el pestañeo.
   };
   
   const value = {
@@ -130,6 +150,7 @@ const logout = () => {
     version,
     timeLeft,
     login,
+    register,
     logout,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin' || user?.isSuper,

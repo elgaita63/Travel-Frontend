@@ -38,6 +38,7 @@ import ForcePasswordChange from './pages/ForcePasswordChange';
 import ProtectedRoute from './components/ProtectedRoute';
 import SystemConfig from './pages/SystemConfig';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword'; // <-- IMPORT AGREGADO PARA EVITAR PANTALLA AZUL
 
 const MODO_MANTENIMIENTO = import.meta.env.VITE_MODO_MANTENIMIENTO === 'true';
 
@@ -59,6 +60,8 @@ const AppRoutes = () => {
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/force-password-change" element={<ForcePasswordChange />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      
       {/* RUTAS PROTEGIDAS COMPLETAS */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
       <Route path="/register" element={<ProtectedRoute requireAdmin><Layout><Register /></Layout></ProtectedRoute>} />
@@ -74,14 +77,11 @@ const AppRoutes = () => {
       <Route path="/services/:id" element={<ProtectedRoute><Layout><ServiceDetails /></Layout></ProtectedRoute>} />
       <Route path="/services/:id/edit" element={<ProtectedRoute><Layout><ServiceForm /></Layout></ProtectedRoute>} />
       
-      {/* RUTAS DE VENTAS - EL ORDEN IMPORTA AQUÍ */}
+      {/* RUTAS DE VENTAS */}
       <Route path="/sales" element={<ProtectedRoute><Layout><SalesList /></Layout></ProtectedRoute>} />
       <Route path="/sales/monthly" element={<ProtectedRoute><Layout><MonthlySales /></Layout></ProtectedRoute>} />
       <Route path="/sales/wizard" element={<ProtectedRoute><Layout><SaleWizard /></Layout></ProtectedRoute>} />
-      
-      {/* ESTA ES LA LÍNEA QUE ARREGLA EL ERROR: Declaramos 'new' antes que ':id' */}
       <Route path="/sales/new" element={<ProtectedRoute><Layout><SaleWizard /></Layout></ProtectedRoute>} />
-      
       <Route path="/sales/:id" element={<ProtectedRoute><Layout><SaleSummary /></Layout></ProtectedRoute>} />
       <Route path="/sales/:id/edit" element={<ProtectedRoute><Layout><SaleEdit /></Layout></ProtectedRoute>} />
       

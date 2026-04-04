@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { forgotPassword } from '../utils/api'; // Importación correcta
 import StatusBar from '../components/StatusBar';
 
 const ForgotPassword = () => {
@@ -17,8 +17,8 @@ const ForgotPassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Usamos el endpoint que creamos en el backend
-      const response = await api.post('/auth/forgot-password', { email });
+      // Usamos la función del api.js que ya tiene el prefijo /api
+      const response = await forgotPassword(email);
       setMessage({ type: 'success', text: response.data.message });
     } catch (error) {
       setMessage({ 
@@ -35,11 +35,7 @@ const ForgotPassword = () => {
       <div className="relative z-10 w-full max-w-md mx-auto">
         <div className="text-center mb-4">
           {agencyLogo && (
-            <img 
-              src={agencyLogo} 
-              alt="Agency Logo" 
-              className="mx-auto mb-6 max-w-[200px] h-auto"
-            />
+            <img src={agencyLogo} alt="Logo" className="mx-auto mb-6 max-w-[200px] h-auto" />
           )}
           <h1 className="text-4xl font-bold text-primary-400 mb-2">Recuperar Clave</h1>
           <p className="text-xs text-dark-400 uppercase tracking-widest">Ingresá tu email registrado</p>
@@ -62,12 +58,8 @@ const ForgotPassword = () => {
               placeholder="Tu Email" 
             />
 
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="w-full btn-primary py-4 font-bold uppercase tracking-widest"
-            >
-              {loading ? 'Enviando...' : 'Enviar Instrucciones'}
+            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold uppercase tracking-widest">
+              {loading ? 'Enviando...' : 'Enviar email con instrucciones'}
             </button>
 
             <div className="flex justify-center pt-2">

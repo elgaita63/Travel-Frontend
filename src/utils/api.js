@@ -66,10 +66,14 @@ api.interceptors.response.use(
       // Dejamos que el AuthContext maneje el estado de 'user' como null
       // y React Router se encargue de mostrar el Login sin recargar la página.
       console.warn('⚠️ Sesión expirada o inválida. Token removido de LocalStorage.');
-      // window.location.href = '/login'; <--- ESTO CAUSABA EL LOOP
     }
     return Promise.reject(error);
   }
 );
+
+
+// --- MODIFICACIÓN V4.2.0: AGREGAMOS EL /API QUE PIDE EL SERVER.JS ---
+export const forgotPassword = (email) => api.post('/api/auth/forgot-password', { email });
+export const resetPassword = (token, newPassword) => api.post('/api/auth/reset-password', { token, newPassword });
 
 export default api;

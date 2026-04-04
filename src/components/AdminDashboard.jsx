@@ -239,10 +239,24 @@ const AdminDashboard = () => {
 
         {/* Gestión de Usuarios Table */}
         <div className="mb-12">
-          <h3 className="text-3xl font-bold text-dark-100 mb-8 flex items-center">
-            <div className="icon-container bg-primary-500 mr-4"><svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" /></svg></div>
-            Gestión de Usuarios
-          </h3>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-3xl font-bold text-dark-100 flex items-center">
+              <div className="icon-container bg-primary-500 mr-4"><svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" /></svg></div>
+              Gestión de Usuarios
+            </h3>
+            {/* BOTÓN EXCLUSIVO PARA SUPERADMIN (Evaudo) */}
+            {user?.isSuper && (
+              <button 
+                onClick={() => navigate('/register')} 
+                className="btn-primary flex items-center space-x-2 px-6 py-2.5 rounded-xl shadow-lg shadow-primary-500/20 hover:scale-105 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span className="font-bold tracking-tight">NUEVO USUARIO</span>
+              </button>
+            )}
+          </div>
           <div className="card overflow-hidden">
             <div className="flex px-6 py-3 bg-dark-700/50 border-b border-white/10 text-[11px] font-bold text-dark-400 uppercase tracking-widest">
               <div className="w-[30%]">Usuario</div>
@@ -267,8 +281,8 @@ const AdminDashboard = () => {
                     </div>
                     <div className="w-[10%] text-center text-primary-400 font-medium">{userItem.comision || 0}%</div>
                     <div className="w-[30%] flex justify-center space-x-2 text-center">
-                       <div className="px-2 py-1 bg-primary-500/10 rounded border border-primary-500/20 text-xs text-primary-300 font-mono">ARS: {formatCurrencyFullJSX(userItem.balance?.ars || 0, 'ARS')}</div>
-                       <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
+                        <div className="px-2 py-1 bg-primary-500/10 rounded border border-primary-500/20 text-xs text-primary-300 font-mono">ARS: {formatCurrencyFullJSX(userItem.balance?.ars || 0, 'ARS')}</div>
+                        <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
                     </div>
                     <div className="w-[15%] text-right space-x-2">
                       <button onClick={() => setEditingUser(userItem)} className="p-2 btn-primary rounded-lg shadow-lg hover:scale-105 transition-transform"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
