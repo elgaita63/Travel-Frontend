@@ -68,7 +68,7 @@ const Login = () => {
         </div>
 
         <div className="card-glass p-8">
-          <form className="space-y-8" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {error && <div className="notification border-error-500 text-error-400 p-2 text-sm">{error}</div>}
             
             <input 
@@ -116,7 +116,18 @@ const Login = () => {
               </button>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold">
+            {/* BOTÓN OLVIDO CONTRASEÑA - CENTRADO Y EN ROJO */}
+            <div className="flex justify-center -mt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-sm font-medium text-red-500 hover:text-red-400 transition-colors"
+              >
+                ¿Olvidó su contraseña?
+              </button>
+            </div>
+
+            <button type="submit" disabled={loading} className="w-full btn-primary py-4 font-bold uppercase tracking-widest">
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>

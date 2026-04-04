@@ -37,6 +37,7 @@ import SearchPage from './pages/SearchPage';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import ProtectedRoute from './components/ProtectedRoute';
 import SystemConfig from './pages/SystemConfig';
+import ForgotPassword from './pages/ForgotPassword';
 
 const MODO_MANTENIMIENTO = import.meta.env.VITE_MODO_MANTENIMIENTO === 'true';
 
@@ -57,7 +58,7 @@ const AppRoutes = () => {
       {/* RUTAS PÚBLICAS */}
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/force-password-change" element={<ForcePasswordChange />} />
-      
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       {/* RUTAS PROTEGIDAS COMPLETAS */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
       <Route path="/register" element={<ProtectedRoute requireAdmin><Layout><Register /></Layout></ProtectedRoute>} />

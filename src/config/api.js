@@ -26,7 +26,7 @@ if (import.meta.env.PROD) {
 }
 
 // Front Version ************************
-export const FRONTEND_VERSION = '4.1.1FIX'; //SID + VEndor commisions v2
+export const FRONTEND_VERSION = '4.2.0SVM'; // sid+vendor feat+email
 // **************************************
 
 // Export API_BASE_URL for components that need direct URL access
