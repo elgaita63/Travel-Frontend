@@ -21,7 +21,7 @@ const AdminDashboard = () => {
   const [editingUser, setEditingUser] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10); // Empezamos con 10 por defecto
   const [totalUsers, setTotalUsers] = useState(0);
 
   // Recent Activity State
@@ -117,9 +117,14 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleRowsPerPageChange = (newRowsPerPage) => { setRowsPerPage(newRowsPerPage); setCurrentPage(1); };
+  const handleRowsPerPageChange = (newRowsPerPage) => { 
+    setRowsPerPage(parseInt(newRowsPerPage)); 
+    setCurrentPage(1); 
+  };
+  
   const handlePageChange = (newPage) => { setCurrentPage(newPage); };
   const getTotalPages = () => Math.ceil(totalUsers / rowsPerPage);
+  
   const handleActivityRowsPerPageChange = (newRowsPerPage) => { setActivityRowsPerPage(newRowsPerPage); setActivityCurrentPage(1); };
   const handleActivityPageChange = (newPage) => { setActivityCurrentPage(newPage); };
   const getActivityTotalPages = () => Math.ceil(totalActivities / activityRowsPerPage);
@@ -244,7 +249,6 @@ const AdminDashboard = () => {
               <div className="icon-container bg-primary-500 mr-4"><svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" /></svg></div>
               Gestión de Usuarios
             </h3>
-            {/* BOTÓN EXCLUSIVO PARA SUPERADMIN (Evaudo) */}
             {user?.isSuper && (
               <button 
                 onClick={() => navigate('/register')} 
@@ -291,6 +295,41 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* CONTROLES DE PAGINACIÓN Y FILAS */}
+            <div className="px-6 py-4 bg-dark-700/30 border-t border-white/10 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-xs text-dark-400 font-medium uppercase tracking-wider">Mostrar:</span>
+                <select 
+                  value={rowsPerPage} 
+                  onChange={(e) => handleRowsPerPageChange(e.target.value)}
+                  className="bg-dark-800 border border-white/10 text-dark-100 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-primary-500 transition-colors"
+                >
+                  {[5, 10, 20, 50, 100].map(val => (
+                    <option key={val} value={val}>{val} usuarios</option>
+                  ))}
+                </select>
+                <span className="text-xs text-dark-400">de {totalUsers} usuarios totales</span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg bg-dark-800 border border-white/10 text-dark-100 hover:bg-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <span className="text-xs font-bold text-primary-400 px-4">Página {currentPage} de {getTotalPages()}</span>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, getTotalPages()))}
+                  disabled={currentPage === getTotalPages() || getTotalPages() === 0}
+                  className="p-2 rounded-lg bg-dark-800 border border-white/10 text-dark-100 hover:bg-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
