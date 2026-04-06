@@ -259,10 +259,10 @@ const UserSettings = () => {
 
               <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg text-xs text-primary-300 space-y-1">
                 <p className="font-bold uppercase mb-1">Requisitos de seguridad:</p>
-                <p>• Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo</p>
+                <p>• Mínimo 10 caracteres, mayúscula, minúscula y número</p>
+                <p>• Símbolos permitidos (opcionales)</p>
                 <p>• No puede ser igual a las últimas 5 utilizadas</p>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">Contraseña Actual</label>
                 <div className="relative">

@@ -129,7 +129,7 @@ const ForcePasswordChange = () => {
                   value={formData.newPassword} 
                   onChange={handleChange} 
                   className="input-field pr-12" 
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Mínimo 10 caracteres, incluyendo mayúscula y número."
                   required
                 />
                 <EyeBtn show={showNew} onShow={() => setShowNew(true)} onHide={() => setShowNew(false)} />
