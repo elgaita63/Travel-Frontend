@@ -5,7 +5,7 @@ import PageTransition from './PageTransition';
 import StatusBar from './StatusBar';
 
 const Layout = ({ children, showNavigation = true }) => {
-  const { user, logout, isAdmin, isSeller, version } = useAuth();
+  const { user, logout, isAdmin, isSeller, version, isImpersonating, stopImpersonating } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -70,7 +70,6 @@ const Layout = ({ children, showNavigation = true }) => {
                         title={item.label}
                       >
                         <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{item.icon}</span>
-                        {/* SE AGRANDARON LAS LETRAS AQUÍ (text-xl en lugar de text-lg) */}
                         <span className="hidden md:block text-xl font-medium">{item.label}</span>
                       </Link>
 
@@ -90,19 +89,6 @@ const Layout = ({ children, showNavigation = true }) => {
                               <span className="text-lg font-semibold">Nueva Venta</span>
                             </button>
                           </div>
-                          
-                          {/* BOTÓN SALDOS/BALANCES COMENTADO PARA FUTURO USO */}
-                          {/* {isAdmin && (
-                            <Link 
-                              to={balancesItem.path} 
-                              className={`nav-link flex items-center p-2 rounded-lg text-dark-100 hover:text-white hover:bg-dark-700/50 transition-all duration-200 ${location.pathname === balancesItem.path ? 'active bg-dark-700 font-semibold text-white' : ''}`} 
-                              title={balancesItem.label}
-                            >
-                              <span className="mr-1 sm:mr-2 md:mr-3 text-primary-400">{balancesItem.icon}</span>
-                              <span className="hidden md:block text-xl">{balancesItem.label}</span>
-                            </Link>
-                          )}
-                          */}
                         </>
                       )}
                     </React.Fragment>
@@ -118,7 +104,6 @@ const Layout = ({ children, showNavigation = true }) => {
                         {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-2 sm:ml-3 md:ml-4 flex-1 hidden md:block min-w-0">
-                        {/* NOMBRE DE USUARIO UN POQUITO MÁS GRANDE TAMBIÉN */}
                         <p className="text-base font-bold text-dark-100 truncate">{user?.username || user?.email}</p>
                         <p className="text-xs text-dark-400 uppercase tracking-wide">
                           {user?.isSuper ? 'OVERLORD / SOPORTE' : (user?.role === 'admin' ? 'Administrador' : 'Vendedor')}
@@ -136,6 +121,24 @@ const Layout = ({ children, showNavigation = true }) => {
         )}
 
         <div className="flex flex-col flex-1 overflow-hidden relative">
+          {/* BARRA DE AVISO DE SUPLANTACIÓN (SOLO APARECE SI ESTÁS SUPLANTANDO) */}
+          {isImpersonating && (
+            <div className="bg-error-600 text-white px-4 py-2 flex items-center justify-between z-[50] shadow-lg animate-pulse-slow">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <span className="font-bold text-sm uppercase tracking-wider">
+                  Estás visualizando la cuenta de: <span className="underline">{user?.username || user?.email}</span>
+                </span>
+              </div>
+              <button 
+                onClick={stopImpersonating}
+                className="bg-white text-error-600 px-4 py-1 rounded-full font-bold text-xs hover:bg-dark-100 transition-colors shadow-md"
+              >
+                SALIR Y VOLVER A MI SESIÓN
+              </button>
+            </div>
+          )}
+
           <header className="h-[110px] flex items-center justify-center px-8 bg-dark-900 sticky top-0 z-40 relative">
             <div className="flex items-center">
               <img 

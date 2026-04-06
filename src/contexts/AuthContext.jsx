@@ -113,6 +113,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const impersonate = async (targetUserId) => {
+    try {
+      const response = await api.post('/api/auth/impersonate', { targetUserId });
+      if (response.data?.success) {
+        localStorage.setItem('admin_token_backup', token);
+        const { token: newToken, user: newUser } = response.data.data;
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
+        setUser(newUser);
+        return { success: true };
+      }
+      return { success: false, message: response.data?.message };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || 'Error al suplantar' };
+    }
+  };
+
+  const stopImpersonating = () => {
+    const backupToken = localStorage.getItem('admin_token_backup');
+    if (backupToken) {
+      localStorage.setItem('token', backupToken);
+      localStorage.removeItem('admin_token_backup');
+      window.location.href = '/admin-dashboard';
+    }
+  };
+
   // --- FUNCIÓN REGISTRAR V4.2.0: AHORA INCLUYE COMISIÓN ---
   const register = async (username, email, password, role, comision) => {
     try {
@@ -139,6 +165,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('admin_token_backup');
     setToken(null);
     setUser(null);
   };
@@ -152,6 +179,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    impersonate,
+    stopImpersonating,
+    isImpersonating: !!localStorage.getItem('admin_token_backup'),
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin' || user?.isSuper,
     isSeller: user?.role === 'seller'
@@ -159,7 +189,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
