@@ -73,19 +73,38 @@ const UserSettings = () => {
     setTimeout(() => setMessage({ text: '', type: '' }), 5000);
   };
 
-  const handleProfileSubmit = async (e) => {
+const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage({ text: '', type: '' });
     try {
       const response = await api.put('/api/auth/profile', profileData);
-      updateUser(response.data.data.user);
-      showMessage('¡Perfil actualizado con éxito!', 'success');
+      
+      // El backend ahora devuelve { success: true, data: { user: {...} } }
+      const updatedUser = response.data?.data?.user || response.data?.user;
+      
+      if (response.data?.success && updatedUser) {
+        // Actualizamos el estado global del usuario para que se vea el cambio en el Navbar/Sidebar
+        if (typeof updateUser === 'function') {
+          updateUser(updatedUser);
+        } else {
+          // Backup por si todavía no actualizaste el AuthContext
+          setUser(updatedUser); 
+        }
+        showMessage('¡Perfil actualizado con éxito!', 'success');
+      } else {
+        throw new Error(response.data?.message || 'Error en el formato de respuesta');
+      }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Error al actualizar el perfil.';
+      console.error("Error en submit:", error);
+      const errorMsg = error.response?.data?.message || error.message || 'Error al actualizar el perfil.';
       showMessage(errorMsg, 'error');
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
-
+  
+  
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -169,9 +188,8 @@ const UserSettings = () => {
                   <input 
                     type="text" 
                     value={profileData.username} 
-                    className="input-field bg-dark-800/50 cursor-not-allowed text-dark-400 border-white/5" 
-                    disabled 
-                    readOnly 
+                    onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+                    className="input-field" 
                   />
                 </div>
                 <div>
@@ -179,9 +197,8 @@ const UserSettings = () => {
                   <input 
                     type="email" 
                     value={profileData.email} 
-                    className="input-field bg-dark-800/50 cursor-not-allowed text-dark-400 border-white/5" 
-                    disabled 
-                    readOnly 
+                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    className="input-field" 
                   />
                 </div>
                 <div>

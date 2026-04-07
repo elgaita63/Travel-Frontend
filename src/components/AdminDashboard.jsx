@@ -10,7 +10,7 @@ import EditUserModal from './EditUserModal';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, impersonate } = useAuth(); // MODIFICADO: Agregado impersonate
+  const { user, impersonate } = useAuth();
   const { systemStats, businessStats, fetchSystemStats, fetchBusinessStats, refreshStats } = useSystemStats();
   const { formatCurrencyFullJSX } = useCurrencyFormat();
 
@@ -289,26 +289,43 @@ const AdminDashboard = () => {
                         <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
                     </div>
                     <div className="w-[15%] text-right space-x-2 flex items-center justify-end">
-                      {/* NUEVO BOTÓN: Switch ID (Impersonate) */}
-                      {user?.isSuper && userItem._id !== user.id && (
-                        <button 
-                          onClick={async () => {
-                            if (window.confirm(`¿Seguro que querés entrar como ${userItem.username}?`)) {
-                              const res = await impersonate(userItem._id || userItem.id);
-                              if (res.success) window.location.href = '/dashboard';
-                              else alert(res.message);
-                            }
-                          }}
-                          className="p-2 text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
-                          title="Suplantar Usuario"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                          </svg>
-                        </button>
-                      )}
-                      <button onClick={() => setEditingUser(userItem)} className="p-2 btn-primary rounded-lg shadow-lg hover:scale-105 transition-transform"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                      <button onClick={() => handleDeleteUser(userItem.id || userItem._id)} className="p-2 btn-error rounded-lg shadow-lg hover:scale-105 transition-transform"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <button 
+                        onClick={async () => {
+                          const res = await impersonate(userItem._id || userItem.id);
+                          if (res.success) window.location.href = '/dashboard';
+                          else alert(res.message);
+                        }}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white transition-all duration-200 group"
+                        title="Switch user"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        </svg>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Sw</span>
+                      </button>
+{/* BOTÓN: EDITAR */}
+<button 
+  onClick={() => setEditingUser(userItem)} 
+  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 text-primary-400 hover:bg-primary-500 hover:text-white transition-all duration-200 group"
+  title="Editar Usuario"
+>
+  <svg className="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+  <span className="text-[11px] font-bold uppercase tracking-wider">Editar</span>
+</button> 
+
+{/* BOTÓN: BORRAR */}
+<button 
+  onClick={() => handleDeleteUser(userItem.id || userItem._id)} 
+  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-error-500/10 border border-error-500/20 text-error-400 hover:bg-error-500 hover:text-white transition-all duration-200 group"
+  title="Borrar Usuario"
+>
+  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+  <span className="text-[11px] font-bold uppercase tracking-wider">Borrar</span>
+</button>
                     </div>
                   </div>
                 </div>

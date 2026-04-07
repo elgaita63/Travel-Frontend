@@ -71,8 +71,8 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
           <div className="grid grid-cols-2 gap-6">
-            <input type="text" value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} className="input-field" placeholder="Usuario" required />
-            <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="input-field" placeholder="Email" required />
+            <input type="text" value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} className="input-field" placeholder="Nombre de Usuario" required />
+            <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="input-field" placeholder="Correo Electrónico" required />
           </div>
 
           <div className="grid grid-cols-2 gap-6">

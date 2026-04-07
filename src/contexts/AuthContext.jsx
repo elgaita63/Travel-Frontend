@@ -181,6 +181,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     impersonate,
     stopImpersonating,
+    updateUser: setUser, 
     isImpersonating: !!localStorage.getItem('admin_token_backup'),
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin' || user?.isSuper,
