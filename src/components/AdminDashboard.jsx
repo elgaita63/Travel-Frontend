@@ -289,20 +289,22 @@ const AdminDashboard = () => {
                         <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
                     </div>
                     <div className="w-[15%] text-right space-x-2 flex items-center justify-end">
-                    <button 
-                        onClick={async () => {
-                          const res = await impersonate(userItem._id || userItem.id);
-                          if (res.success) window.location.href = '/dashboard';
-                          else alert(res.message);
-                        }}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white transition-all duration-200 group"
-                        title="Switch user"
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                        </svg>
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Sw</span>
-                      </button>
+                    {user?.isSuper && (
+                      <button 
+                          onClick={async () => {
+                            const res = await impersonate(userItem._id || userItem.id);
+                            if (res.success) window.location.href = '/dashboard';
+                            else alert(res.message);
+                          }}
+                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white transition-all duration-200 group"
+                          title="Switch user"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                          </svg>
+                          <span className="text-[11px] font-bold uppercase tracking-wider">Sw</span>
+                        </button>
+                    )}
 {/* BOTÓN: EDITAR */}
 <button 
   onClick={() => setEditingUser(userItem)} 

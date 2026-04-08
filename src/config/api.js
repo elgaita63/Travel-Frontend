@@ -1,6 +1,6 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.PROD ? 'https://' : 'http://localhost:5000');
+  (import.meta.env.PROD ? 'https://' : 'http://localhost:3000');
 
 // Log API configuration in development
 if (import.meta.env.DEV) {
@@ -26,7 +26,7 @@ if (import.meta.env.PROD) {
 }
 
 // Front Version ************************
-export const FRONTEND_VERSION = '4.3.1SVM+SW'; // sid+vendor feat+email corrected+password reqs+user switch
+export const FRONTEND_VERSION = '4.3.2SVM+SW'; // sid+vendor feat+email corrected+password reqs+user switch
 // **************************************
 
 // Export API_BASE_URL for components that need direct URL access
