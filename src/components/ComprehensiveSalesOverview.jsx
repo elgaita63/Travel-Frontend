@@ -63,16 +63,22 @@ const ComprehensiveSalesOverview = ({
     let sumVendedores = 0;
     let sumPasajero = 0;
     let sumProveedor = 0;
-    filteredSales.forEach(s => {
-      // Sumamos el balance pendiente de la venta específica
-      const vBalance = s.sellerBalance 
+    let sumPrecio = 0;
+    let sumCosto = 0;
+    let sumGanancia = 0;
+    filteredSales.forEach((s) => {
+      const vBalance = s.sellerBalance
         ? (selectedCurrency === 'ARS' ? (s.sellerBalance.ars || 0) : (s.sellerBalance.usd || 0))
         : 0;
       sumVendedores += vBalance;
-      sumPasajero += (s.clientBalance || 0);
-      sumProveedor += (s.providerBalance || 0);
+      sumPasajero += s.clientBalance || 0;
+      sumProveedor += s.providerBalance || 0;
+      sumPrecio += Number(s.totalSalePrice) || 0;
+      sumCosto += Number(s.totalCost) || 0;
+      sumGanancia += Number(s.profit) || 0;
     });
-    return { sumVendedores, sumPasajero, sumProveedor };
+    const marginTotalPct = sumPrecio > 0 ? (sumGanancia / sumPrecio) * 100 : 0;
+    return { sumVendedores, sumPasajero, sumProveedor, sumPrecio, sumCosto, sumGanancia, marginTotalPct };
   }, [filteredSales, selectedCurrency]);
 
   const handleSort = (field) => {
@@ -210,17 +216,55 @@ const ComprehensiveSalesOverview = ({
               </tbody>
               <tfoot className="bg-dark-800/90 border-t-2 border-primary-500/50">
                 <tr>
-                  <td colSpan="3" className="px-4 py-6 text-left text-base font-bold text-primary-400 uppercase tracking-wide">Saldos/Balances Vendedores/Pasajeros/Proveedores</td>
-                  <td className="px-4 py-6">
-                    <div className="text-xs text-dark-300 uppercase mb-1">Balance Vendedores</div>
-                    <BalanceCell amount={totals.sumVendedores} currency={selectedCurrency} className="text-lg font-bold" />
+                  <td colSpan={3} className="px-4 py-6" aria-hidden="true" />
+                  <td className="px-4 py-6 align-top text-right">
+                    <div className="flex flex-col items-end">
+                      <div className="text-xs text-dark-300 uppercase tracking-wide">Balance vendedores</div>
+                      <div className="mt-1 w-full max-w-[11rem] border-b border-solid border-white/35" />
+                      <div className="mt-2 w-full">
+                        <BalanceCell amount={totals.sumVendedores} currency={selectedCurrency} className="text-lg font-bold" />
+                      </div>
+                    </div>
                   </td>
-                  <td colSpan="4" className="px-4 py-6 text-right">
-                    <div className="text-base font-bold text-dark-200 uppercase">Balance Pasajeros/Proveedor</div>
+                  <td className="px-2 py-6 align-top" aria-hidden="true" />
+                  <td className="px-4 py-6 align-top" aria-hidden="true" />
+                  <td className="px-4 py-6 text-right align-top">
+                    <div className="flex flex-col items-end w-full">
+                      <div className="w-full max-w-[11rem] text-xs text-dark-300 uppercase tracking-wide leading-tight space-y-0.5 text-right">
+                        <div>Precios</div>
+                        <div>Costos</div>
+                        <div>Ganancia</div>
+                      </div>
+                      <div className="mt-1.5 w-full max-w-[11rem] border-b border-solid border-white/35" />
+                      <div className="mt-2 space-y-1 w-full">
+                        <div className="text-sm text-dark-100 font-medium">
+                          <CurrencyDisplay>{formatCurrency(totals.sumPrecio, selectedCurrency)}</CurrencyDisplay>
+                        </div>
+                        <div className="text-sm text-dark-300">
+                          <CurrencyDisplay>{formatCurrency(totals.sumCosto, selectedCurrency)}</CurrencyDisplay>
+                        </div>
+                        <div className={`text-sm font-bold ${getAmountColor(totals.sumGanancia)}`}>
+                          <CurrencyDisplay>{formatCurrency(totals.sumGanancia, selectedCurrency)}</CurrencyDisplay>
+                        </div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-4 py-6 space-y-2">
-                    <BalanceCell amount={totals.sumPasajero} currency={selectedCurrency} className="text-lg font-bold" />
-                    <BalanceCell amount={totals.sumProveedor} currency={selectedCurrency} className="text-lg font-bold" />
+                  <td className="px-4 py-6 text-center align-top text-sm font-medium text-dark-100">
+                    {totals.marginTotalPct.toFixed(1)}%
+                  </td>
+                  <td className="px-4 py-6 align-top text-right">
+                    <div className="flex flex-col items-end">
+                      <div className="text-xs text-dark-300 uppercase tracking-wide leading-tight space-y-0.5">
+                        <div>Balances</div>
+                        <div>Pasajeros</div>
+                        <div>Proveedor</div>
+                      </div>
+                      <div className="mt-1.5 w-full max-w-[11rem] border-b border-solid border-white/35" />
+                      <div className="mt-2 space-y-1 w-full">
+                        <BalanceCell amount={totals.sumPasajero} currency={selectedCurrency} className="text-sm" />
+                        <BalanceCell amount={totals.sumProveedor} currency={selectedCurrency} className="text-sm" />
+                      </div>
+                    </div>
                   </td>
                 </tr>
               </tfoot>
