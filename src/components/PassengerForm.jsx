@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { API_BASE_URL } from '../config/api';
+import PassportImagePasteArea from './PassportImagePasteArea';
 
 const formatApiError = (data) => {
   if (!data) return 'Error de red o respuesta vacía';
@@ -15,6 +16,38 @@ const formatApiError = (data) => {
   return 'No se pudo completar la operación';
 };
 
+const SEAT_OPTIONS = [
+  { value: 'window', label: 'Ventana' },
+  { value: 'aisle', label: 'Pasillo' },
+  { value: 'middle', label: 'Medio' },
+  { value: 'no_preference', label: 'Sin preferencia' }
+];
+
+const MEAL_OPTIONS = [
+  { value: 'regular', label: 'Regular' },
+  { value: 'vegetarian', label: 'Vegetariano' },
+  { value: 'vegan', label: 'Vegano' },
+  { value: 'halal', label: 'Halal' },
+  { value: 'kosher', label: 'Kosher' },
+  { value: 'gluten_free', label: 'Sin gluten' },
+  { value: 'no_preference', label: 'Sin preferencia' }
+];
+
+const VISA_STATUS_OPTIONS = [
+  { value: 'not_required', label: 'No requiere' },
+  { value: 'required', label: 'Requerido' },
+  { value: 'applied', label: 'Solicitado' },
+  { value: 'approved', label: 'Aprobado' },
+  { value: 'rejected', label: 'Rechazado' },
+  { value: 'expired', label: 'Vencido' }
+];
+
+const PASSENGER_STATUS = [
+  { value: 'active', label: 'Activo' },
+  { value: 'inactive', label: 'Inactivo' },
+  { value: 'deceased', label: 'Fallecido' }
+];
+
 const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicker = true }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -27,7 +60,16 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
     nationality: '',
     expirationDate: '',
     gender: '',
-    specialRequests: ''
+    specialRequests: '',
+    seatPreference: 'no_preference',
+    mealPreference: 'no_preference',
+    medicalInfo: '',
+    frequentFlyerNumber: '',
+    visaRequired: false,
+    visaStatus: 'not_required',
+    visaExpiryDate: '',
+    visaNumber: '',
+    status: 'active'
   });
   const [passportImage, setPassportImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -83,39 +125,41 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
   };
 
   const handleChange = (e) => {
+    const { name, type, checked } = e.target;
     let value = e.target.value;
-    
-    // For DNI field, only allow numbers
-    if (e.target.name === 'dni') {
+
+    if (type === 'checkbox') {
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+      setError('');
+      if (validationErrors[name]) {
+        setValidationErrors((prev) => ({ ...prev, [name]: '' }));
+      }
+      return;
+    }
+
+    if (name === 'dni') {
       value = value.replace(/\D/g, '');
     }
-    
-    setFormData({
-      ...formData,
-      [e.target.name]: value
-    });
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
-    // Clear validation error for this field when user starts typing
-    if (validationErrors[e.target.name]) {
-      setValidationErrors(prev => ({
-        ...prev,
-        [e.target.name]: ''
-      }));
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const applyPassportImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setPassportImage(file);
+    setError('');
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPassportImage(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) applyPassportImageFile(file);
   };
 
   const handleOpenAIExtraction = async () => {
@@ -217,6 +261,11 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
       if (formData.expirationDate) cleanedFormData.expirationDate = new Date(formData.expirationDate).toISOString().split('T')[0];
       if (formData.gender) cleanedFormData.gender = formData.gender;
       if (formData.specialRequests?.trim()) cleanedFormData.specialRequests = formData.specialRequests.trim();
+      cleanedFormData.seatPreference = formData.seatPreference || 'no_preference';
+      cleanedFormData.mealPreference = formData.mealPreference || 'no_preference';
+      cleanedFormData.status = formData.status || 'active';
+      if (formData.medicalInfo?.trim()) cleanedFormData.medicalInfo = formData.medicalInfo.trim();
+      if (formData.frequentFlyerNumber?.trim()) cleanedFormData.frequentFlyerNumber = formData.frequentFlyerNumber.trim();
 
       if (cleanedFormData.dni && (cleanedFormData.dni.length < 7 || cleanedFormData.dni.length > 20)) {
         setValidationErrors({ dni: 'DNI debe tener entre 7 y 20 dígitos' });
@@ -225,10 +274,18 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
         return;
       }
 
+      const visaInfoPayload = JSON.stringify({
+        required: !!formData.visaRequired,
+        status: formData.visaStatus || 'not_required',
+        expiryDate: formData.visaExpiryDate || null,
+        visaNumber: (formData.visaNumber || '').trim()
+      });
+
       const finalPayload = new FormData();
-      Object.keys(cleanedFormData).forEach(key => {
+      Object.keys(cleanedFormData).forEach((key) => {
         finalPayload.append(key, cleanedFormData[key]);
       });
+      finalPayload.append('visaInfo', visaInfoPayload);
 
       // Lógica unificada con el Titular: Si el toggle está en SI, mandamos el archivo físico
       if (shouldSaveImage && passportImage) {
@@ -248,8 +305,26 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
       if (response.ok && responseData.success) {
         onPassengerAdded(responseData.data.passenger);
         setFormData({
-          name: '', surname: '', dni: '', email: '', phone: '', dob: '',
-          passportNumber: '', nationality: '', expirationDate: '', gender: '', specialRequests: ''
+          name: '',
+          surname: '',
+          dni: '',
+          email: '',
+          phone: '',
+          dob: '',
+          passportNumber: '',
+          nationality: '',
+          expirationDate: '',
+          gender: '',
+          specialRequests: '',
+          seatPreference: 'no_preference',
+          mealPreference: 'no_preference',
+          medicalInfo: '',
+          frequentFlyerNumber: '',
+          visaRequired: false,
+          visaStatus: 'not_required',
+          visaExpiryDate: '',
+          visaNumber: '',
+          status: 'active'
         });
         setPassportImage(null);
         setImagePreview(null);
@@ -291,14 +366,13 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
-              {/* File Upload */}
-            <div>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600"
               />
+              <PassportImagePasteArea onImageFile={applyPassportImageFile} disabled={ocrLoading} />
               
               {passportImage && (
                 <button
@@ -310,7 +384,6 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
                     {ocrLoading ? 'Procesando con OpenAI...' : 'Extraer Datos con OpenAI'}
                 </button>
               )}
-              </div>
             </div>
 
             {imagePreview && (
@@ -495,6 +568,99 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicke
             {validationErrors.expirationDate && (
               <p className="text-red-400 text-xs mt-1">{validationErrors.expirationDate}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-400 mb-1">Asiento</label>
+            <select
+              name="seatPreference"
+              value={formData.seatPreference}
+              onChange={handleChange}
+              className="input-field text-sm"
+            >
+              {SEAT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-400 mb-1">Comida a bordo</label>
+            <select
+              name="mealPreference"
+              value={formData.mealPreference}
+              onChange={handleChange}
+              className="input-field text-sm"
+            >
+              {MEAL_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-400 mb-1">Nº programa de millas</label>
+            <input
+              type="text"
+              name="frequentFlyerNumber"
+              value={formData.frequentFlyerNumber}
+              onChange={handleChange}
+              className="input-field text-sm"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-dark-400 mb-1">Información médica</label>
+            <textarea
+              name="medicalInfo"
+              value={formData.medicalInfo}
+              onChange={handleChange}
+              rows={2}
+              placeholder="Alergias, medicación, condiciones relevantes para el viaje"
+              className="input-field text-sm"
+            />
+          </div>
+
+          <div className="md:col-span-2 rounded-lg border border-white/10 bg-dark-800/40 p-4 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-dark-200 cursor-pointer">
+              <input type="checkbox" name="visaRequired" checked={formData.visaRequired} onChange={handleChange} className="rounded border-white/20" />
+              Requiere visa para el destino
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1">Estado de la visa</label>
+                <select name="visaStatus" value={formData.visaStatus} onChange={handleChange} className="input-field text-sm">
+                  {VISA_STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-dark-400 mb-1">Vencimiento visa</label>
+                <input type="date" name="visaExpiryDate" value={formData.visaExpiryDate} onChange={handleChange} className="input-field text-sm" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-dark-400 mb-1">Número de visa</label>
+                <input type="text" name="visaNumber" value={formData.visaNumber} onChange={handleChange} className="input-field text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-dark-400 mb-1">Estado del registro</label>
+            <select name="status" value={formData.status} onChange={handleChange} className="input-field text-sm">
+              {PASSENGER_STATUS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

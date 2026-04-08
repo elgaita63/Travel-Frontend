@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import PassengerCard from '../components/PassengerCard';
 import PassengerForm from '../components/PassengerForm';
+import PassportImagePasteArea from '../components/PassportImagePasteArea';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 
 const fmt = (v) => {
   if (v === null || v === undefined || v === '') return '—';
@@ -11,7 +13,7 @@ const fmt = (v) => {
 };
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleString('es-AR') : '—');
-const fmtDateOnly = (d) => (d ? new Date(d).toLocaleDateString('es-AR') : '—');
+const fmtDateOnly = (d) => (d != null && d !== '' ? formatDateOnlyLocal(d) : '—');
 
 const genderEs = (g) => {
   if (!g) return '—';
@@ -697,6 +699,12 @@ const ClientDetails = () => {
                     onChange={(e) => setPassportReplaceFile(e.target.files?.[0] || null)}
                     className="block w-full text-sm text-dark-300"
                   />
+                  <div className="mt-3">
+                    <PassportImagePasteArea
+                      onImageFile={(file) => setPassportReplaceFile(file)}
+                      disabled={editLoading}
+                    />
+                  </div>
                   {passportReplaceFile && <p className="text-xs text-dark-400 mt-1">Archivo: {passportReplaceFile.name}</p>}
                 </div>
 

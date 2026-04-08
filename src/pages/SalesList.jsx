@@ -9,6 +9,7 @@ import { t, getDropdownOptions } from '../utils/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useCurrencyFormat } from '../hooks/useCurrencyFormat';
 import CurrencyDisplay from '../components/CurrencyDisplay';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 
 // TruncatedText component with double-click to show scrollbar
 const TruncatedText = ({ text, className = '', title = '' }) => {
@@ -85,7 +86,7 @@ const SalesList = () => {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [rowsPerPage, setRowsPerPage] = useState(200);
   const [totalSales, setTotalSales] = useState(0);
   const [totalClients, setTotalClients] = useState(0);
   const [currencySummary, setCurrencySummary] = useState([]);
@@ -93,6 +94,7 @@ const SalesList = () => {
     status: '',
     startDate: '',
     endDate: '',
+    dateRangeType: 'creation',
     search: '',
     includeNoSales: 'true',
     providerId: '',
@@ -106,6 +108,7 @@ const SalesList = () => {
     status: '',
     startDate: '',
     endDate: '',
+    dateRangeType: 'creation',
     search: '',
     includeNoSales: 'true',
     providerId: '',
@@ -296,6 +299,7 @@ const SalesList = () => {
         status: '',
         startDate: '',
         endDate: '',
+        dateRangeType: 'creation',
         search: '',
         includeNoSales: 'true',
         providerId: '',
@@ -309,6 +313,7 @@ const SalesList = () => {
         status: '',
         startDate: '',
         endDate: '',
+        dateRangeType: 'creation',
         search: '',
         includeNoSales: 'true',
         providerId: '',
@@ -325,6 +330,7 @@ const SalesList = () => {
       status: '',
       startDate: '',
       endDate: '',
+      dateRangeType: 'creation',
       search: '',
       includeNoSales: 'true',
       providerId: '',
@@ -466,6 +472,13 @@ const SalesList = () => {
                         Hasta: {new Date(filters.endDate).toLocaleDateString()}
                       </span>
                     )}
+                    {(filters.startDate || filters.endDate) && (
+                      <span className="px-2 py-1 bg-slate-600 text-slate-100 text-xs rounded">
+                        {filters.dateRangeType === 'trip'
+                          ? 'Fechas: inicio del viaje (servicios)'
+                          : 'Fechas: creación del registro'}
+                      </span>
+                    )}
                     {filters.status && (
                       <span className="px-2 py-1 bg-green-600 text-green-100 text-xs rounded">
                         Status: {filters.status}
@@ -518,6 +531,23 @@ const SalesList = () => {
                 </select>
               </div>
 
+
+              <div className="filter-dropdown-container lg:col-span-2">
+                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
+                  Rango de fechas según
+                </label>
+                <select
+                  value={filters.dateRangeType || 'creation'}
+                  onChange={(e) => handleFilterChange('dateRangeType', e.target.value)}
+                  className="input-field"
+                >
+                  <option value="creation">Fecha de creación del registro de venta</option>
+                  <option value="trip">Fecha de inicio del viaje (servicios)</option>
+                </select>
+                <p className="text-xs text-dark-500 mt-2">
+                  «Desde» / «Hasta» aplican a la opción elegida: creación en el sistema o la primera fecha de servicio del viaje.
+                </p>
+              </div>
 
               <div className="filter-dropdown-container">
                 <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
@@ -891,13 +921,14 @@ const SalesList = () => {
                       <select
                         value={rowsPerPage}
                         onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                        className="input-field text-sm py-1 px-2 w-16"
+                        className="input-field text-sm py-1 px-2 w-20"
                       >
                         <option value={5}>5</option>
                         <option value={10}>10</option>
                         <option value={20}>20</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
+                        <option value={200}>200</option>
                       </select>
                     </div>
 
@@ -1102,12 +1133,12 @@ const SalesList = () => {
                         </td>
                         <td className="px-4 py-4">
                           <div className="text-sm text-dark-100">
-                            {earliestStartDate ? earliestStartDate.toLocaleDateString() : 'N/A'}
+                            {earliestStartDate ? formatDateOnlyLocal(earliestStartDate) : 'N/A'}
                           </div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="text-sm text-dark-100">
-                            {latestEndDate ? latestEndDate.toLocaleDateString() : 'N/A'}
+                            {latestEndDate ? formatDateOnlyLocal(latestEndDate) : 'N/A'}
                           </div>
                         </td>
                         {/* CELDA SALESPERSON MODIFICADA AQUI CON SALDOS */}
@@ -1150,13 +1181,14 @@ const SalesList = () => {
                       <select
                         value={rowsPerPage}
                         onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                        className="input-field text-sm py-1 px-2 w-16"
+                        className="input-field text-sm py-1 px-2 w-20"
                       >
                         <option value={5}>5</option>
                         <option value={10}>10</option>
                         <option value={20}>20</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
+                        <option value={200}>200</option>
                       </select>
                     </div>
 

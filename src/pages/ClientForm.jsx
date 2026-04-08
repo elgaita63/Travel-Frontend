@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
 import PassengerForm from '../components/PassengerForm';
+import PassportImagePasteArea from '../components/PassportImagePasteArea';
 
 const formatApiError = (data) => {
   if (!data) return 'Error de red o respuesta vacía';
@@ -26,7 +27,18 @@ const ClientForm = () => {
   const [formData, setFormData] = useState({
     name: '', surname: '', dni: '', dob: '', email: '', phone: '',
     passportNumber: '', nationality: '', expirationDate: '', gender: '',
-    specialRequests: '', passportImage: ''
+    specialRequests: '', passportImage: '',
+    addressStreet: '', addressCity: '', addressState: '', addressCountry: '', addressZipCode: '',
+    emergencyName: '', emergencyPhone: '', emergencyRelationship: '',
+    preferencesDietary: '', preferencesMedical: '',
+    npEmail: true,
+    npWhatsapp: true,
+    npSms: false,
+    npTripReminders: true,
+    npReturnNotifications: true,
+    npPassportExpiry: true,
+    npMarketingEmails: false,
+    status: 'active'
   });
   const [shouldSaveImage, setShouldSaveImage] = useState(false);
   const [passportImage, setPassportImage] = useState(null);
@@ -44,18 +56,25 @@ const ClientForm = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const applyPassportImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setPassportImage(file);
+    setError('');
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPassportImage(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => setImagePreview(ev.target.result);
-      reader.readAsDataURL(file);
-    }
+    if (file) applyPassportImageFile(file);
   };
 
   const handleOpenAIExtraction = async () => {
@@ -125,7 +144,45 @@ const ClientForm = () => {
       if (rest.gender) finalPayload.append('gender', rest.gender);
       if (rest.nationality?.trim()) finalPayload.append('nationality', rest.nationality.trim());
       if (rest.expirationDate) finalPayload.append('expirationDate', rest.expirationDate);
-      finalPayload.append('preferences[specialRequests]', rest.specialRequests || '');
+      finalPayload.append(
+        'preferences',
+        JSON.stringify({
+          dietary: rest.preferencesDietary?.trim() || '',
+          medical: rest.preferencesMedical?.trim() || '',
+          specialRequests: rest.specialRequests?.trim() || ''
+        })
+      );
+      finalPayload.append(
+        'address',
+        JSON.stringify({
+          street: rest.addressStreet?.trim() || '',
+          city: rest.addressCity?.trim() || '',
+          state: rest.addressState?.trim() || '',
+          country: rest.addressCountry?.trim() || '',
+          zipCode: rest.addressZipCode?.trim() || ''
+        })
+      );
+      finalPayload.append(
+        'emergencyContact',
+        JSON.stringify({
+          name: rest.emergencyName?.trim() || '',
+          phone: rest.emergencyPhone?.trim() || '',
+          relationship: rest.emergencyRelationship?.trim() || ''
+        })
+      );
+      finalPayload.append(
+        'notificationPreferences',
+        JSON.stringify({
+          email: !!rest.npEmail,
+          whatsapp: !!rest.npWhatsapp,
+          sms: !!rest.npSms,
+          tripReminders: !!rest.npTripReminders,
+          returnNotifications: !!rest.npReturnNotifications,
+          passportExpiry: !!rest.npPassportExpiry,
+          marketingEmails: !!rest.npMarketingEmails
+        })
+      );
+      if (rest.status) finalPayload.append('status', rest.status);
 
       if (shouldSaveImage && passportImage) {
         finalPayload.append('passportImage', passportImage);
@@ -241,6 +298,7 @@ const ClientForm = () => {
                   onChange={handleImageUpload}
                   className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30"
                 />
+                <PassportImagePasteArea onImageFile={applyPassportImageFile} disabled={ocrLoading} />
 
                 {passportImage && (
                   <button
@@ -373,6 +431,97 @@ const ClientForm = () => {
                 className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20"
               />
             </div>
+          </div>
+
+          <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10 space-y-4">
+            <h3 className="text-lg font-medium text-dark-100">Dirección</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-dark-200">Calle y número</label>
+                <input type="text" name="addressStreet" value={formData.addressStreet} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Ciudad</label>
+                <input type="text" name="addressCity" value={formData.addressCity} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Provincia / Estado</label>
+                <input type="text" name="addressState" value={formData.addressState} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">País</label>
+                <input type="text" name="addressCountry" value={formData.addressCountry} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Código postal</label>
+                <input type="text" name="addressZipCode" value={formData.addressZipCode} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10 space-y-4">
+            <h3 className="text-lg font-medium text-dark-100">Contacto de emergencia</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Nombre</label>
+                <input type="text" name="emergencyName" value={formData.emergencyName} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Teléfono</label>
+                <input type="tel" name="emergencyPhone" value={formData.emergencyPhone} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-dark-200">Vínculo</label>
+                <input type="text" name="emergencyRelationship" value={formData.emergencyRelationship} onChange={handleChange} placeholder="Ej. cónyuge, madre" className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10 space-y-4">
+            <h3 className="text-lg font-medium text-dark-100">Preferencias</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Dieta</label>
+                <input type="text" name="preferencesDietary" value={formData.preferencesDietary} onChange={handleChange} placeholder="Vegetariano, sin gluten…" className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-dark-200">Información médica</label>
+                <input type="text" name="preferencesMedical" value={formData.preferencesMedical} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-dark-200">Pedidos especiales / notas</label>
+                <textarea name="specialRequests" value={formData.specialRequests} onChange={handleChange} rows={3} className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10 space-y-4">
+            <h3 className="text-lg font-medium text-dark-100">Notificaciones</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-dark-200">
+              {[
+                ['npEmail', 'Email'],
+                ['npWhatsapp', 'WhatsApp'],
+                ['npSms', 'SMS'],
+                ['npTripReminders', 'Recordatorios de viaje'],
+                ['npReturnNotifications', 'Avisos de regreso'],
+                ['npPassportExpiry', 'Vencimiento de pasaporte'],
+                ['npMarketingEmails', 'Marketing']
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name={key} checked={!!formData[key]} onChange={handleChange} className="rounded border-white/20" />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-dark-700/50 p-6 rounded-lg border border-white/10">
+            <label className="block text-sm font-medium text-dark-200 mb-2">Estado del registro</label>
+            <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full max-w-md px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20">
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+              <option value="blocked">Bloqueado</option>
+            </select>
           </div>
 
           <div className="flex justify-end items-center space-x-6 pt-6 border-t border-white/10">

@@ -3,6 +3,7 @@ import api from '../utils/api';
 import ProviderCreationModal from './ProviderCreationModal';
 import AddServiceTypeModal from './AddServiceTypeModal';
 import ServiceTypeService from '../services/serviceTypeService';
+import { toDateOnlyUTCString, addOneDayToYMD } from '../utils/dateDisplay';
 
 const EditCupoModal = ({ 
   cupo, 
@@ -86,8 +87,8 @@ const EditCupoModal = ({
         providerId: cupo.serviceId?.providerId?._id || cupo.serviceId?.providerId?.id || '',
         totalSeats: cupo.totalSeats || '',
         metadata: {
-          date: cupo.metadata?.date ? new Date(cupo.metadata.date).toISOString().split('T')[0] : '',
-          completionDate: cupo.metadata?.completionDate ? new Date(cupo.metadata.completionDate).toISOString().split('T')[0] : '',
+          date: cupo.metadata?.date ? toDateOnlyUTCString(cupo.metadata.date) : '',
+          completionDate: cupo.metadata?.completionDate ? toDateOnlyUTCString(cupo.metadata.completionDate) : '',
           roomType: cupo.metadata?.roomType || '',
           flightName: cupo.metadata?.flightName || '',
           destination: cupo.metadata?.destination || '',
@@ -646,7 +647,7 @@ const EditCupoModal = ({
                   value={formData.metadata.completionDate}
                   onChange={handleChange}
                   required
-                  min={formData.metadata.date ? new Date(new Date(formData.metadata.date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] : ''}
+                  min={formData.metadata.date ? addOneDayToYMD(formData.metadata.date) : ''}
                   className="input-field mt-1"
                 />
               </div>

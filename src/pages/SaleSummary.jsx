@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorDisplay from '../components/ErrorDisplay';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { formatCurrencyCompact, formatWithWarning, formatCurrencyFull, getCurrencySymbol } from '../utils/formatNumbers';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 
 // Component for individual provider cards with expandable details
 const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'USD' }) => {
@@ -210,7 +211,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
                 <div>
                   <label className="block text-[10px] font-bold text-dark-400 uppercase tracking-widest mb-1">Fecha de Inicio</label>
                   <p className="text-xs text-dark-200 font-medium">
-                    {new Date(providerDetails.startDate).toLocaleDateString()}
+                    {formatDateOnlyLocal(providerDetails.startDate)}
                   </p>
                 </div>
               )}
@@ -218,7 +219,7 @@ const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'U
                 <div>
                   <label className="block text-[10px] font-bold text-dark-400 uppercase tracking-widest mb-1">Fecha de Fin</label>
                   <p className="text-xs text-dark-200 font-medium">
-                    {new Date(providerDetails.endDate).toLocaleDateString()}
+                    {formatDateOnlyLocal(providerDetails.endDate)}
                   </p>
                 </div>
               )}
@@ -777,6 +778,12 @@ const SaleSummary = () => {
             {/* Sale Information */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-dark-100 mb-4">Información de la Venta</h2>
+              {sale.nombreVenta && (
+                <div className="mb-4 pb-4 border-b border-white/10">
+                  <label className="block text-sm font-medium text-dark-200">Nombre/Identificación del Viaje/Venta/Reserva</label>
+                  <p className="text-dark-100 text-lg font-medium">{sale.nombreVenta}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-dark-200">Creado Por</label>
@@ -991,7 +998,7 @@ const SaleSummary = () => {
                                 <div>
                                   <label className="block text-xs font-medium text-green-200">Fecha de Inicio</label>
                                   <p className="text-green-100 font-medium">
-                                    {new Date(startDate).toLocaleDateString()}
+                                    {formatDateOnlyLocal(startDate)}
                                   </p>
                                 </div>
                               )}
@@ -999,7 +1006,7 @@ const SaleSummary = () => {
                                 <div>
                                   <label className="block text-xs font-medium text-green-200">Fecha de Fin</label>
                                   <p className="text-green-100 font-medium">
-                                    {new Date(endDate).toLocaleDateString()}
+                                    {formatDateOnlyLocal(endDate)}
                                   </p>
                                 </div>
                               )}
@@ -1163,6 +1170,7 @@ const SaleSummary = () => {
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <PaymentsTable
                 saleId={sale.id}
+                sale={sale}
                 onPaymentAdded={handlePaymentAdded}
                 saleCurrency={sale.saleCurrency}
               />

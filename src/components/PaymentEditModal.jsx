@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import Modal from './Modal'; 
+import Modal from './Modal';
+import PassportImagePasteArea from './PassportImagePasteArea'; 
 
 const PaymentEditModal = ({ 
   payment, 
@@ -9,7 +10,9 @@ const PaymentEditModal = ({
   onSave, 
   onDeleteSuccess,
   saving = false,
-  saleCurrency = 'USD'
+  saleCurrency = 'USD',
+  /** { _id, name }[] — misma lista que PaymentForm para pagos a proveedor */
+  saleProviders = []
 }) => {
   const [formData, setFormData] = useState({
     amount: '',
@@ -28,6 +31,8 @@ const PaymentEditModal = ({
   const [extractionError, setExtractionError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState('');
+  const [providerError, setProviderError] = useState('');
 
   useEffect(() => {
     const fetchMethods = async () => {
@@ -59,28 +64,46 @@ const PaymentEditModal = ({
       setReceiptFile(null);
       setImagePreview(null); // Limpiar vista previa al abrir
       setExtractionError('');
+      setProviderError('');
     }
   }, [payment, isOpen]);
+
+  useEffect(() => {
+    if (!payment || !isOpen || payment.type !== 'provider') {
+      setSelectedProviderId('');
+      return;
+    }
+    const currentId = payment.paymentTo?._id || payment.paymentTo;
+    const currentStr = currentId ? String(currentId) : '';
+    if (saleProviders.length === 1) {
+      setSelectedProviderId(saleProviders[0]._id);
+    } else {
+      setSelectedProviderId(currentStr);
+    }
+  }, [payment, isOpen, saleProviders]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const applyReceiptFile = (file) => {
+    if (!file) return;
+    const ok = file.type.startsWith('image/') || file.type === 'application/pdf';
+    if (!ok) return;
+    setReceiptFile(file);
+    setExtractionError('');
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => setImagePreview(event.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setReceiptFile(file);
-      setExtractionError('');
-      
-      // Lógica de vista previa
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => setImagePreview(event.target.result);
-        reader.readAsDataURL(file);
-      } else {
-        setImagePreview(null);
-      }
-    }
+    if (file) applyReceiptFile(file);
   };
 
   const handleExtractReceipt = async () => {
@@ -130,6 +153,11 @@ const PaymentEditModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (payment.type === 'provider' && saleProviders.length > 1 && !selectedProviderId) {
+      setProviderError('Seleccioná el proveedor al que corresponde este pago.');
+      return;
+    }
+    setProviderError('');
     const submitData = new FormData();
     const updateData = {
       ...formData,
@@ -139,6 +167,9 @@ const PaymentEditModal = ({
     Object.keys(updateData).forEach(key => {
       submitData.append(key, updateData[key]);
     });
+    if (payment.type === 'provider' && selectedProviderId) {
+      submitData.append('paymentTo', selectedProviderId);
+    }
     // Si hay una foto nueva, la mandamos. El backend se encarga de subirla a Supabase.
     if (receiptFile) submitData.append('receipt', receiptFile);
     
@@ -162,43 +193,94 @@ const PaymentEditModal = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto max-h-[80vh]">
-          
-          {/* Sección OCR Compacta Modificada */}
-          <div className="bg-primary-600/10 border border-primary-500/20 rounded-md p-3">
-            <label className="block text-[10px] font-bold text-primary-400 uppercase mb-1">
-              Actualizar Recibo / Extraer OCR
-            </label>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleFileChange}
-              className="text-[11px] text-dark-300 w-full mb-2 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-primary-600 file:text-white file:text-[10px]"
-            />
-            
-            {/* BLOQUE DE VISTA PREVIA */}
-            {imagePreview ? (
-              <div className="mt-2 mb-2 flex justify-center bg-dark-800/50 rounded p-1 border border-white/10">
-                <img src={imagePreview} alt="Preview" className="max-h-24 object-contain rounded" />
+          <div className="card p-3">
+            <h4 className="text-sm font-medium text-dark-400 mb-3">Extracción de Datos</h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3">
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileChange}
+                  className="text-[11px] text-dark-300 w-full file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-primary-600 file:text-white file:text-[10px]"
+                />
+                <PassportImagePasteArea onImageFile={applyReceiptFile} disabled={extracting} />
+                {receiptFile && (
+                  <button
+                    type="button"
+                    onClick={handleExtractReceipt}
+                    disabled={extracting}
+                    className="w-full py-1.5 bg-primary-600 text-white text-[11px] font-bold rounded shadow-lg hover:bg-primary-700 transition-all disabled:opacity-50"
+                  >
+                    {extracting ? 'EXTRAYENDO...' : 'EXTRAER DATOS'}
+                  </button>
+                )}
+                {extractionError && (
+                  <p className="text-[10px] text-red-400 font-medium">{extractionError}</p>
+                )}
               </div>
-            ) : receiptFile && receiptFile.type === 'application/pdf' ? (
-              <div className="mt-2 mb-2 flex justify-center items-center bg-dark-800/50 rounded p-2 border border-white/10">
-                <span className="text-xl">📄</span>
-                <span className="text-[10px] ml-2 text-dark-400 uppercase">PDF seleccionado</span>
-              </div>
-            ) : null}
 
-            {receiptFile && (
-              <button
-                type="button"
-                onClick={handleExtractReceipt}
-                disabled={extracting}
-                className="w-full py-1.5 bg-primary-600 text-white text-[11px] font-bold rounded shadow-lg hover:bg-primary-700 transition-all disabled:opacity-50"
-              >
-                {extracting ? 'EXTRAYENDO...' : 'EXTRAER DATOS'}
-              </button>
-            )}
-            {extractionError && <p className="text-[10px] text-red-400 mt-1 font-medium">{extractionError}</p>}
+              {imagePreview ? (
+                <div>
+                  <h5 className="text-[10px] font-medium text-dark-400 mb-1">Vista previa</h5>
+                  <div className="flex justify-center rounded border border-white/10 bg-dark-800/50 p-1">
+                    <img src={imagePreview} alt="Recibo" className="max-h-24 object-contain rounded" />
+                  </div>
+                </div>
+              ) : receiptFile && receiptFile.type === 'application/pdf' ? (
+                <div>
+                  <h5 className="text-[10px] font-medium text-dark-400 mb-1">Archivo</h5>
+                  <div className="flex flex-col items-center justify-center rounded border border-white/10 bg-dark-800/50 p-3">
+                    <span className="text-xl">📄</span>
+                    <span className="text-[10px] text-dark-400 uppercase">PDF</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-h-[5.5rem] items-center justify-center rounded border border-dashed border-white/10 p-2 text-[10px] uppercase text-dark-500">
+                  Sin archivo
+                </div>
+              )}
+            </div>
           </div>
+
+          {payment.type === 'provider' && saleProviders.length > 1 && (
+            <div className="bg-primary-600/10 border border-primary-500/20 rounded-md p-3">
+              <label htmlFor="editPaymentToProvider" className="block text-[10px] font-bold text-primary-400 uppercase mb-1">
+                Pago destinado a proveedor *
+              </label>
+              <select
+                id="editPaymentToProvider"
+                value={selectedProviderId}
+                onChange={(e) => {
+                  setSelectedProviderId(e.target.value);
+                  setProviderError('');
+                }}
+                required
+                className="w-full px-3 py-1.5 bg-dark-600 border border-dark-500 rounded text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
+              >
+                <option value="">Seleccioná proveedor</option>
+                {saleProviders.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-dark-500 mt-1">La venta incluye más de un proveedor: elegí a cuál corresponde este pago.</p>
+              {providerError && <p className="text-[10px] text-red-400 mt-1 font-medium">{providerError}</p>}
+            </div>
+          )}
+
+          {payment.type === 'provider' && saleProviders.length === 1 && (
+            <div className="text-[11px] text-dark-300 bg-dark-700/40 border border-white/10 rounded-md px-3 py-2">
+              <span className="text-dark-500">Proveedor: </span>
+              <span className="font-medium text-dark-100">{saleProviders[0].name}</span>
+            </div>
+          )}
+
+          {payment.type === 'provider' && saleProviders.length === 0 && (
+            <div className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/25 rounded-md px-3 py-2">
+              No hay proveedores en los servicios de esta venta. Si el pago ya tenía destinatario, se mantiene al guardar.
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>

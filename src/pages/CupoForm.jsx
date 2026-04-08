@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
+import { addOneDayToYMD } from '../utils/dateDisplay';
 import ProviderCreationModal from '../components/ProviderCreationModal';
 import AddServiceTypeModal from '../components/AddServiceTypeModal';
 import ServiceTypeService from '../services/serviceTypeService';
@@ -770,7 +771,7 @@ const CupoForm = () => {
                     value={formData.metadata.completionDate}
                     onChange={handleChange}
                     required
-                    min={formData.metadata.date ? new Date(new Date(formData.metadata.date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] : ''}
+                    min={formData.metadata.date ? addOneDayToYMD(formData.metadata.date) : ''}
                     className="input-field mt-1"
                   />
                 </div>

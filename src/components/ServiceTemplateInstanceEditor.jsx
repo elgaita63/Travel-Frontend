@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import CurrencyDisplay from './CurrencyDisplay';
 import { toast } from 'react-toastify';
+import { formatDateOnlyLocal, parseDateOnlyToUTC } from '../utils/dateDisplay';
 
 const ServiceTemplateInstanceEditor = ({ 
   instance, 
@@ -151,8 +152,12 @@ const ServiceTemplateInstanceEditor = ({
       } else if (field === 'checkIn' || field === 'checkOut') {
         updateData[field] = value; // Keep consistent with display field
         updateData.serviceDates = {
-          startDate: field === 'checkIn' ? new Date(value) : new Date(instance.serviceDates?.startDate || instance.checkIn),
-          endDate: field === 'checkOut' ? new Date(value) : new Date(instance.serviceDates?.endDate || instance.checkOut)
+          startDate: field === 'checkIn'
+            ? (parseDateOnlyToUTC(value) || new Date(value))
+            : (parseDateOnlyToUTC(instance.serviceDates?.startDate || instance.checkIn) || new Date(instance.serviceDates?.startDate || instance.checkIn)),
+          endDate: field === 'checkOut'
+            ? (parseDateOnlyToUTC(value) || new Date(value))
+            : (parseDateOnlyToUTC(instance.serviceDates?.endDate || instance.checkOut) || new Date(instance.serviceDates?.endDate || instance.checkOut))
         };
       } else if (field === 'provider') {
         updateData.provider = value; // Keep consistent with display field
@@ -321,7 +326,7 @@ const ServiceTemplateInstanceEditor = ({
                    </div>
                  </div>
                ) :
-               field === 'checkIn' || field === 'checkOut' ? new Date(currentValue).toLocaleDateString() :
+               field === 'checkIn' || field === 'checkOut' ? formatDateOnlyLocal(currentValue) :
                currentValue || 'Not set'}
             </div>
           </div>
@@ -537,7 +542,7 @@ const ServiceTemplateInstanceEditor = ({
             <div className="flex-1">
               <span className="text-sm text-dark-400">Dates:</span>
               <div className="text-dark-100 font-medium">
-                {new Date(instance.checkIn).toLocaleDateString()} - {new Date(instance.checkOut).toLocaleDateString()}
+                {formatDateOnlyLocal(instance.checkIn)} - {formatDateOnlyLocal(instance.checkOut)}
               </div>
             </div>
             <button

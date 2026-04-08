@@ -15,7 +15,7 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
     e.preventDefault();
     
     if (!serviceType?.trim()) {
-      setError('Service type is required');
+      setError('El tipo de servicio es obligatorio');
       return;
     }
 
@@ -39,14 +39,14 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
         resetForm();
         onClose();
       } else {
-        setError(response.data.message || 'Failed to create service type');
+        setError(response.data.message || 'No se pudo crear el tipo de servicio');
       }
     } catch (error) {
       console.error('Failed to create service type:', error);
-      let errorMessage = 'Failed to create service type';
+      let errorMessage = 'No se pudo crear el tipo de servicio';
       
       if (error.response?.status === 409) {
-        errorMessage = 'A service type with this name already exists. Please choose a different name.';
+        errorMessage = 'Ya existe un tipo de servicio con ese nombre. Elegí otro nombre.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -68,7 +68,7 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[10000]">
       <div className="bg-dark-800/95 backdrop-blur-md rounded-lg p-6 w-full max-w-md mx-4 border border-white/10 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-dark-100">Add Service Type</h2>
+          <h2 className="text-xl font-semibold text-dark-100">Agregar tipo de servicio</h2>
           <button
             onClick={handleClose}
             className="text-dark-400 hover:text-dark-200 transition-colors"
@@ -90,7 +90,7 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
           {/* Service Type */}
           <div>
             <label htmlFor="serviceType" className="block text-sm font-medium text-dark-200 mb-2">
-              Service Type *
+              Tipo de servicio *
             </label>
             <input
               type="text"
@@ -98,7 +98,7 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
               value={serviceType}
               onChange={(e) => setServiceType(e.target.value)}
               className="input-field"
-              placeholder="Enter service type"
+              placeholder="Nombre del tipo de servicio"
               required
               disabled={loading}
             />
@@ -112,14 +112,14 @@ const AddServiceTypeModal = ({ isOpen, onClose, onServiceTypeAdded }) => {
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700 hover:bg-dark-600 border border-white/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Adding...' : 'Complete'}
+              {loading ? 'Agregando…' : 'Listo'}
             </button>
           </div>
         </form>

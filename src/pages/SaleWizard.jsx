@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import NewSaleWizardSteps from '../components/NewSaleWizardSteps';
@@ -8,6 +8,8 @@ import AddServiceTypeModal from '../components/AddServiceTypeModal';
 import ServiceEntryModal from '../components/ServiceEntryModal';
 import ServiceCostProviderModal from '../components/ServiceCostProviderModal';
 import ServiceTypeService from '../services/serviceTypeService';
+import { buildNombreVentaSuggestion } from '../utils/buildNombreVentaSuggestion';
+import { toDateOnlyUTCString } from '../utils/dateDisplay';
 
 const SaleWizard = () => {
   const navigate = useNavigate();
@@ -81,6 +83,8 @@ const SaleWizard = () => {
   const [saleCurrency, setSaleCurrency] = useState('USD');
   const [pricingModel, setPricingModel] = useState('unit');
   const [saleNotes, setSaleNotes] = useState('');
+  /** Nombre/identificación del viaje o venta (obligatorio; sugerido en paso 7) */
+  const [nombreVenta, setNombreVenta] = useState('');
 
   // Step 4: Destination
   const [destination, setDestination] = useState({ country: '', city: '' });
@@ -167,15 +171,23 @@ const SaleWizard = () => {
   const [showFileModal, setShowFileModal] = useState(false);
   const [selectedProviderFiles, setSelectedProviderFiles] = useState(null);
 
-  const steps = [
-    { number: 1, title: 'Select Passengers & Companions', description: 'Choose passengers and companions' },
-    { number: 2, title: 'Price Per Passenger', description: 'Set passenger pricing' },
-    { number: 3, title: 'Select Service Template', description: 'Choose service type' },
-    { number: 4, title: 'Service Dates', description: 'Set dates' },
-    { number: 5, title: 'Service Cost & Provider', description: 'Set cost and select provider' },
-    { number: 6, title: 'Edit Services', description: 'Edit and manage services' },
-    { number: 7, title: 'Review & Create', description: 'Review and finalize' }
-  ];
+  const steps = useMemo(() => [
+    { number: 1, title: 'Pasajeros y acompañantes', description: 'Elegir titular y acompañantes' },
+    { number: 2, title: 'Precio por pasajero', description: 'Definir precio por persona' },
+    { number: 3, title: 'Tipo de servicio', description: 'Elegir el tipo de servicio' },
+    { number: 4, title: 'Fechas y ciudad', description: 'Fechas de servicio y destino' },
+    { number: 5, title: 'Costo y proveedor', description: 'Costo y proveedores por servicio' },
+    { number: 6, title: 'Editar servicios', description: 'Revisar y ajustar servicios' },
+    { number: 7, title: 'Revisar y confirmar', description: isEditMode ? 'Última revisión antes de guardar' : 'Última revisión antes de crear' }
+  ], [isEditMode]);
+
+  useEffect(() => {
+    if (currentStep !== 7 || isEditMode) return;
+    setNombreVenta((prev) => {
+      if (prev && prev.trim()) return prev;
+      return buildNombreVentaSuggestion(destination, serviceTemplateInstances);
+    });
+  }, [currentStep, isEditMode, destination, serviceTemplateInstances]);
 
   useEffect(() => {
     // Check for pre-selected passenger from location state (only if no clientId in URL)
@@ -238,11 +250,11 @@ const SaleWizard = () => {
               
               // Don't pre-populate yet - wait for service templates to load
             } else {
-              setError('Failed to load cupo data');
+              setError('No se pudieron cargar los datos del cupo');
               navigate('/inventory');
             }
           } catch (error) {
-            setError('Failed to load cupo data');
+            setError('No se pudieron cargar los datos del cupo');
             navigate('/inventory');
           }
         } else if (clientIdParam) {
@@ -257,11 +269,11 @@ const SaleWizard = () => {
               setClientId(clientData._id);
               console.log('✅ Set pre-selected passenger with complete data');
             } else {
-              setError('Failed to load client data');
+              setError('No se pudieron cargar los datos del cliente');
             }
           } catch (error) {
             console.error('Failed to fetch client data:', error);
-            setError('Failed to load client data');
+            setError('No se pudieron cargar los datos del cliente');
           }
         }
       }
@@ -736,13 +748,41 @@ const SaleWizard = () => {
         if (sale.saleNotes) {
           setSaleNotes(sale.saleNotes);
         }
-        
         // Pre-populate destination
         if (sale.destination) {
           setDestination({
             country: sale.destination.country || '',
             city: sale.destination.city || ''
           });
+        }
+
+        const nombreTrim = (sale.nombreVenta && String(sale.nombreVenta).trim()) || '';
+        if (nombreTrim) {
+          setNombreVenta(nombreTrim);
+        } else {
+          const destForName = {
+            city: sale.destination?.city || '',
+            country: sale.destination?.country || ''
+          };
+          const instancesForName = (sale.services || []).map((s) => {
+            const sid = s.serviceId && typeof s.serviceId === 'object' ? s.serviceId : null;
+            const notes = (s.notes || '').replace(/^Service:\s*[^-]+-\s*/i, '').trim();
+            return {
+              serviceName: s.serviceName || sid?.name || '',
+              templateName: s.serviceTypeName || '',
+              serviceInfo: notes || sid?.destino || s.serviceName || '',
+              destination: {
+                city: destForName.city || sid?.location?.city || ''
+              }
+            };
+          });
+          const suggested = buildNombreVentaSuggestion(destForName, instancesForName);
+          setNombreVenta(suggested);
+          try {
+            await api.put(`/api/sales/${sale._id}`, { nombreVenta: suggested });
+          } catch (persistErr) {
+            console.error('Error al guardar nombreVenta generado al abrir edición:', persistErr);
+          }
         }
         
         // Pre-populate services and providers
@@ -755,11 +795,11 @@ const SaleWizard = () => {
             const mappedService = {
               ...serviceSale,
               _id: serviceSale.serviceId?._id || serviceSale.serviceId || serviceSale._id,
-              name: serviceSale.serviceName || serviceSale.serviceId?.destino || 'Unknown Service',
-              serviceName: serviceSale.serviceName || serviceSale.serviceId?.destino || 'Unknown Service', // Ensure serviceName is set
+              name: serviceSale.serviceName || serviceSale.serviceId?.destino || 'Servicio sin nombre',
+              serviceName: serviceSale.serviceName || serviceSale.serviceId?.destino || 'Servicio sin nombre', // Ensure serviceName is set
               description: serviceSale.serviceId?.description || serviceSale.notes || '',
-              destino: serviceSale.serviceId?.destino || serviceSale.serviceName || 'Unknown Service',
-              type: serviceSale.serviceId?.typeId?.name || serviceSale.serviceId?.type || 'Unknown Type',
+              destino: serviceSale.serviceId?.destino || serviceSale.serviceName || 'Servicio sin nombre',
+              type: serviceSale.serviceId?.typeId?.name || serviceSale.serviceId?.type || 'Tipo desconocido',
               providerId: serviceSale.providerId,
               serviceId: serviceSale.serviceId?._id || serviceSale.serviceId,
               providers: serviceSale.providers || (serviceSale.providerId ? [serviceSale.providerId] : [])
@@ -787,8 +827,8 @@ const SaleWizard = () => {
                   const formData = {
                     cost: provider.costProvider || 0,
                     currency: provider.currency || 'USD',
-                    startDate: provider.startDate ? new Date(provider.startDate).toISOString().split('T')[0] : null,
-                    endDate: provider.endDate ? new Date(provider.endDate).toISOString().split('T')[0] : null,
+                    startDate: provider.startDate ? toDateOnlyUTCString(provider.startDate) : null,
+                    endDate: provider.endDate ? toDateOnlyUTCString(provider.endDate) : null,
                     receipts: provider.documents || [], // Populate receipts from existing documents
                     documents: provider.documents || []
                   };
@@ -805,8 +845,8 @@ const SaleWizard = () => {
                 providerFormDataMap[providerId] = {
                   cost: serviceSale.costProvider || 0,
                   currency: serviceSale.currency || 'USD',
-                  startDate: serviceSale.serviceDates?.startDate ? new Date(serviceSale.serviceDates.startDate).toISOString().split('T')[0] : null,
-                  endDate: serviceSale.serviceDates?.endDate ? new Date(serviceSale.serviceDates.endDate).toISOString().split('T')[0] : null,
+                  startDate: serviceSale.serviceDates?.startDate ? toDateOnlyUTCString(serviceSale.serviceDates.startDate) : null,
+                  endDate: serviceSale.serviceDates?.endDate ? toDateOnlyUTCString(serviceSale.serviceDates.endDate) : null,
                   receipts: serviceSale.documents || [], // Populate receipts from existing documents
                   documents: serviceSale.documents || []
                 };
@@ -823,7 +863,7 @@ const SaleWizard = () => {
       }
     } catch (error) {
       console.error('Failed to fetch existing sale:', error);
-      setError('Failed to load sale data for editing');
+      setError('No se pudieron cargar los datos de la venta para editar');
     } finally {
       setLoading(false);
     }
@@ -1064,7 +1104,7 @@ const SaleWizard = () => {
           console.log('✅ Files stored in form data:', formData.receipts);
           
           // Show success message
-          alert(`Successfully selected ${selectedFiles.length} file(s) for upload. Files will be uploaded when the sale is created.`);
+          alert(`Se seleccionaron ${selectedFiles.length} archivo(s). Se subirán al ${id ? 'guardar la venta' : 'crear la venta'}.`);
         }
       };
       
@@ -1214,7 +1254,7 @@ const SaleWizard = () => {
       }
     } catch (error) {
       console.error('❌ Failed to update service template:', error);
-      setError('Failed to update service template');
+      setError('No se pudo actualizar la plantilla de servicio');
     }
   };
 
@@ -1282,13 +1322,13 @@ const SaleWizard = () => {
           templateName: matchingTemplate.name,
           templateCategory: matchingTemplate.category,
           serviceInfo: cupo.serviceId?.destino || cupo.serviceId?.description || matchingTemplate.name,
-          checkIn: cupo.metadata?.date ? new Date(cupo.metadata.date).toISOString().split('T')[0] : '',
-          checkOut: cupo.metadata?.completionDate ? new Date(cupo.metadata.completionDate).toISOString().split('T')[0] : '',
+          checkIn: cupo.metadata?.date ? toDateOnlyUTCString(cupo.metadata.date) : '',
+          checkOut: cupo.metadata?.completionDate ? toDateOnlyUTCString(cupo.metadata.completionDate) : '',
           cost: cupo.metadata?.value || 0,
           currency: cupo.metadata?.currency || 'USD',
           provider: {
             providerId: cupo.serviceId?.providerId?._id || cupo.serviceId?.providerId,
-            name: cupo.serviceId?.providerId?.name || 'Unknown Provider'
+            name: cupo.serviceId?.providerId?.name || 'Proveedor desconocido'
           },
           destination: {
             city: cupo.metadata?.destination?.split(',')[0]?.trim() || '',
@@ -1338,11 +1378,11 @@ const SaleWizard = () => {
       } else {
         console.warn('⚠️ No matching service template found for cupo');
         console.warn('📋 Available templates:', serviceTemplates.map(t => ({ name: t.name, category: t.category })));
-        setError('No matching service template found for this cupo. Please ensure service templates are loaded or contact support.');
+        setError('No hay plantilla de servicio compatible con este cupo. Verifique que existan plantillas o contacte soporte.');
       }
     } catch (error) {
       console.error('❌ Error pre-populating cupo data:', error);
-      setError('Failed to pre-populate cupo data');
+      setError('No se pudieron precargar los datos del cupo');
     }
   };
 
@@ -1365,7 +1405,7 @@ const SaleWizard = () => {
         }
       } catch (error) {
         console.error('Failed to create service:', error);
-        setError(error.response?.data?.message || 'Failed to create service');
+        setError(error.response?.data?.message || 'No se pudo crear el servicio');
       }
     }
   };
@@ -1485,7 +1525,7 @@ const SaleWizard = () => {
     
     // Otherwise, validate service template fields
     if (!currentServiceTemplate || !currentServiceInfo || !currentServiceDates.checkIn || !currentServiceDates.checkOut || !currentServiceCost || currentServiceProviders.length === 0) {
-      setError('Please complete all required fields for this service, including selecting at least one provider');
+      setError('Complete los datos obligatorios de este servicio e incluya al menos un proveedor');
       return;
     }
 
@@ -1537,7 +1577,7 @@ const SaleWizard = () => {
       );
       
       // Show success message for update
-      setSuccess('Service updated successfully!');
+      setSuccess('Servicio actualizado correctamente');
       setError('');
       
       // Clear success message after 3 seconds
@@ -1823,8 +1863,8 @@ const SaleWizard = () => {
         ...service,
         id: `service_${service._id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generate truly unique ID
         serviceId: service._id, // Store the service template ID
-        serviceName: service.name || 'Unknown Service',
-        serviceInfo: service.name || 'Unknown Service', // Add serviceInfo for display, ensure no undefined values
+        serviceName: service.name || 'Servicio sin nombre',
+        serviceInfo: service.name || 'Servicio sin nombre', // Add serviceInfo for display, ensure no undefined values
         priceClient: 0,
         costProvider: 0,
         quantity: 1,
@@ -1897,7 +1937,7 @@ const SaleWizard = () => {
         }
       } catch (error) {
         console.error('Failed to update service:', error);
-        setError(error.response?.data?.message || 'Failed to update service');
+        setError(error.response?.data?.message || 'No se pudo actualizar el servicio');
       }
     }
   };
@@ -1943,7 +1983,7 @@ const SaleWizard = () => {
         }
       } catch (error) {
         console.error(`Error uploading file ${file.name}:`, error);
-        throw new Error(`Failed to upload ${file.name}`);
+        throw new Error(`No se pudo subir ${file.name}`);
       }
     }
     
@@ -2018,13 +2058,13 @@ const SaleWizard = () => {
 
       // Validate required fields
       if (serviceTemplateInstances.length === 0) {
-        setError('Please add at least one service');
+        setError('Agregue al menos un servicio');
         setLoading(false);
         return;
       }
 
       if (selectedPassengers.length === 0) {
-        setError('Please select at least one passenger');
+        setError('Seleccione al menos un pasajero');
         setLoading(false);
         return;
       }
@@ -2048,7 +2088,7 @@ const SaleWizard = () => {
         
         // Check for required fields - dni is required for clients
         if (!passenger.name || !passenger.surname || !passenger.dni) {
-          setError(`Missing required fields for ${passenger.name || 'passenger'}: name, surname, and DNI are required`);
+          setError(`Faltan datos obligatorios para ${passenger.name || 'el pasajero'}: nombre, apellido y DNI`);
           setLoading(false);
           return;
         }
@@ -2058,10 +2098,16 @@ const SaleWizard = () => {
       if (isCupoReservation && cupoContext) {
         const totalPassengers = selectedPassengers.length + selectedCompanions.length;
         if (totalPassengers > cupoContext.availableSeats) {
-          setError(`Not enough seats available. Requested: ${totalPassengers}, Available: ${cupoContext.availableSeats}`);
+          setError(`No hay cupos suficientes. Solicitados: ${totalPassengers}, disponibles: ${cupoContext.availableSeats}`);
           setLoading(false);
           return;
         }
+      }
+
+      if (!nombreVenta || !nombreVenta.trim()) {
+        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
+        setLoading(false);
+        return;
       }
       
       // Show upload progress message
@@ -2074,7 +2120,7 @@ const SaleWizard = () => {
       }, 0);
       
       if (totalFiles > 0) {
-        setError(`Uploading ${totalFiles} document(s)... Please wait.`);
+        setError(`Subiendo ${totalFiles} documento(s)... espere.`);
       }
 
       // Calculate per-passenger price from total salePrice
@@ -2119,14 +2165,14 @@ const SaleWizard = () => {
           const mainDestination = destination.city && destination.country ? destination : 
             (serviceTemplateInstances.length > 0 && serviceTemplateInstances[0].destination ? 
               serviceTemplateInstances[0].destination : 
-              { city: 'Unknown City', country: 'Unknown Country' });
+              { city: 'Ciudad desconocida', country: 'País desconocido' });
           
           return {
             name: mainDestination.city && mainDestination.country ? 
               `${mainDestination.city}, ${mainDestination.country}` : 
-              'Unknown Destination',
-            city: mainDestination.city || 'Unknown City',
-            country: mainDestination.country || 'Unknown Country'
+              'Destino desconocido',
+            city: mainDestination.city || 'Ciudad desconocida',
+            country: mainDestination.country || 'País desconocido'
           };
         })(),
         serviceTemplateInstances: serviceTemplateInstances.map(service => ({
@@ -2176,7 +2222,7 @@ const SaleWizard = () => {
               console.log(`✅ Uploaded new documents:`, uploadedDocuments);
             } catch (uploadError) {
               console.error(`❌ Failed to upload documents for provider ${provider.name}:`, uploadError);
-              throw new Error(`Failed to upload documents for provider ${provider.name}: ${uploadError.message}`);
+              throw new Error(`No se pudieron subir documentos del proveedor ${provider.name}: ${uploadError.message}`);
             }
           }
           
@@ -2217,7 +2263,8 @@ const SaleWizard = () => {
             seatsToReserve: selectedPassengers.length + selectedCompanions.length,
             availableSeats: cupoContext.availableSeats
           }
-        })
+        }),
+        nombreVenta: nombreVenta.trim()
       };
 
       // Map documents from selectedProviders to serviceTemplateInstances providers
@@ -2263,7 +2310,7 @@ const SaleWizard = () => {
 
       // Clear upload message and show creating sale message
       if (totalFiles > 0) {
-        setError('Documents uploaded successfully! Creating sale...');
+        setError('Documentos subidos. Creando venta...');
       }
       
       console.log('🚀 Sending sale data to API:', JSON.stringify(saleData, null, 2));
@@ -2282,12 +2329,12 @@ const SaleWizard = () => {
       if (response.data.success) {
         setCurrentSaleId(response.data.data.sale._id);
         setSaleSummary(response.data.data.sale);
-        setSuccess('Sale created successfully!');
+        setSuccess('Venta creada correctamente');
         // Navigate to the specific sale summary after successful creation
         navigate(`/sales/${response.data.data.sale._id}`);
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create sale');
+      setError(error.response?.data?.message || 'No se pudo crear la venta');
     } finally {
       setLoading(false);
     }
@@ -2297,23 +2344,23 @@ const SaleWizard = () => {
     if (currentStep < 7) {
       // Validate current step before proceeding
       if (currentStep === 1 && selectedPassengers.length === 0) {
-        setError('Please select at least one passenger to continue');
+        setError('Seleccione al menos un pasajero para continuar');
         return;
       }
       
       if (currentStep === 2 && (!pricePerPassenger || parseFloat(pricePerPassenger) <= 0)) {
-        setError('Please enter a valid price per passenger to continue');
+        setError('Ingrese un precio por pasajero válido para continuar');
         return;
       }
       
       
       if (currentStep === 3 && serviceTemplateInstances.length === 0) {
-        setError('Please select a service template to continue');
+        setError('Seleccione un tipo de servicio para continuar');
         return;
       }
       
       if (currentStep === 4 && (!currentServiceDates.checkIn || !currentServiceDates.checkOut || !destination.city)) {
-        setError('Please enter check-in and check-out dates and city to continue');
+        setError('Ingrese fechas de entrada y salida y la ciudad para continuar');
         return;
       }
       
@@ -2332,7 +2379,7 @@ const SaleWizard = () => {
         console.log('🔍 Invalid services:', invalidServices);
         
         if (invalidServices.length > 0) {
-          setError('Please enter a valid service cost and select providers for all services to continue');
+          setError('Indique costo válido y proveedores para todos los servicios para continuar');
           return;
         }
       }
@@ -2379,7 +2426,7 @@ const SaleWizard = () => {
           const parts = token.split('.');
           if (parts.length !== 3) {
             console.error('Invalid JWT format - should have 3 parts separated by dots');
-            setError('Invalid authentication token. Please log in again.');
+            setError('Sesión inválida. Inicie sesión nuevamente.');
             localStorage.removeItem('token');
             setTimeout(() => window.location.href = '/login', 2000);
             return;
@@ -2391,36 +2438,41 @@ const SaleWizard = () => {
         } catch (e) {
           console.error('Token decode error:', e);
           console.error('Token format issue - clearing token');
-          setError('Invalid authentication token. Please log in again.');
+          setError('Sesión inválida. Inicie sesión nuevamente.');
           localStorage.removeItem('token');
           setTimeout(() => window.location.href = '/login', 2000);
           return;
         }
       } else {
         console.error('No token found');
-        setError('No authentication token found. Please log in.');
+        setError('No hay sesión. Inicie sesión.');
         setTimeout(() => window.location.href = '/login', 2000);
         return;
       }
       
       // Validate required fields
       if (selectedPassengers.length === 0) {
-        setError('Please select at least one passenger');
+        setError('Seleccione al menos un pasajero');
         return;
       }
       
       if (!selectedPassengers[0]._id) {
-        setError('Selected passenger is missing ID information');
+        setError('Al pasajero seleccionado le falta el identificador');
         return;
       }
       
       if (!destination.city || !destination.country) {
-        setError('Please enter destination city and country');
+        setError('Indique ciudad y país de destino');
         return;
       }
       
       if (!salePrice || parseFloat(salePrice) <= 0) {
-        setError('Please enter a valid sale price');
+        setError('Ingrese un precio de venta válido');
+        return;
+      }
+
+      if (!nombreVenta || !nombreVenta.trim()) {
+        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
         return;
       }
 
@@ -2519,9 +2571,9 @@ const SaleWizard = () => {
         destination: {
           name: (destination.city && destination.country) ? 
             `${destination.city}, ${destination.country}` : 
-            'Unknown Destination',
-          city: destination.city || 'Unknown City',
-          country: destination.country || 'Unknown Country'
+            'Destino desconocido',
+          city: destination.city || 'Ciudad desconocida',
+          country: destination.country || 'País desconocido'
         },
         selectedServices: serviceTemplateInstances.map(instance => ({
           serviceTemplateId: instance.templateId,
@@ -2568,7 +2620,8 @@ const SaleWizard = () => {
         }, 0),
         pricingModel: 'unit', // Always unit pricing
         saleCurrency,
-        notes: saleNotes || ''
+        notes: saleNotes || '',
+        nombreVenta: nombreVenta.trim()
       };
 
       // Debug: Log the request details
@@ -2593,12 +2646,12 @@ const SaleWizard = () => {
         console.error('Health check failed:', healthError);
         console.error('Health check error status:', healthError.response?.status);
         if (healthError.response?.status === 401) {
-          setError('Authentication failed. Please log in again.');
+          setError('Fallo de autenticación. Inicie sesión nuevamente.');
           localStorage.removeItem('token');
           setTimeout(() => window.location.href = '/login', 2000);
           return;
         }
-        setError('API connection failed. Please check if the backend server is running.');
+        setError('No hay conexión con el servidor. Verifique que el backend esté en ejecución.');
         return;
       }
       
@@ -2624,7 +2677,7 @@ const SaleWizard = () => {
       
       if (response.data.success) {
         const saleId = response.data.data.sale._id;
-        setSuccess('Sale created successfully!');
+        setSuccess('Venta creada correctamente');
         setError('');
         
         // Navigate to the sales summary page
@@ -2632,7 +2685,7 @@ const SaleWizard = () => {
           navigate(`/sales/${saleId}`);
         }, 1000);
       } else {
-        setError(response.data.message || 'Failed to create sale');
+        setError(response.data.message || 'No se pudo crear la venta');
       }
     } catch (error) {
       console.error('Error creating sale:', error);
@@ -2640,30 +2693,37 @@ const SaleWizard = () => {
       console.error('Error response:', error.response);
       console.error('Error response data:', error.response?.data);
       console.error('Error status:', error.response?.status);
-      setError(error.response?.data?.message || error.response?.data?.error || 'Failed to create sale');
+      setError(error.response?.data?.message || error.response?.data?.error || 'No se pudo crear la venta');
     }
   };
 
   const handleUpdateSale = async () => {
     try {
+      setLoading(true);
+      setError('');
       // Validate required fields
       if (selectedPassengers.length === 0) {
-        setError('Please select at least one passenger');
+        setError('Seleccione al menos un pasajero');
         return;
       }
       
       if (!selectedPassengers[0]._id) {
-        setError('Selected passenger is missing ID information');
+        setError('Al pasajero seleccionado le falta el identificador');
         return;
       }
       
       if (!destination.city || !destination.country) {
-        setError('Please enter destination city and country');
+        setError('Indique ciudad y país de destino');
         return;
       }
       
       if (!salePrice || parseFloat(salePrice) <= 0) {
-        setError('Please enter a valid sale price');
+        setError('Ingrese un precio de venta válido');
+        return;
+      }
+
+      if (!nombreVenta || !nombreVenta.trim()) {
+        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
         return;
       }
 
@@ -2722,7 +2782,7 @@ const SaleWizard = () => {
         ],
         services: serviceTemplateInstances.map(service => {
           // Ensure serviceName is always present
-          const serviceName = service.name || service.serviceName || service.destino || 'Unknown Service';
+          const serviceName = service.name || service.serviceName || service.destino || 'Servicio sin nombre';
           console.log('Processing service for update:', {
             _id: service._id,
             serviceId: service.serviceId,
@@ -2783,7 +2843,8 @@ const SaleWizard = () => {
           city: destination.city
         },
         saleCurrency: saleCurrency,
-        notes: saleNotes || ''
+        notes: saleNotes || '',
+        nombreVenta: nombreVenta.trim()
       };
 
       // Debug: Log the IDs being used
@@ -2803,7 +2864,7 @@ const SaleWizard = () => {
       
       // Validate that currentSaleId exists
       if (!currentSaleId) {
-        setError('Sale ID is missing. Please refresh the page and try again.');
+        setError('Falta el ID de la venta. Actualice la página e intente de nuevo.');
         return;
       }
       
@@ -2811,7 +2872,7 @@ const SaleWizard = () => {
       const response = await api.put(`/api/sales/${currentSaleId}`, saleData);
       
       if (response.data.success) {
-        setSuccess('Sale updated successfully!');
+        setSuccess('Venta actualizada correctamente');
         setError('');
         
         // Navigate to the sales summary page
@@ -2819,11 +2880,13 @@ const SaleWizard = () => {
           navigate(`/sales/${currentSaleId}`);
         }, 1000);
       } else {
-        setError(response.data.message || 'Failed to update sale');
+        setError(response.data.message || 'No se pudo actualizar la venta');
       }
     } catch (error) {
       console.error('Error updating sale:', error);
-      setError(error.response?.data?.message || error.response?.data?.error || 'Failed to update sale');
+      setError(error.response?.data?.message || error.response?.data?.error || 'No se pudo actualizar la venta');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2991,7 +3054,7 @@ const SaleWizard = () => {
           {/* Progress Indicator */}
           <div className="mt-8">
             <div className="flex items-center justify-center space-x-4">
-              <div className="text-sm text-dark-300">Progress:</div>
+              <div className="text-sm text-dark-300">Progreso:</div>
               <div className="w-64 bg-dark-700 rounded-full h-2">
                 <div 
                   className="bg-primary-600 h-2 rounded-full transition-all duration-500 ease-out"
@@ -3133,6 +3196,9 @@ const SaleWizard = () => {
           openServiceCostProviderModal={openServiceCostProviderModal}
           closeServiceCostProviderModal={closeServiceCostProviderModal}
           saveServiceCostAndProviders={saveServiceCostAndProviders}
+          nombreVenta={nombreVenta}
+          setNombreVenta={setNombreVenta}
+          isEditMode={isEditMode}
         />
       </div>
 
@@ -3143,17 +3209,19 @@ const SaleWizard = () => {
           disabled={currentStep === 1}
           className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 hover:bg-dark-700 border border-white/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Previous
+          Anterior
         </button>
 
         <div className="flex space-x-4">
           {currentStep === 7 ? (
             <button
-              onClick={createSale}
+              onClick={isEditMode ? handleUpdateSale : createSale}
               disabled={loading}
               className="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
             >
-              {loading ? 'Creating Sale...' : 'Complete Sale'}
+              {loading
+                ? (isEditMode ? 'Guardando…' : 'Creando venta…')
+                : (isEditMode ? 'Guardar cambios' : 'Confirmar venta')}
             </button>
           ) : (
             <button
@@ -3161,7 +3229,7 @@ const SaleWizard = () => {
               disabled={currentStep === 7}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50"
             >
-              Next
+              Siguiente
             </button>
           )}
         </div>
@@ -3191,7 +3259,7 @@ const SaleWizard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-dark-100">Edit Service Template</h2>
+              <h2 className="text-xl font-semibold text-dark-100">Editar plantilla de servicio</h2>
               <button
                 onClick={() => setEditingTemplate(null)}
                 className="text-dark-400 hover:text-dark-200 transition-colors"
@@ -3205,14 +3273,14 @@ const SaleWizard = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Template Name *
+                  Nombre de la plantilla *
                 </label>
                 <input
                   type="text"
                   defaultValue={editingTemplate.name}
                   id="edit-template-name"
                   className="input-field"
-                  placeholder="Enter template name"
+                  placeholder="Nombre de la plantilla"
                 />
               </div>
 
@@ -3220,13 +3288,13 @@ const SaleWizard = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="edit-template-serviceType" className="block text-sm font-medium text-dark-200">
-                    Service Type
+                    Tipo de servicio
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowAddServiceTypeModal(true)}
                     className="text-primary-400 hover:text-primary-300 transition-colors"
-                    title="Add new service type"
+                    title="Agregar tipo de servicio"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -3239,7 +3307,7 @@ const SaleWizard = () => {
                     onClick={() => setShowServiceTypeDropdown(!showServiceTypeDropdown)}
                   >
                     <span className={getServiceTypeName(editingTemplate.serviceType) ? 'text-dark-100' : 'text-dark-400'}>
-                      {getServiceTypeName(editingTemplate.serviceType) || 'Select or enter service type'}
+                      {getServiceTypeName(editingTemplate.serviceType) || 'Seleccione o escriba el tipo de servicio'}
                     </span>
                     <svg 
                       className={`w-4 h-4 text-dark-400 transition-transform ${showServiceTypeDropdown ? 'rotate-180' : ''}`}
@@ -3269,7 +3337,7 @@ const SaleWizard = () => {
                         ))
                       ) : (
                         <div className="px-3 py-2 text-sm text-dark-400">
-                          No service types added yet
+                          Aún no hay tipos de servicio cargados
                         </div>
                       )}
                     </div>
@@ -3290,7 +3358,7 @@ const SaleWizard = () => {
                   onClick={() => setEditingTemplate(null)}
                   className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700 hover:bg-dark-600 border border-white/10 rounded-md"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   onClick={async () => {
@@ -3308,7 +3376,7 @@ const SaleWizard = () => {
                   }}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
                 >
-                  Save Changes
+                  Guardar cambios
                 </button>
               </div>
             </div>
@@ -3321,7 +3389,7 @@ const SaleWizard = () => {
         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
           <div className="bg-dark-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl border border-white/10">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-dark-100">Uploaded Documents</h3>
+              <h3 className="text-lg font-semibold text-dark-100">Documentos cargados</h3>
               <button
                 onClick={closeFileModal}
                 className="text-dark-400 hover:text-dark-300 transition-colors"
@@ -3347,14 +3415,14 @@ const SaleWizard = () => {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-dark-100">
-                          {file.name || file.filename || `Document ${index + 1}`}
+                          {file.name || file.filename || `Documento ${index + 1}`}
                         </p>
                         {file.type && (
                           <p className="text-xs text-dark-400 capitalize">{file.type}</p>
                         )}
                         {file.uploadedAt && (
                           <p className="text-xs text-dark-400">
-                            Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
+                            Subido: {new Date(file.uploadedAt).toLocaleDateString()}
                           </p>
                         )}
                       </div>
@@ -3363,7 +3431,7 @@ const SaleWizard = () => {
                       onClick={() => openFile(file)}
                       className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-sm rounded transition-colors"
                     >
-                      Open
+                      Abrir
                     </button>
                   </div>
                 ))}
@@ -3373,8 +3441,8 @@ const SaleWizard = () => {
                 <svg className="w-12 h-12 text-dark-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-dark-400">No documents uploaded yet</p>
-                <p className="text-sm text-dark-500 mt-1">Use the Upload button to add documents</p>
+                <p className="text-dark-400">Aún no hay documentos cargados</p>
+                <p className="text-sm text-dark-500 mt-1">Usá el botón de subida para agregar archivos</p>
               </div>
             )}
           </div>

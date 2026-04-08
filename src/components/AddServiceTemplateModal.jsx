@@ -66,7 +66,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
     e.preventDefault();
     
     if (!serviceName?.trim()) {
-      setError('Service name is required');
+      setError('El nombre del servicio es obligatorio');
       return;
     }
 
@@ -95,11 +95,11 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
         resetForm();
         onClose();
       } else {
-        setError(response.data.message || 'Failed to create service template');
+        setError(response.data.message || 'No se pudo crear la plantilla de servicio');
       }
     } catch (error) {
       console.error('Failed to create service template:', error);
-      setError(error.response?.data?.message || 'Failed to create service template');
+      setError(error.response?.data?.message || 'No se pudo crear la plantilla de servicio');
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="bg-dark-800 rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-dark-100">Add New Service Template</h2>
+          <h2 className="text-xl font-semibold text-dark-100">Nueva plantilla de servicio</h2>
           <button
             onClick={handleClose}
             className="text-dark-400 hover:text-dark-200 transition-colors"
@@ -139,7 +139,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
           {/* Service Name */}
           <div>
             <label htmlFor="serviceName" className="block text-sm font-medium text-dark-200 mb-2">
-              Service Name *
+              Nombre del servicio *
             </label>
             <input
               type="text"
@@ -147,7 +147,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
               value={serviceName}
               onChange={(e) => setServiceName(e.target.value)}
               className="input-field"
-              placeholder="Enter service name"
+              placeholder="Nombre del servicio"
               required
               disabled={loading}
             />
@@ -157,13 +157,13 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
           <div>
             <div className="flex items-center justify-between mb-2">
               <label htmlFor="serviceType" className="block text-sm font-medium text-dark-200">
-                Service Type
+                Tipo de servicio
               </label>
               <button
                 type="button"
                 onClick={openServiceTypeModal}
                 className="text-primary-400 hover:text-primary-300 transition-colors"
-                title="Add new service type"
+                title="Agregar tipo de servicio"
                 disabled={loading}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
                 onClick={toggleServiceTypeDropdown}
               >
                 <span className={serviceType ? 'text-dark-100' : 'text-dark-400'}>
-                  {serviceType || 'Select or enter service type'}
+                  {serviceType || 'Elegí o escribí el tipo de servicio'}
                 </span>
                 <svg 
                   className={`w-4 h-4 text-dark-400 transition-transform ${showServiceTypeDropdown ? 'rotate-180' : ''}`}
@@ -203,7 +203,7 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
                     ))
                   ) : (
                     <div className="px-3 py-2 text-sm text-dark-400">
-                      No service types added yet
+                      Aún no hay tipos de servicio cargados
                     </div>
                   )}
                 </div>
@@ -227,14 +227,14 @@ const AddServiceTemplateModal = ({ isOpen, onClose, onServiceTemplateAdded }) =>
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700 hover:bg-dark-600 border border-white/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Service'}
+              {loading ? 'Creando…' : 'Crear plantilla'}
             </button>
           </div>
         </form>

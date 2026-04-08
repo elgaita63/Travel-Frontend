@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { toDateOnlyLocalCalendarString } from '../utils/dateDisplay';
 
 const InventoryCalendar = () => {
   const navigate = useNavigate();
@@ -50,8 +51,8 @@ const InventoryCalendar = () => {
       }
 
       const params = new URLSearchParams({
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
+        startDate: toDateOnlyLocalCalendarString(startDate),
+        endDate: toDateOnlyLocalCalendarString(endDate)
       });
 
       const response = await api.get(`/api/cupos/calendar?${params}`);
@@ -138,7 +139,7 @@ const InventoryCalendar = () => {
   };
 
   const getCuposForDate = (date) => {
-    const dateKey = date.toISOString().split('T')[0];
+    const dateKey = toDateOnlyLocalCalendarString(date);
     return calendarData[dateKey] || [];
   };
 

@@ -2,6 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '../utils/formatNumbers';
 import CurrencyDisplay from './CurrencyDisplay';
 import api from '../utils/api';
+import { buildNombreVentaSuggestion } from '../utils/buildNombreVentaSuggestion';
+
+/** Texto bajo "Destino" en la grilla: nombreVenta si existe; si no, misma composición que el wizard (paso 7). */
+function getComprehensiveSaleDestinationLabel(sale) {
+  const nombre = sale.nombreVenta && String(sale.nombreVenta).trim();
+  if (nombre) return nombre.toUpperCase();
+
+  const destForName = {
+    city: sale.destination?.city || '',
+    country: sale.destination?.country || ''
+  };
+  const instancesForName = (sale.services || []).map((s) => {
+    const sid = s.serviceId && typeof s.serviceId === 'object' ? s.serviceId : null;
+    const notes = (s.notes || '').replace(/^Service:\s*[^-]+-\s*/i, '').trim();
+    return {
+      serviceName: s.serviceName || sid?.name || '',
+      templateName: s.serviceTypeName || '',
+      serviceInfo: notes || sid?.destino || s.serviceName || '',
+      destination: {
+        city: destForName.city || sid?.location?.city || ''
+      }
+    };
+  });
+  return buildNombreVentaSuggestion(destForName, instancesForName).toUpperCase();
+}
 
 const ComprehensiveSalesOverview = ({
   sales,
@@ -11,7 +36,7 @@ const ComprehensiveSalesOverview = ({
   totalSales = 0,
   currentPage = 1,
   totalPages = 1,
-  rowsPerPage = 20,
+  rowsPerPage = 200,
   onPageChange,
   onRowsPerPageChange
 }) => {
@@ -165,9 +190,7 @@ const ComprehensiveSalesOverview = ({
                   const userInMaster = allUsers.find(u => getSafeId(u._id) === getSafeId(sale.createdBy));
                   const comisionPct = Number(userInMaster?.comision || sale.createdBy?.comision || 0);
                   const comisionImp = (sale.profit || 0) * (comisionPct / 100);
-                  const sInfo = sale.services?.[0];
-                  const mServ = allServices.find(ms => getSafeId(ms._id) === getSafeId(sInfo?.serviceId));
-                  const destino = (mServ?.destino || sInfo?.serviceName || 'N/A').toUpperCase();
+                  const destino = getComprehensiveSaleDestinationLabel(sale);
 
                   return (
                     <tr key={getSafeId(sale._id)} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onSaleClick && onSaleClick(sale)}>
@@ -279,13 +302,14 @@ const ComprehensiveSalesOverview = ({
                   <select
                     value={rowsPerPage}
                     onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                    className="input-field text-sm py-1 px-2 w-16"
+                    className="input-field text-sm py-1 px-2 w-20"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
+                    <option value={200}>200</option>
                   </select>
                 </div>
 

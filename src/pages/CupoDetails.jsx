@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 import EditCupoModal from '../components/EditCupoModal';
 
 const CupoDetails = () => {
@@ -315,7 +316,7 @@ const CupoDetails = () => {
                     <div className="flex justify-between">
                       <span className="text-dark-300">Start Date:</span>
                       <span className="text-dark-100">
-                        {new Date(cupo.metadata.date).toLocaleDateString()}
+                        {formatDateOnlyLocal(cupo.metadata.date)}
                       </span>
                     </div>
                   )}
@@ -323,7 +324,7 @@ const CupoDetails = () => {
                     <div className="flex justify-between">
                       <span className="text-dark-300">Completion Date:</span>
                       <span className="text-dark-100">
-                        {new Date(cupo.metadata.completionDate).toLocaleDateString()}
+                        {formatDateOnlyLocal(cupo.metadata.completionDate)}
                       </span>
                     </div>
                   )}

@@ -86,7 +86,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
       const response = await api.post('/api/providers', formData);
       
       if (response.data.success) {
-        setSuccess('Provider created successfully!');
+        setSuccess('Proveedor creado correctamente');
         onProviderCreated(response.data.data.provider);
         
         // Reset form
@@ -113,7 +113,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
         }, 1500);
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create provider');
+      setError(error.response?.data?.message || 'No se pudo crear el proveedor');
     } finally {
       setLoading(false);
     }
@@ -155,7 +155,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-dark-100">Add New Provider</h2>
+            <h2 className="text-2xl font-bold text-dark-100">Nuevo proveedor</h2>
             <button
               onClick={handleClose}
               className="text-dark-400 hover:text-dark-200 transition-colors p-2 hover:bg-dark-700/50 rounded-lg"
@@ -181,12 +181,12 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-dark-100">Basic Information</h3>
+            <h3 className="text-lg font-medium text-dark-100">Datos básicos</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-dark-200">
-                  Provider Name *
+                  Nombre del proveedor *
                 </label>
                 <input
                   type="text"
@@ -196,7 +196,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   onChange={handleChange}
                   required
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter provider name"
+                  placeholder="Nombre del proveedor"
                 />
               </div>
 
@@ -207,7 +207,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                 Notas/Descripción
               </label>
               <p className="text-sm text-dark-400 mb-2">
-                Include any additional notes or information about the provider.
+                Incluí notas u otra información sobre el proveedor.
               </p>
               <textarea
                 id="description"
@@ -216,7 +216,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                 onChange={handleChange}
                 rows={3}
                 className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                placeholder="Enter provider description and additional information"
+                placeholder="Descripción y notas adicionales"
               />
             </div>
 
@@ -224,12 +224,12 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-dark-100">Contact Information</h3>
+            <h3 className="text-lg font-medium text-dark-100">Contacto</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="contactInfo-phone" className="block text-sm font-medium text-dark-200">
-                  Phone Number
+                  Teléfono
                 </label>
                 <input
                   type="tel"
@@ -238,13 +238,13 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.phone}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter phone number"
+                  placeholder="Teléfono"
                 />
               </div>
 
               <div>
                 <label htmlFor="contactInfo-email" className="block text-sm font-medium text-dark-200">
-                  Email Address
+                  Correo electrónico
                 </label>
                 <input
                   type="email"
@@ -253,14 +253,14 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.email}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter email address"
+                  placeholder="Correo electrónico"
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="contactInfo-website" className="block text-sm font-medium text-dark-200">
-                Website
+                Sitio web
               </label>
               <input
                 type="url"
@@ -269,14 +269,14 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                 value={formData.contactInfo.website}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                placeholder="Enter website URL (e.g., https://example.com)"
+                placeholder="URL del sitio (ej. https://ejemplo.com)"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="contactInfo-address-street" className="block text-sm font-medium text-dark-200">
-                  Street Address
+                  Calle y número
                 </label>
                 <input
                   type="text"
@@ -285,13 +285,13 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.address.street}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter street address"
+                  placeholder="Dirección"
                 />
               </div>
 
               <div>
                 <label htmlFor="contactInfo-address-city" className="block text-sm font-medium text-dark-200">
-                  City
+                  Ciudad
                 </label>
                 <input
                   type="text"
@@ -300,13 +300,13 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.address.city}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter city"
+                  placeholder="Ciudad"
                 />
               </div>
 
               <div>
                 <label htmlFor="contactInfo-address-state" className="block text-sm font-medium text-dark-200">
-                  State/Province
+                  Provincia / estado
                 </label>
                 <input
                   type="text"
@@ -315,13 +315,13 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.address.state}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter state or province"
+                  placeholder="Provincia o estado"
                 />
               </div>
 
               <div>
                 <label htmlFor="contactInfo-address-country" className="block text-sm font-medium text-dark-200">
-                  Country
+                  País
                 </label>
                 <input
                   type="text"
@@ -330,13 +330,13 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.address.country}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter country"
+                  placeholder="País"
                 />
               </div>
 
               <div>
                 <label htmlFor="contactInfo-address-zipCode" className="block text-sm font-medium text-dark-200">
-                  ZIP/Postal Code
+                  Código postal
                 </label>
                 <input
                   type="text"
@@ -345,7 +345,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   value={formData.contactInfo.address.zipCode}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-white/20 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-dark-100 bg-dark-800/50"
-                  placeholder="Enter ZIP or postal code"
+                  placeholder="Código postal"
                 />
               </div>
             </div>
@@ -359,7 +359,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
               onClick={handleClose}
               className="px-6 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 hover:bg-dark-700 border border-white/10 rounded-lg transition-colors"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
@@ -372,7 +372,7 @@ const ProviderCreationModal = ({ isOpen, onClose, onProviderCreated }) => {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               )}
-              <span>{loading ? 'Creating...' : 'Create Provider'}</span>
+              <span>{loading ? 'Creando…' : 'Crear proveedor'}</span>
             </button>
           </div>
         </form>

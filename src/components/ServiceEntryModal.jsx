@@ -15,7 +15,7 @@ const ServiceEntryModal = ({ isOpen, onClose, serviceType, onServiceAdded }) => 
     e.preventDefault();
     
     if (!serviceDescription?.trim()) {
-      setError('Service description is required');
+      setError('La descripción del servicio es obligatoria');
       return;
     }
 
@@ -42,7 +42,7 @@ const ServiceEntryModal = ({ isOpen, onClose, serviceType, onServiceAdded }) => 
       onClose();
     } catch (error) {
       console.error('Failed to create service:', error);
-      setError('Failed to create service');
+      setError('No se pudo crear el servicio');
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ const ServiceEntryModal = ({ isOpen, onClose, serviceType, onServiceAdded }) => 
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div className="bg-dark-800/95 backdrop-blur-md rounded-lg p-6 w-full max-w-md mx-auto shadow-2xl border border-white/10">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-dark-100">Enter Service Details</h2>
+          <h2 className="text-xl font-semibold text-dark-100">Datos del servicio</h2>
           <button
             onClick={handleClose}
             className="text-dark-400 hover:text-dark-200 transition-colors"
@@ -80,21 +80,21 @@ const ServiceEntryModal = ({ isOpen, onClose, serviceType, onServiceAdded }) => 
 
           {/* Service Type Display */}
           <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
-            <h4 className="font-medium text-dark-100">Service Type: {serviceType?.name}</h4>
+            <h4 className="font-medium text-dark-100">Tipo de servicio: {serviceType?.name}</h4>
           </div>
 
 
           {/* Service Description */}
           <div>
             <label htmlFor="serviceDescription" className="block text-sm font-medium text-dark-200 mb-2">
-              Service Description *
+              Descripción del servicio *
             </label>
             <textarea
               id="serviceDescription"
               value={serviceDescription}
               onChange={(e) => setServiceDescription(e.target.value)}
               className="input-field w-full h-24 resize-none"
-              placeholder="Enter service description..."
+              placeholder="Descripción del servicio…"
               required
               disabled={loading}
             />
@@ -108,14 +108,14 @@ const ServiceEntryModal = ({ isOpen, onClose, serviceType, onServiceAdded }) => 
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700 hover:bg-dark-600 border border-white/10 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Adding...' : 'Add Service'}
+              {loading ? 'Agregando…' : 'Agregar servicio'}
             </button>
           </div>
         </form>

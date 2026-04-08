@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import api from '../utils/api';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 
 const InventoryDashboard = () => {
   const navigate = useNavigate();
@@ -91,15 +92,15 @@ const InventoryDashboard = () => {
       console.error('Failed to fetch cupos:', error);
       
       if (error.response?.status === 401) {
-        setError('Autenticación requerida. Por favor, iniciá sesión nuevamente.');
+        setError('Autenticaci?n requerida. Por favor, inici? sesi?n nuevamente.');
         // Redirect to login if not authenticated
         setTimeout(() => {
           window.location.href = '/login';
         }, 2000);
       } else if (error.response?.status === 403) {
-        setError('Acceso denegado. Necesitás permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
+        setError('Acceso denegado. Necesit?s permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
       } else if (error.response?.status === 404) {
-        setError('No se encontró el endpoint de <CurrencyDisplay>cupos</CurrencyDisplay>. Revisá tu conexión.');
+        setError('No se encontr? el endpoint de <CurrencyDisplay>cupos</CurrencyDisplay>. Revis? tu conexi?n.');
       } else {
         setError(error.response?.data?.message || 'No se pudieron cargar los <CurrencyDisplay>cupos</CurrencyDisplay>.');
       }
@@ -140,7 +141,7 @@ const InventoryDashboard = () => {
       }
       
       if (!isAdmin && !isSeller) {
-        setError('Acceso denegado. Necesitás permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
+        setError('Acceso denegado. Necesit?s permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
         return;
       }
       
@@ -202,12 +203,12 @@ const InventoryDashboard = () => {
   const handleReserve = useCallback((cupo) => {
     // Check if required data exists
     if (!cupo.serviceId || (!cupo.serviceId.id && !cupo.serviceId._id)) {
-      setError('Datos de servicio inválidos. No se puede crear la reserva.');
+      setError('Datos de servicio inv?lidos. No se puede crear la reserva.');
       return;
     }
 
     if (!cupo.serviceId.providerId || (!cupo.serviceId.providerId.id && !cupo.serviceId.providerId._id)) {
-        setError(`Datos de proveedor inválidos. Servicio: ${cupo.serviceId.destino}, Proveedor: ${cupo.serviceId.providerId ? 'existe pero sin ID' : 'faltante'}. No se puede crear la reserva.`);
+        setError(`Datos de proveedor inv?lidos. Servicio: ${cupo.serviceId.destino}, Proveedor: ${cupo.serviceId.providerId ? 'existe pero sin ID' : 'faltante'}. No se puede crear la reserva.`);
       return;
     }
 
@@ -258,7 +259,7 @@ const InventoryDashboard = () => {
             Panel de <CurrencyDisplay>Cupos</CurrencyDisplay>
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Gestioná <CurrencyDisplay>cupos</CurrencyDisplay> precomprados y sus reservas
+            Gestion? <CurrencyDisplay>cupos</CurrencyDisplay> precomprados y sus reservas
           </p>
           <button
             onClick={() => navigate('/cupos/new')}
@@ -334,7 +335,7 @@ const InventoryDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Mínimo de lugares disponibles
+                  M?nimo de lugares disponibles
                 </label>
                 <input
                   type="number"
@@ -362,7 +363,7 @@ const InventoryDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Fecha de finalización
+                  Fecha de finalizaci?n
                 </label>
                 <input
                   type="date"
@@ -398,7 +399,7 @@ const InventoryDashboard = () => {
               </div>
               <div className="text-center">
                 <p className="text-dark-400 text-sm mb-6">
-                  {Object.values(filters).some(f => f) ? 'Probá ajustando los filtros' : 'Empezá agregando tu primer cupo'}
+                  {Object.values(filters).some(f => f) ? 'Prob? ajustando los filtros' : 'Empez? agregando tu primer cupo'}
                 </p>
                 {!Object.values(filters).some(f => f) && (
                   <button
@@ -427,11 +428,11 @@ const InventoryDashboard = () => {
                           {cupo.serviceId?.providerId?.name}
                         </p>
                         <p className="text-sm text-dark-400">
-                          {cupo.serviceId?.typeId?.name || cupo.serviceId?.type} • {cupo.formattedDate}
+                          {cupo.serviceId?.typeId?.name || cupo.serviceId?.type} ? {cupo.formattedDate}
                         </p>
                         {cupo.metadata.completionDate && (
                           <p className="text-sm text-dark-400">
-                            Finaliza: {new Date(cupo.metadata.completionDate).toLocaleDateString()}
+                            Finaliza: {formatDateOnlyLocal(cupo.metadata.completionDate)}
                           </p>
                         )}
                       </div>
@@ -492,7 +493,7 @@ const InventoryDashboard = () => {
                     {/* Progress Bar */}
                     <div className="mb-4">
                       <div className="flex justify-between text-xs text-dark-400 mb-1">
-                        <span>Ocupación</span>
+                        <span>Ocupaci?n</span>
                         <span>{cupo.occupancyPercentage}%</span>
                       </div>
                       <div className="w-full bg-dark-700 rounded-full h-2">
@@ -506,7 +507,7 @@ const InventoryDashboard = () => {
                     {/* Metadata */}
                     {cupo.metadata.roomType && (
                       <div className="text-sm text-dark-300 mb-2">
-                        <span className="font-medium">Tipo de habitación:</span> {cupo.metadata.roomType}
+                        <span className="font-medium">Tipo de habitaci?n:</span> {cupo.metadata.roomType}
                       </div>
                     )}
                     {cupo.metadata.flightName && (
@@ -615,7 +616,7 @@ const InventoryDashboard = () => {
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-dark-300">
-                      Página <span className="font-medium text-dark-100">{currentPage}</span> de{' '}
+                      P?gina <span className="font-medium text-dark-100">{currentPage}</span> de{' '}
                       <span className="font-medium text-dark-100">{totalPages}</span>
                     </p>
                   </div>

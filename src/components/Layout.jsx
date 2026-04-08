@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PageTransition from './PageTransition';
 import StatusBar from './StatusBar';
+import ReleaseNotesModal from './ReleaseNotesModal';
 
 const Layout = ({ children, showNavigation = true }) => {
   const { user, logout, isAdmin, isSeller, version, isImpersonating, stopImpersonating } = useAuth();
+  const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -54,7 +56,18 @@ const Layout = ({ children, showNavigation = true }) => {
                   </h1>
                 </div>
                 <div className="w-full text-right pr-2">
-                  <span className="text-[10px] font-mono font-bold text-dark-400">{version}</span>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => setReleaseNotesOpen(true)}
+                      className="text-[10px] font-mono font-bold text-primary-400 hover:text-primary-300 underline decoration-primary-500/50 underline-offset-2 hover:decoration-primary-300 transition-colors cursor-pointer text-right"
+                      title="Ver modificaciones y pendientes (solo administración)"
+                    >
+                      {version}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold text-dark-400">{version}</span>
+                  )}
                 </div>
               </div>
               
@@ -163,6 +176,14 @@ const Layout = ({ children, showNavigation = true }) => {
         </div>
 
         <StatusBar user={user} />
+
+        {isAdmin && (
+          <ReleaseNotesModal
+            isOpen={releaseNotesOpen}
+            onClose={() => setReleaseNotesOpen(false)}
+            isSuper={!!user?.isSuper}
+          />
+        )}
       </div>
     </PageTransition>
   );

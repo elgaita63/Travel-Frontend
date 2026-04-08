@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import api from '../utils/api';
 import { API_BASE_URL } from '../config/api';
 import { getUploadUrl } from '../utils/uploadUtils';
+import PassportImagePasteArea from './PassportImagePasteArea';
+import { formatDateOnlyLocal } from '../utils/dateDisplay';
 
 const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -19,6 +21,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
     specialRequests: passenger.specialRequests || ''
   });
   const [passportImage, setPassportImage] = useState(null);
+  const [passportImagePreview, setPassportImagePreview] = useState(null);
   const [shouldSaveImage, setShouldSaveImage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,11 +44,18 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
     setIsCardExpanded(!isCardExpanded);
   };
 
+  const applyPassportImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setPassportImage(file);
+    setError('');
+    const reader = new FileReader();
+    reader.onload = (ev) => setPassportImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPassportImage(file);
-    }
+    if (file) applyPassportImageFile(file);
   };
 
   // Handle Escape key to close modal and expanded card
@@ -132,6 +142,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
         onUpdate(responseData.data.passenger);
         setIsEditing(false);
         setPassportImage(null);
+        setPassportImagePreview(null);
         setShouldSaveImage(false);
       } else {
         if (response.status === 400 && responseData.errors) {
@@ -167,6 +178,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
       specialRequests: passenger.specialRequests || ''
     });
     setPassportImage(null);
+    setPassportImagePreview(null);
     setShouldSaveImage(false);
     setIsEditing(false);
     setError('');
@@ -416,7 +428,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
             )}
           </div>
 
-          <div>
+          <div className="md:col-span-2 space-y-2">
             <label className="block text-sm font-medium text-dark-400 mb-1">
               Actualizar Pasaporte (Opcional)
             </label>
@@ -426,6 +438,17 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
               onChange={handleImageUpload}
               className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600"
             />
+            <PassportImagePasteArea onImageFile={applyPassportImageFile} disabled={loading} />
+            {passportImagePreview && (
+              <div className="mt-2">
+                <p className="text-xs text-dark-500 mb-1">Vista previa (nueva imagen)</p>
+                <img
+                  src={passportImagePreview}
+                  alt="Nueva imagen de pasaporte"
+                  className="max-h-32 object-contain rounded border border-white/10"
+                />
+              </div>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -468,7 +491,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
               <div>
                 <span className="text-sm font-medium text-dark-400">Fecha de Nacimiento</span>
-                <p className="text-dark-100">{passenger.dob ? new Date(passenger.dob).toLocaleDateString() : 'N/A'}</p>
+                <p className="text-dark-100">{passenger.dob ? formatDateOnlyLocal(passenger.dob) : 'N/A'}</p>
               </div>
 
               <div>
@@ -483,7 +506,7 @@ const PassengerCard = ({ passenger, onUpdate, onDelete, clientId }) => {
 
               <div>
                 <span className="text-sm font-medium text-dark-400">Vencimiento del Pasaporte</span>
-                <p className="text-dark-100">{passenger.expirationDate ? new Date(passenger.expirationDate).toLocaleDateString() : 'N/A'}</p>
+                <p className="text-dark-100">{passenger.expirationDate ? formatDateOnlyLocal(passenger.expirationDate) : 'N/A'}</p>
               </div>
 
               <div>

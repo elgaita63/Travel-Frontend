@@ -110,7 +110,7 @@ const ServiceCostProviderModal = ({
     const finalServiceCost = serviceCost || 0;
 
     if (selectedProviders.length === 0) {
-      setError('Please select at least one provider');
+      setError('Elegí al menos un proveedor');
       return;
     }
 
@@ -155,11 +155,11 @@ const ServiceCostProviderModal = ({
 
       onSave(updatedService);
       onClose();
-      toast.success('Service cost and providers updated successfully');
+      toast.success('Costo y proveedores actualizados correctamente');
     } catch (error) {
       console.error('Error saving service:', error);
-      setError('Failed to save service');
-      toast.error('Failed to save service');
+      setError('No se pudo guardar el servicio');
+      toast.error('No se pudo guardar el servicio');
     } finally {
       setLoading(false);
     }
@@ -284,15 +284,15 @@ const ServiceCostProviderModal = ({
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } else {
       console.error('File has no URL or file object:', file);
-      toast.error('Unable to open file: file data is missing');
+      toast.error('No se puede abrir el archivo: faltan datos');
     }
   };
 
   // Format file size
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 bytes';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
@@ -304,7 +304,7 @@ const ServiceCostProviderModal = ({
       <div className="bg-dark-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-dark-100">
-            Service Cost & Provider - {service?.serviceName || service?.serviceInfo || service?.name || 'Service'}
+            Costo y proveedor — {service?.serviceName || service?.serviceInfo || service?.name || 'Servicio'}
           </h3>
           <button
             onClick={onClose}
@@ -325,11 +325,11 @@ const ServiceCostProviderModal = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Service Cost Section */}
           <div className="space-y-4">
-            <h4 className="text-lg font-medium text-dark-100">Service Cost</h4>
+            <h4 className="text-lg font-medium text-dark-100">Costo del servicio</h4>
             
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Total Service Cost
+                Costo total del servicio
               </label>
               <input
                 type="number"
@@ -341,13 +341,13 @@ const ServiceCostProviderModal = ({
                 min="0"
               />
               <p className="text-xs text-dark-400 mt-1">
-                Enter the total cost for this service (optional - defaults to 0)
+                Costo total del servicio (opcional; por defecto 0)
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Currency
+                Moneda
               </label>
               <select
                 value={serviceCurrency}
@@ -364,8 +364,8 @@ const ServiceCostProviderModal = ({
               </select>
               <p className="text-xs text-dark-400 mt-1">
                 {currencyLocked
-                  ? `Currency locked to ${globalCurrency} for this sale`
-                  : 'Select the currency for this service'
+                  ? `Moneda fijada en ${globalCurrency} para esta venta`
+                  : 'Elegí la moneda de este servicio'
                 }
               </p>
             </div>
@@ -373,14 +373,14 @@ const ServiceCostProviderModal = ({
 
           {/* Provider Selection Section */}
           <div className="space-y-4">
-            <h4 className="text-lg font-medium text-dark-100">Service Providers</h4>
-            <p className="text-sm text-dark-400">Select providers for this service (up to 7)</p>
+            <h4 className="text-lg font-medium text-dark-100">Proveedores del servicio</h4>
+            <p className="text-sm text-dark-400">Elegí proveedores para este servicio (hasta 7)</p>
             
             {/* Selected Providers */}
             {selectedProviders.length > 0 && (
               <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
                 <h5 className="font-medium text-dark-100 mb-3">
-                  Selected Providers ({selectedProviders.length}/7)
+                  Proveedores elegidos ({selectedProviders.length}/7)
                 </h5>
                 <div className="max-h-32 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-dark-600 scrollbar-track-dark-800">
                   {(() => {
@@ -407,8 +407,8 @@ const ServiceCostProviderModal = ({
                               </span>
                             </div>
                             <div className="text-sm text-dark-300">
-                              {provider.type && <span>Type: {provider.type}</span>}
-                              {provider.phone && <span className="ml-4">Phone: {provider.phone}</span>}
+                              {provider.type && <span>Tipo: {provider.type}</span>}
+                              {provider.phone && <span className="ml-4">Tel.: {provider.phone}</span>}
                               {provider.email && <span className="ml-4">Email: {provider.email}</span>}
                             </div>
                           </div>
@@ -424,7 +424,7 @@ const ServiceCostProviderModal = ({
                               />
                               <button
                                 className="text-blue-400 hover:text-blue-300 p-1"
-                                title="Upload documents"
+                                title="Subir documentos"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -436,7 +436,7 @@ const ServiceCostProviderModal = ({
                             <button
                               onClick={() => handleViewFiles(provider)}
                               className="text-green-400 hover:text-green-300 p-1"
-                              title="View documents"
+                              title="Ver documentos"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -452,7 +452,7 @@ const ServiceCostProviderModal = ({
                                 setSelectedProviders(prev => prev.filter((_, index) => index !== providerIndex));
                               }}
                               className="text-red-400 hover:text-red-300 p-1"
-                              title="Remove one instance"
+                              title="Quitar una instancia"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -471,7 +471,7 @@ const ServiceCostProviderModal = ({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search providers..."
+                placeholder="Buscar proveedores…"
                 value={localProviderSearch}
                 onChange={(e) => handleProviderSearchChange(e.target.value)}
                 className="input-field w-full pl-10"
@@ -485,10 +485,10 @@ const ServiceCostProviderModal = ({
 
             {/* Available Providers */}
             <div className="max-h-60 overflow-y-auto space-y-2">
-              <h5 className="text-sm font-medium text-dark-200">Available Providers</h5>
+              <h5 className="text-sm font-medium text-dark-200">Proveedores disponibles</h5>
               {availableProviders.length === 0 ? (
                 <div className="text-center py-4 text-dark-400">
-                  <p>No providers found. Try adjusting your search.</p>
+                  <p>No hay proveedores. Probá ajustar la búsqueda.</p>
                 </div>
               ) : (
                 availableProviders
@@ -543,13 +543,13 @@ const ServiceCostProviderModal = ({
                               )}
                               {realTimeGlobalCount > 0 && (
                                 <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
-                                  Global: {realTimeGlobalCount}/7
+                                  En la venta: {realTimeGlobalCount}/7
                                 </span>
                               )}
                             </div>
                             <div className="text-sm text-dark-300">
-                              {provider.type && <span>Type: {provider.type}</span>}
-                              {provider.phone && <span className="ml-4">Phone: {provider.phone}</span>}
+                              {provider.type && <span>Tipo: {provider.type}</span>}
+                              {provider.phone && <span className="ml-4">Tel.: {provider.phone}</span>}
                               {provider.email && <span className="ml-4">Email: {provider.email}</span>}
                             </div>
                           </div>
@@ -568,14 +568,14 @@ const ServiceCostProviderModal = ({
             onClick={onClose}
             className="px-4 py-2 text-dark-300 hover:text-dark-100 border border-white/10 rounded-lg transition-colors"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={loading || selectedProviders.length === 0}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Saving...' : 'Complete'}
+            {loading ? 'Guardando…' : 'Listo'}
           </button>
         </div>
       </div>
@@ -586,7 +586,7 @@ const ServiceCostProviderModal = ({
           <div className="bg-dark-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-dark-100">
-                Files for {viewingProvider.name}
+                Archivos de {viewingProvider.name}
               </h3>
               <button
                 onClick={() => setShowViewModal(false)}
@@ -652,7 +652,7 @@ const ServiceCostProviderModal = ({
                         {/* File Info */}
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-dark-100 truncate">
-                            {file.name || file.filename || 'Unknown file'}
+                            {file.name || file.filename || 'Archivo sin nombre'}
                           </h4>
                           <div className="flex items-center space-x-4 text-xs text-dark-400">
                             <span>{formatFileSize(file.size)}</span>
@@ -673,7 +673,7 @@ const ServiceCostProviderModal = ({
                           handleRemoveFile(viewingProvider._id, file.id);
                         }}
                         className="text-red-400 hover:text-red-300 p-1 ml-2"
-                        title="Remove file"
+                        title="Quitar archivo"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -688,8 +688,8 @@ const ServiceCostProviderModal = ({
                 <svg className="w-12 h-12 mx-auto mb-4 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>No files uploaded for this provider yet.</p>
-                <p className="text-sm mt-1">Click the upload icon to add files.</p>
+                <p>Aún no hay archivos para este proveedor.</p>
+                <p className="text-sm mt-1">Usá el ícono de subida para agregar archivos.</p>
               </div>
             )}
 
@@ -699,7 +699,7 @@ const ServiceCostProviderModal = ({
                 onClick={() => setShowViewModal(false)}
                 className="px-4 py-2 text-dark-300 hover:text-dark-100 border border-white/10 rounded-lg transition-colors"
               >
-                Close
+                Cerrar
               </button>
             </div>
           </div>

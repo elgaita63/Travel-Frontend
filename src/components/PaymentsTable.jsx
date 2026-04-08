@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../utils/api';
+import { getUniqueProvidersFromSale } from '../utils/saleProviders';
 import { API_BASE_URL } from '../config/api';
 import PaymentForm from './PaymentForm';
 import Modal from './Modal';
@@ -9,7 +10,8 @@ import CurrencyDisplay from './CurrencyDisplay';
 import { formatMethodName, formatMethodNameShort } from '../utils/paymentMethodUtils';
 import { useAuth } from '../contexts/AuthContext';
 
-const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD' }) => {
+const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD', sale = null }) => {
+  const saleProviders = useMemo(() => (sale ? getUniqueProvidersFromSale(sale) : []), [sale]);
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -334,14 +336,22 @@ const getPaymentTypeColor = (type) => {
       </Modal>
 
       <Modal isOpen={showProviderForm} onClose={() => setShowProviderForm(false)} title="Registrar Pago a Proveedor" size="lg">
-        <PaymentForm saleId={saleId} paymentType="provider" onPaymentAdded={handlePaymentAdded} onCancel={() => setShowProviderForm(false)} saleCurrency={saleCurrency} />
+        <PaymentForm
+          saleId={saleId}
+          paymentType="provider"
+          onPaymentAdded={handlePaymentAdded}
+          onCancel={() => setShowProviderForm(false)}
+          saleCurrency={saleCurrency}
+          saleProviders={saleProviders}
+          sale={sale}
+        />
       </Modal>
 
       <Modal isOpen={showSellerForm} onClose={() => setShowSellerForm(false)} title="Registrar Pago al Vendedor" size="lg">
         <PaymentForm saleId={saleId} paymentType="seller" onPaymentAdded={handlePaymentAdded} onCancel={() => setShowSellerForm(false)} saleCurrency={saleCurrency} />
       </Modal>
 
-      <PaymentEditModal payment={editingPayment} isOpen={showEditModal} onClose={handleCancelEdit} onSave={handleSavePayment} onDeleteSuccess={handleDeleteSuccess} saving={saving} saleCurrency={saleCurrency} />
+      <PaymentEditModal payment={editingPayment} isOpen={showEditModal} onClose={handleCancelEdit} onSave={handleSavePayment} onDeleteSuccess={handleDeleteSuccess} saving={saving} saleCurrency={saleCurrency} saleProviders={saleProviders} />
 
       {payments.length === 0 ? (
         <div className="text-center py-8 text-dark-400">
@@ -358,6 +368,7 @@ const getPaymentTypeColor = (type) => {
             <thead className="bg-dark-700">
               <tr>
                 <th className={`${columnWidths.type} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('type')}>Tipo</th>
+                <th className="w-36 px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Proveedor</th>
                 <th className={`${columnWidths.method} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('method')}>Método</th>
                 <th className={`${columnWidths.amount} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('amount')}>Monto</th>
                 <th className={`${columnWidths.date} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('date')}>Fecha</th>
@@ -374,7 +385,13 @@ const getPaymentTypeColor = (type) => {
                           payment.type === 'provider' ? 'Proveedor' : 
                           payment.type === 'commission' ? 'Comisión vendedor' : 'Pago Vendedor'}
                         </span>
-                      </td>                  <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-dark-300 truncate max-w-[9rem]" title={payment.type === 'provider' && payment.paymentTo?.name ? payment.paymentTo.name : ''}>
+                        {payment.type === 'provider'
+                          ? (payment.paymentTo?.name || '—')
+                          : '—'}
+                      </td>
+                  <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
                   <td className="px-3 py-4">
                     <div className="text-sm font-medium text-dark-100"><CurrencyDisplay>{formatCurrency(payment.amount, saleCurrency)}</CurrencyDisplay></div>
                     {payment.originalAmount && payment.originalCurrency && (

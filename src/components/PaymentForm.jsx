@@ -1,8 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../utils/api';
 import Modal from './Modal';
+import PassportImagePasteArea from './PassportImagePasteArea';
+import {
+  getProviderCostBreakdownFromSale,
+  summarizeProviderCostsByCurrency
+} from '../utils/saleProviders';
 
-const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurrency = 'USD' }) => {
+const formatCostHint = (amount, currency) => {
+  const cur = (currency || 'USD').toUpperCase();
+  const n = Number(amount) || 0;
+  const formatted = n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (cur === 'USD') return `U$ ${formatted}`;
+  if (cur === 'ARS') return `AR$ ${formatted}`;
+  return `${formatted} ${cur}`;
+};
+
+const PaymentForm = ({
+  saleId,
+  paymentType,
+  onPaymentAdded,
+  onCancel,
+  saleCurrency = 'USD',
+  /** Lista de { _id, name } de proveedores de la venta (solo aplica a paymentType provider) */
+  saleProviders = [],
+  /** Venta completa: sirve para mostrar costo de servicios por proveedor (solo pago a proveedor) */
+  sale = null
+}) => {
   const [formData, setFormData] = useState({
     amount: '',
     currencyType: '',
@@ -27,13 +51,37 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
   const [extractionError, setExtractionError] = useState('');
   const [extractedCurrency, setExtractedCurrency] = useState('');
   const [showExchangeRate, setShowExchangeRate] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState('');
 
   // LÓGICA DE CONTROL PARA PAGOS A VENDEDOR
   const isSellerPayment = paymentType === 'seller';
+  const isProviderPayment = paymentType === 'provider';
+
+  const providerCostLines = useMemo(() => {
+    if (!isProviderPayment || !sale || !selectedProviderId) return [];
+    return getProviderCostBreakdownFromSale(sale, selectedProviderId);
+  }, [isProviderPayment, sale, selectedProviderId]);
+
+  const providerCostTotals = useMemo(
+    () => summarizeProviderCostsByCurrency(providerCostLines),
+    [providerCostLines]
+  );
 
   useEffect(() => {
     fetchCurrencies();
   }, []);
+
+  useEffect(() => {
+    if (!isProviderPayment || !saleProviders?.length) {
+      setSelectedProviderId('');
+      return;
+    }
+    if (saleProviders.length === 1) {
+      setSelectedProviderId(saleProviders[0]._id);
+    } else {
+      setSelectedProviderId('');
+    }
+  }, [isProviderPayment, saleProviders]);
 
   useEffect(() => {
     if (formData.currencyType === 'USD') {
@@ -114,20 +162,25 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
     }
   };
 
+  const applyReceiptFile = (file) => {
+    if (!file) return;
+    const ok = file.type.startsWith('image/') || file.type === 'application/pdf';
+    if (!ok) return;
+    setReceiptFile(file);
+    setExtractionError('');
+    setError('');
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setReceiptFile(file);
-      setExtractionError('');
-      
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => setImagePreview(e.target.result);
-        reader.readAsDataURL(file);
-      } else {
-        setImagePreview(null); 
-      }
-    }
+    if (file) applyReceiptFile(file);
   };
 
   const handleExtractReceipt = async () => {
@@ -223,6 +276,12 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
     setError('');
 
     try {
+      if (isProviderPayment && saleProviders.length > 1 && !selectedProviderId) {
+        setError('Seleccioná el proveedor al que corresponde este pago.');
+        setLoading(false);
+        return;
+      }
+
       const submitData = new FormData();
       submitData.append('saleId', saleId);
       submitData.append('method', formData.paymentMethod);
@@ -230,6 +289,9 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       submitData.append('currency', formData.currencyType);
       submitData.append('date', formData.date);
       submitData.append('notes', formData.notes);
+      if (isProviderPayment && selectedProviderId) {
+        submitData.append('paymentTo', selectedProviderId);
+      }
       
       // Lógica de envío condicional: Si es vendedor, no enviamos datos de conversión
       if (!isSellerPayment && formData.currencyType !== saleCurrency) {
@@ -277,6 +339,144 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-md mb-4">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="card p-4">
+          <h4 className="text-sm font-medium text-dark-400 mb-3">Extracción de Datos</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <input
+                type="file"
+                id="receipt"
+                name="receipt"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600"
+              />
+              <PassportImagePasteArea onImageFile={applyReceiptFile} disabled={extracting} />
+              {receiptFile && (
+                <div className="flex items-center justify-between bg-dark-600/50 p-2 rounded gap-2">
+                  <span className="text-xs text-dark-300 truncate min-w-0">{receiptFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={handleExtractReceipt}
+                    disabled={extracting}
+                    className="shrink-0 px-3 py-1 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {extracting ? 'Extrayendo...' : 'Extraer Datos'}
+                  </button>
+                </div>
+              )}
+              {extractionError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2">{extractionError}</div>
+              )}
+            </div>
+
+            {imagePreview ? (
+              <div>
+                <h5 className="text-sm font-medium text-dark-400 mb-2">Vista previa</h5>
+                <div className="border border-white/10 rounded-lg p-2 flex items-center justify-center bg-dark-800/30">
+                  <img src={imagePreview} alt="Recibo" className="max-w-full h-32 object-contain" />
+                </div>
+              </div>
+            ) : receiptFile && receiptFile.type === 'application/pdf' ? (
+              <div>
+                <h5 className="text-sm font-medium text-dark-400 mb-2">Archivo</h5>
+                <div className="border border-white/10 rounded-lg p-4 flex flex-col items-center justify-center bg-dark-800/30">
+                  <span className="text-3xl mb-1">📄</span>
+                  <span className="text-[10px] text-dark-400 uppercase">Documento PDF</span>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-white/10 rounded-lg p-4 flex items-center justify-center text-dark-500 text-[10px] uppercase min-h-[8rem]">
+                Sin archivo
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isProviderPayment && saleProviders.length > 1 && (
+          <div className="bg-dark-700/50 border border-primary-500/25 rounded-lg p-4">
+            <label htmlFor="paymentToProvider" className="block text-sm font-semibold text-dark-100 mb-2">
+              Pago destinado a proveedor *
+            </label>
+            <select
+              id="paymentToProvider"
+              value={selectedProviderId}
+              onChange={(e) => {
+                setSelectedProviderId(e.target.value);
+                setError('');
+              }}
+              required
+              className="input-field w-full max-w-lg"
+            >
+              <option value="">Seleccioná proveedor</option>
+              {saleProviders.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-dark-500 mt-2">
+              La venta incluye más de un proveedor: elegí a cuál corresponde este pago.
+            </p>
+          </div>
+        )}
+
+        {isProviderPayment && saleProviders.length === 1 && (
+          <div className="text-sm text-dark-300 bg-dark-700/40 border border-white/10 rounded-lg px-4 py-3">
+            <span className="text-dark-500">Proveedor: </span>
+            <span className="font-medium text-dark-100">{saleProviders[0].name}</span>
+          </div>
+        )}
+
+        {isProviderPayment && saleProviders.length === 0 && (
+          <div className="text-sm text-amber-400/90 bg-amber-500/10 border border-amber-500/25 rounded-lg px-4 py-3">
+            No hay proveedores cargados en los servicios de esta venta. Podés registrar el pago igual; conviene asociar proveedores en la venta.
+          </div>
+        )}
+
+        {isProviderPayment && sale && selectedProviderId && (
+          <div className="text-sm bg-dark-700/50 border border-white/10 rounded-lg px-4 py-3 space-y-2">
+            <p className="font-medium text-dark-200">Costo cargado en la venta (referencia para el monto)</p>
+            {providerCostLines.length > 0 ? (
+              <>
+                <ul className="text-dark-300 space-y-1 list-disc list-inside text-xs sm:text-sm">
+                  {providerCostLines.map((line, idx) => (
+                    <li key={`${line.label}-${idx}`}>
+                      <span className="text-dark-400">{line.label}:</span>{' '}
+                      <span className="text-dark-100 font-medium tabular-nums">
+                        {formatCostHint(line.amount, line.currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {providerCostTotals.length > 0 && (
+                  <p className="text-xs text-dark-400 pt-1 border-t border-white/10">
+                    Total por moneda:{' '}
+                    {providerCostTotals.map((t, i) => (
+                      <span key={t.currency}>
+                        {i > 0 ? ' · ' : ''}
+                        <span className="text-dark-200 font-medium tabular-nums">
+                          {formatCostHint(t.amount, t.currency)}
+                        </span>
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-dark-500">
+                No hay costo de proveedor cargado en los servicios para este proveedor. Completá el importe según el acuerdo o cargá costos en la venta.
+              </p>
+            )}
+          </div>
+        )}
+
+        {isProviderPayment && sale && saleProviders.length > 1 && !selectedProviderId && (
+          <p className="text-xs text-dark-500 -mt-2">
+            Elegí un proveedor arriba para ver el costo registrado en los servicios.
+          </p>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-dark-200 mb-2">Monto *</label>
@@ -316,39 +516,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
                 <option value="">Seleccioná método de pago</option>
                 {paymentMethods.map(method => (<option key={method._id} value={method.name}>{method.name}</option>))}
               </select>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-dark-700/50 p-4 rounded-lg border border-white/10">
-          <label htmlFor="receipt" className="block text-sm font-medium text-dark-200 mb-3">Imagen con datos del Pago (Recibo)</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <input type="file" id="receipt" name="receipt" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30" />
-              {receiptFile && (
-                <div className="flex items-center justify-between bg-dark-600/50 p-2 rounded">
-                  <span className="text-xs text-dark-300 truncate max-w-[150px]">{receiptFile.name}</span>
-                  <button type="button" onClick={handleExtractReceipt} disabled={extracting} className="px-3 py-1 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 disabled:opacity-50">
-                    {extracting ? 'Extrayendo...' : 'Extraer Datos'}
-                  </button>
-                </div>
-              )}
-              {extractionError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2">{extractionError}</div>}
-            </div>
-
-            {imagePreview ? (
-              <div className="border-2 border-dashed border-white/20 rounded-lg p-2 flex items-center justify-center">
-                <img src={imagePreview} alt="Preview" className="max-w-full h-32 object-contain" />
-              </div>
-            ) : receiptFile && receiptFile.type === 'application/pdf' ? (
-                <div className="border-2 border-dashed border-white/20 rounded-lg p-2 flex flex-col items-center justify-center">
-                    <span className="text-3xl mb-1">📄</span>
-                    <span className="text-[10px] text-dark-400 uppercase">Documento PDF</span>
-                </div>
-            ) : (
-              <div className="border-2 border-dashed border-white/10 rounded-lg p-2 flex items-center justify-center text-dark-500 text-[10px] uppercase">
-                Sin imagen seleccionada
-              </div>
             )}
           </div>
         </div>

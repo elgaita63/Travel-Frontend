@@ -6,6 +6,8 @@ import AddServiceModal from '../components/AddServiceModal';
 import PassengerPriceModal from '../components/PassengerPriceModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { toast } from 'react-toastify';
+import { buildNombreVentaSuggestion } from '../utils/buildNombreVentaSuggestion';
+import { toDateOnlyUTCString, parseDateOnlyToUTC } from '../utils/dateDisplay';
 
 const SaleEdit = () => {
   const { id } = useParams();
@@ -18,6 +20,7 @@ const SaleEdit = () => {
   
   // Sale data
   const [sale, setSale] = useState(null);
+  const [nombreVenta, setNombreVenta] = useState('');
   const [serviceTemplateInstances, setServiceTemplateInstances] = useState([]);
   const [passengers, setPassengers] = useState([]);
   
@@ -162,8 +165,8 @@ const SaleEdit = () => {
             templateCategory: service.serviceTemplateId?.category || service.serviceId?.typeId?.name || service.serviceId?.type || 'General',
             serviceInfo: service.serviceName || 'Unknown Service',
             serviceDescription: service.notes || service.serviceId?.description || '',
-            checkIn: service.serviceDates?.startDate ? new Date(service.serviceDates.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            checkOut: service.serviceDates?.endDate ? new Date(service.serviceDates.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            checkIn: service.serviceDates?.startDate ? toDateOnlyUTCString(service.serviceDates.startDate) : toDateOnlyUTCString(new Date()),
+            checkOut: service.serviceDates?.endDate ? toDateOnlyUTCString(service.serviceDates.endDate) : toDateOnlyUTCString(new Date()),
             cost: (() => {
               // Use the stored costProvider value directly from the database
               const storedCost = service.costProvider !== null && service.costProvider !== undefined ? service.costProvider : 0;
@@ -195,6 +198,25 @@ const SaleEdit = () => {
         })));
         
         setServiceTemplateInstances(instances);
+
+        const nombreTrim = (saleData.nombreVenta && String(saleData.nombreVenta).trim()) || '';
+        if (nombreTrim) {
+          setNombreVenta(nombreTrim);
+        } else {
+          const destForName = {
+            city: saleData.destination?.city || '',
+            country: saleData.destination?.country || ''
+          };
+          const suggested = buildNombreVentaSuggestion(destForName, instances);
+          setNombreVenta(suggested);
+          try {
+            await api.put(`/api/sales/${saleData._id}`, { nombreVenta: suggested });
+            setSale((prev) => (prev ? { ...prev, nombreVenta: suggested } : prev));
+          } catch (persistErr) {
+            console.error('Error al guardar nombreVenta generado al abrir edición:', persistErr);
+          }
+        }
+
         setPassengers(saleData.passengers || []);
         
         // Initialize price per passenger from totalSalePrice divided by passenger count
@@ -291,8 +313,8 @@ const SaleEdit = () => {
         currency: updatedInstance.currency,
         quantity: 1,
         serviceDates: {
-          startDate: new Date(updatedInstance.checkIn),
-          endDate: new Date(updatedInstance.checkOut)
+          startDate: parseDateOnlyToUTC(updatedInstance.checkIn),
+          endDate: parseDateOnlyToUTC(updatedInstance.checkOut)
         },
         providerId: updatedInstance.provider?._id,
         notes: updatedInstance.serviceDescription || `${updatedInstance.templateName || 'Service'} - ${updatedInstance.serviceInfo}`
@@ -385,8 +407,8 @@ const SaleEdit = () => {
         costProvider: updatedInstance.cost, // Use the stored cost value directly
         currency: updatedInstance.currency,
         serviceDates: {
-          startDate: new Date(updatedInstance.checkIn),
-          endDate: new Date(updatedInstance.checkOut)
+          startDate: parseDateOnlyToUTC(updatedInstance.checkIn),
+          endDate: parseDateOnlyToUTC(updatedInstance.checkOut)
         },
         providerId: updatedInstance.provider?._id,
         providers: formattedProviders, // Include properly formatted providers array
@@ -473,8 +495,8 @@ const SaleEdit = () => {
           currency: instance.currency,
           quantity: 1,
           serviceDates: {
-            startDate: new Date(instance.checkIn),
-            endDate: new Date(instance.checkOut)
+            startDate: parseDateOnlyToUTC(instance.checkIn),
+            endDate: parseDateOnlyToUTC(instance.checkOut)
           },
           providerId: instance.provider?._id,
           providers: formattedProviders, // Include properly formatted providers array
@@ -562,8 +584,8 @@ const SaleEdit = () => {
           currency: instance.currency,
           quantity: 1,
           serviceDates: {
-            startDate: new Date(instance.checkIn),
-            endDate: new Date(instance.checkOut)
+            startDate: parseDateOnlyToUTC(instance.checkIn),
+            endDate: parseDateOnlyToUTC(instance.checkOut)
           },
           providerId: instance.provider?._id,
           providers: formattedProviders, // Include properly formatted providers array
@@ -592,7 +614,14 @@ const SaleEdit = () => {
       const saleData = {
         services,
         passengers: updatedPassengers,
-        destination: serviceTemplateInstances[0]?.destination || sale.destination
+        destination: serviceTemplateInstances[0]?.destination || sale.destination,
+        nombreVenta: (nombreVenta && nombreVenta.trim()) || buildNombreVentaSuggestion(
+          {
+            city: sale.destination?.city || '',
+            country: sale.destination?.country || ''
+          },
+          serviceTemplateInstances
+        )
       };
       
       console.log('🔥 Frontend - Sending PUT request to:', `/api/sales/${id}`);
@@ -819,6 +848,25 @@ const SaleEdit = () => {
             <span className="text-sm text-dark-400">Servicios totales:</span>
             <div className="text-dark-100 font-medium">{serviceTemplateInstances.length}</div>
           </div>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-white/10">
+          <label htmlFor="nombreVenta-sale-edit" className="block text-sm font-medium text-dark-200 mb-2">
+            Nombre / identificación del viaje, venta o reserva
+          </label>
+          <input
+            id="nombreVenta-sale-edit"
+            type="text"
+            value={nombreVenta}
+            onChange={(e) => setNombreVenta(e.target.value)}
+            className="input-field w-full max-w-3xl"
+            placeholder="Se sugiere según destino y servicios"
+            maxLength={200}
+            autoComplete="off"
+          />
+          <p className="text-xs text-dark-500 mt-2">
+            Si la venta no tenía nombre, se muestra el generado automáticamente; podés editarlo y se guarda al pulsar «Guardar cambios».
+          </p>
         </div>
       </div>
 

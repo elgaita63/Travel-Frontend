@@ -10,7 +10,7 @@ const formatProvidersDisplay = (providers) => {
   // Group providers by name and count occurrences
   const providerGroups = {};
   providers.forEach(provider => {
-    const providerName = provider.name || provider.providerId?.name || 'Unknown Provider';
+    const providerName = provider.name || provider.providerId?.name || 'Proveedor desconocido';
     providerGroups[providerName] = (providerGroups[providerName] || 0) + 1;
   });
   
@@ -136,7 +136,11 @@ const NewSaleWizardSteps = ({
   // Service Cost & Provider Modal
   openServiceCostProviderModal,
   closeServiceCostProviderModal,
-  saveServiceCostAndProviders
+  saveServiceCostAndProviders,
+  // Nombre identificación venta (paso 7)
+  nombreVenta,
+  setNombreVenta,
+  isEditMode = false
 }) => {
   // State for service entry modal and service cards
   const [showServiceEntryModal, setShowServiceEntryModal] = useState(false);
@@ -194,14 +198,34 @@ const NewSaleWizardSteps = ({
       {/* Step 1: Select Passengers & Companions */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Select Passengers & Companions</h3>
-          <p className="text-sm text-dark-400">Choose passengers and companions for this sale</p>
+          <div className="bg-dark-800/70 border border-primary-500/25 rounded-xl p-5 text-left">
+            <label htmlFor="nombreVenta-wizard-step1" className="block text-sm font-semibold text-dark-100 mb-2">
+              Nombre / identificación del viaje, venta o reserva
+            </label>
+            <input
+              id="nombreVenta-wizard-step1"
+              type="text"
+              value={nombreVenta || ''}
+              onChange={(e) => setNombreVenta(e.target.value)}
+              className="input-field w-full max-w-3xl border-primary-500/40 focus:border-primary-500"
+              placeholder="Se sugiere según destino y servicios"
+              maxLength={200}
+              autoComplete="off"
+            />
+            <p className="text-xs text-dark-500 mt-2 leading-relaxed">
+              Opcional: si no cargás un nombre acá, en el paso 7 se completará automáticamente según destino y servicios cuando corresponda; podés editarlo antes de{' '}
+              {isEditMode ? 'guardar los cambios' : 'confirmar la venta'}.
+            </p>
+          </div>
+
+          <h3 className="text-lg font-medium text-dark-100">Pasajeros y acompañantes</h3>
+          <p className="text-sm text-dark-400">Elegí el titular y los acompañantes de esta venta</p>
           
           {/* Search Bar */}
           <div className="relative">
             <input
               type="text"
-              placeholder="Search passengers by name, phone, or passport number..."
+              placeholder="Buscar pasajeros por nombre, teléfono o pasaporte..."
               value={passengerSearch ?? ''}
               onChange={(e) => setPassengerSearch(e.target.value)}
               className="input-field w-full pl-10"
@@ -216,7 +240,7 @@ const NewSaleWizardSteps = ({
           {/* Selected Passengers */}
           {selectedPassengers.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-md font-medium text-dark-100">Selected Passengers</h4>
+              <h4 className="text-md font-medium text-dark-100">Pasajeros seleccionados</h4>
               <div className="grid grid-cols-1 gap-3">
                 {selectedPassengers.map((passenger) => (
                   <div key={passenger._id} className="bg-dark-700/50 border border-white/10 rounded-lg p-4 relative">
@@ -262,7 +286,7 @@ const NewSaleWizardSteps = ({
           {/* Selected Companions */}
           {selectedCompanions.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-md font-medium text-dark-100">Selected Companions</h4>
+              <h4 className="text-md font-medium text-dark-100">Acompañantes seleccionados</h4>
               <div className="grid grid-cols-1 gap-3">
                 {selectedCompanions.map((companion) => (
                   <div key={companion._id} className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 relative">
@@ -308,16 +332,16 @@ const NewSaleWizardSteps = ({
           {/* Available Passengers */}
           <div className="space-y-3">
             <h4 className="text-md font-medium text-dark-100">
-              Selectable Passengers {passengerLoading && <span className="text-sm text-dark-400">(Loading...)</span>}
+              Pasajeros disponibles {passengerLoading && <span className="text-sm text-dark-400">(cargando...)</span>}
             </h4>
             
             {selectedPassengers.length > 0 ? (
               <div className="text-center py-8 text-dark-400 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p>Primary passenger selected. Additional passengers can be selected as companions below.</p>
+                <p>Ya elegiste al titular. Podés sumar más personas como acompañantes abajo.</p>
               </div>
             ) : availablePassengers.length === 0 && !passengerLoading ? (
               <div className="text-center py-8 text-dark-400">
-                <p>No passengers found. Try adjusting your search or register new passengers first.</p>
+                <p>No hay pasajeros con ese criterio. Probá otra búsqueda o registrá pasajeros primero.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
@@ -370,12 +394,12 @@ const NewSaleWizardSteps = ({
           {/* Available Companions */}
           <div className="space-y-3">
             <h4 className="text-md font-medium text-dark-100">
-              Selectable Companions {companionLoading && <span className="text-sm text-dark-400">(Loading...)</span>}
+              Acompañantes disponibles {companionLoading && <span className="text-sm text-dark-400">(cargando...)</span>}
             </h4>
             
             {selectedPassengers.length === 0 && (
               <div className="text-center py-8 text-dark-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p>Please select a passenger first to choose companions.</p>
+                <p>Primero elegí un pasajero titular para poder sumar acompañantes.</p>
               </div>
             )}
             
@@ -434,13 +458,13 @@ const NewSaleWizardSteps = ({
       {/* Step 2: Price Per Passenger */}
       {currentStep === 2 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Price Per Passenger</h3>
-          <p className="text-sm text-dark-400">Set the price per passenger for this sale</p>
+          <h3 className="text-lg font-medium text-dark-100">Precio por pasajero</h3>
+          <p className="text-sm text-dark-400">Definí el precio por persona para esta venta</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Price Per Passenger *
+                Precio por pasajero *
               </label>
               <input
                 type="number"
@@ -453,13 +477,13 @@ const NewSaleWizardSteps = ({
                 required
               />
             <p className="text-xs text-dark-400 mt-1">
-                Enter the price per passenger for this sale
+                Importe por cada pasajero (titular y acompañantes)
             </p>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Currency *
+                Moneda *
               </label>
               <select
                 value={passengerCurrency}
@@ -480,10 +504,10 @@ const NewSaleWizardSteps = ({
               </select>
               <p className="text-xs text-dark-400 mt-1">
                 {isCupoReservation && currencyLocked
-                  ? `Currency locked to ${globalCurrency} from cupo - cannot be changed`
+                  ? `Moneda fijada en ${globalCurrency} según el cupo (no se puede cambiar)`
                   : currencyLocked && currentStep > 2
-                    ? `Currency locked to ${globalCurrency} for this sale`
-                    : 'Select the currency for the price'
+                    ? `Moneda fijada en ${globalCurrency} para esta venta`
+                    : 'Elegí la moneda del precio'
                 }
                 {/* Debug info */}
                 {/* <br /> */}
@@ -502,16 +526,16 @@ const NewSaleWizardSteps = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm text-blue-300">
-                <strong>Total for {selectedPassengers.length + selectedCompanions.length} passenger{(selectedPassengers.length + selectedCompanions.length) > 1 ? 's' : ''}:</strong> <CurrencySymbol currency={passengerCurrency} /> {pricePerPassenger || '0'} × {selectedPassengers.length + selectedCompanions.length} = <CurrencySymbol currency={passengerCurrency} /> {((parseFloat(pricePerPassenger) || 0) * (selectedPassengers.length + selectedCompanions.length)).toFixed(2)}
+                <strong>Total para {selectedPassengers.length + selectedCompanions.length} {selectedPassengers.length + selectedCompanions.length === 1 ? 'persona' : 'personas'}:</strong> <CurrencySymbol currency={passengerCurrency} /> {pricePerPassenger || '0'} × {selectedPassengers.length + selectedCompanions.length} = <CurrencySymbol currency={passengerCurrency} /> {((parseFloat(pricePerPassenger) || 0) * (selectedPassengers.length + selectedCompanions.length)).toFixed(2)}
                 <br />
                 <span className="text-xs text-blue-200">
-                  ({selectedPassengers.length} main passenger{selectedPassengers.length !== 1 ? 's' : ''} + {selectedCompanions.length} companion{selectedCompanions.length !== 1 ? 's' : ''})
+                  ({selectedPassengers.length} titular{selectedPassengers.length !== 1 ? 'es' : ''} + {selectedCompanions.length} acompañante{selectedCompanions.length !== 1 ? 's' : ''})
                 </span>
                 {currencyLocked && currentStep > 2 && (
                   <>
                     <br />
                     <span className="text-xs text-yellow-300">
-                      🔒 Currency locked to {globalCurrency} for this sale
+                      🔒 Moneda fijada en {globalCurrency} para esta venta
                     </span>
                   </>
                 )}
@@ -526,14 +550,14 @@ const NewSaleWizardSteps = ({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-dark-100">Select Service Template</h3>
-              <p className="text-sm text-dark-400">Review and manage service types for your sale</p>
+              <h3 className="text-lg font-medium text-dark-100">Tipo de servicio</h3>
+              <p className="text-sm text-dark-400">Elegí y gestioná los tipos de servicio de la venta</p>
             </div>
             <button
               onClick={() => setShowAddServiceTypeModal(true)}
               className="text-xs text-primary-400 hover:text-primary-300 underline whitespace-nowrap"
             >
-              + Add New Service Type
+              + Nuevo tipo de servicio
             </button>
           </div>
 
@@ -541,18 +565,18 @@ const NewSaleWizardSteps = ({
           {/* Service Cards Section */}
           {serviceCards.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-md font-medium text-dark-100">Added Services</h4>
+              <h4 className="text-md font-medium text-dark-100">Servicios agregados</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {serviceCards.map((serviceCard) => (
                   <div key={serviceCard.id} className="p-4 border rounded-lg bg-primary-500/10 border-primary-500/30">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-bold text-primary-400">
-                        Type: <DatabaseValue data-field="serviceTypeName">{serviceCard.serviceTypeName}</DatabaseValue>
+                        Tipo: <DatabaseValue data-field="serviceTypeName">{serviceCard.serviceTypeName}</DatabaseValue>
                       </p>
                       <button
                         onClick={() => removeServiceCard(serviceCard.id)}
                         className="text-red-400 hover:text-red-300 text-sm"
-                        title="Remove service"
+                        title="Quitar servicio"
                       >
                         ✕
                       </button>
@@ -562,7 +586,7 @@ const NewSaleWizardSteps = ({
                     </p>
                     <div className="mt-2">
                       <span className="text-xs text-primary-400 bg-primary-500/20 px-2 py-1 rounded">
-                        Service
+                        Servicio
                       </span>
                     </div>
                   </div>
@@ -574,12 +598,12 @@ const NewSaleWizardSteps = ({
           {/* Search Section */}
           <div className="space-y-3">
             <h4 className="text-md font-medium text-dark-100">
-              Search and select service types from the database
+              Buscar y elegir tipos de servicio
             </h4>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search service types by name..."
+                placeholder="Buscar tipo de servicio por nombre..."
                 value={serviceTemplateSearch || ''}
                 onChange={(e) => setServiceTemplateSearch(e.target.value)}
                 className="input-field w-full pl-10"
@@ -595,7 +619,7 @@ const NewSaleWizardSteps = ({
           {/* Available Service Types Section */}
           <div className="space-y-3">
             <h4 className="text-md font-medium text-dark-100">
-              Available Service Types {serviceLoading && <span className="text-sm text-dark-400">(Loading...)</span>}
+              Tipos de servicio disponibles {serviceLoading && <span className="text-sm text-dark-400">(cargando...)</span>}
             </h4>
             
             {(() => {
@@ -618,11 +642,11 @@ const NewSaleWizardSteps = ({
                 <div className="text-center py-8 text-dark-400">
                   {serviceTemplateSearch && serviceTemplateSearch.trim() ? (
                     <div>
-                      <p>No service types found matching "{serviceTemplateSearch}"</p>
-                      <p className="text-sm mt-2">Try adjusting your search or add a new service type.</p>
+                      <p>No hay tipos que coincidan con «{serviceTemplateSearch}»</p>
+                      <p className="text-sm mt-2">Probá otra búsqueda o agregá un tipo nuevo.</p>
                     </div>
                   ) : (
-                    <p>No service types available. Add a new service type to get started.</p>
+                    <p>No hay tipos de servicio cargados. Agregá uno para comenzar.</p>
                   )}
                 </div>
               ) : (
@@ -647,7 +671,7 @@ const NewSaleWizardSteps = ({
                           {selectionCount > 0 && (
                             <div className="flex items-center space-x-2 mt-1">
                               <span className="text-xs text-primary-400 bg-primary-500/20 px-2 py-1 rounded">
-                                Selected: {selectionCount}/7
+                                Elegidos: {selectionCount}/7
                               </span>
                             </div>
                           )}
@@ -655,11 +679,11 @@ const NewSaleWizardSteps = ({
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-dark-400 px-2 py-1 bg-dark-600/50 rounded">
-                          Service Type
+                          Tipo de servicio
                         </span>
                         {!canSelectMore && (
                           <span className="text-xs text-red-400 bg-red-500/20 px-2 py-1 rounded">
-                            Max reached (7/7)
+                            Máximo (7/7)
                           </span>
                         )}
                       </div>
@@ -678,13 +702,13 @@ const NewSaleWizardSteps = ({
       {/* Step 4: Service Dates */}
       {currentStep === 4 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Service Dates</h3>
-          <p className="text-sm text-dark-400">Set check-in and check-out dates for this service</p>
+          <h3 className="text-lg font-medium text-dark-100">Fechas y ciudad</h3>
+          <p className="text-sm text-dark-400">Fechas de entrada/salida y ciudad de destino del servicio</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Check-in Date *
+                Fecha entrada *
               </label>
               <input
                 type="date"
@@ -697,7 +721,7 @@ const NewSaleWizardSteps = ({
             
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                Check-out Date *
+                Fecha salida *
               </label>
               <input
                 type="date"
@@ -710,14 +734,14 @@ const NewSaleWizardSteps = ({
             
             <div>
               <label className="block text-sm font-medium text-dark-200 mb-2">
-                City *
+                Ciudad *
               </label>
               <input
                 type="text"
                 value={destination.city}
                 onChange={(e) => setDestination(prev => ({ ...prev, city: e.target.value }))}
                 className="input-field"
-                placeholder="Enter city name"
+                placeholder="Ciudad de destino"
                 required
               />
             </div>
@@ -728,8 +752,8 @@ const NewSaleWizardSteps = ({
       {/* Step 5: Service Cost & Provider */}
       {currentStep === 5 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Service Cost & Provider</h3>
-          <p className="text-sm text-dark-400">Set the cost and select providers for each service</p>
+          <h3 className="text-lg font-medium text-dark-100">Costo y proveedor</h3>
+          <p className="text-sm text-dark-400">Indicá costo y proveedores para cada servicio</p>
           
           {/* Multiple Services Configuration */}
           {serviceTemplateInstances.map((service, index) => {
@@ -751,30 +775,30 @@ const NewSaleWizardSteps = ({
               >
                 <div className="flex-1">
                   <h4 className="text-lg font-medium text-dark-100">
-                    {index + 1}. {service.serviceName || service.serviceInfo || service.name || 'Service'}
+                    {index + 1}. {service.serviceName || service.serviceInfo || service.name || 'Servicio'}
                   </h4>
                   <div className="mt-2 flex items-center space-x-4">
                     {/* Display cost if set and greater than 0 */}
                     {service.cost > 0 && (
                       <div className="text-sm text-primary-400">
-                        Cost: {service.currency === 'USD' ? 'U$' : service.currency === 'ARS' ? 'AR$' : service.currency} {service.cost}
+                        Costo: {service.currency === 'USD' ? 'U$' : service.currency === 'ARS' ? 'AR$' : service.currency} {service.cost}
                       </div>
                     )}
                     {/* Display providers with quantities if providers selected */}
                     {service.providers && service.providers.length > 0 && (
                       <div className="text-sm text-primary-400">
-                        Providers: {formatProvidersDisplay(service.providers)}
+                        Proveedores: {formatProvidersDisplay(service.providers)}
                       </div>
                     )}
                     {service.provider && !service.providers && (
                       <div className="text-sm text-primary-400">
-                        Provider: {service.provider.name}
+                        Proveedor: {service.provider.name}
                       </div>
                     )}
                     {/* Show status if no cost or providers set */}
                     {(!service.cost || service.cost <= 0) && (!service.providers || service.providers.length === 0) && !service.provider && (
                       <div className="text-sm text-dark-400">
-                        Click to set cost and select providers
+                        Tocá para cargar costo y proveedores
                       </div>
                     )}
                   </div>
@@ -796,8 +820,8 @@ const NewSaleWizardSteps = ({
       {/* Step 6: Edit Services */}
       {currentStep === 6 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Edit Services</h3>
-          <p className="text-sm text-dark-400">Edit and manage your selected services</p>
+          <h3 className="text-lg font-medium text-dark-100">Editar servicios</h3>
+          <p className="text-sm text-dark-400">Revisá y ajustá los servicios elegidos</p>
           
           {/* Current Services Summary */}
           {serviceTemplateInstances.length > 0 && (
@@ -806,7 +830,7 @@ const NewSaleWizardSteps = ({
               <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-                Current Services ({serviceTemplateInstances.length})
+                Servicios actuales ({serviceTemplateInstances.length})
             </h4>
             <div className="space-y-2">
                 {serviceTemplateInstances.map((instance, index) => (
@@ -859,7 +883,7 @@ const NewSaleWizardSteps = ({
           {/* Service Management */}
           {serviceTemplateInstances.length > 0 && (
           <div className="space-y-4">
-              <h4 className="text-md font-medium text-dark-100">Manage Services</h4>
+              <h4 className="text-md font-medium text-dark-100">Gestionar servicios</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {serviceTemplateInstances.map((instance, index) => (
                   <div key={instance.id} className="bg-dark-700/50 border border-white/10 rounded-lg p-4">
@@ -874,7 +898,7 @@ const NewSaleWizardSteps = ({
                         <button
                           onClick={() => editServiceInstance(instance)}
                           className="text-blue-400 hover:text-blue-300 p-1"
-                          title="Edit service"
+                          title="Editar servicio"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -883,7 +907,7 @@ const NewSaleWizardSteps = ({
                         <button
                           onClick={() => removeServiceInstance(instance.id)}
                           className="text-red-400 hover:text-red-300 p-1"
-                          title="Remove service"
+                          title="Quitar servicio"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -893,10 +917,10 @@ const NewSaleWizardSteps = ({
                     </div>
                     
                     <div className="text-xs text-dark-400 space-y-1">
-                      <div><span className="text-primary-400">Dates:</span> {instance.checkIn && instance.checkOut ? `${instance.checkIn} to ${instance.checkOut}` : 'Not specified'}</div>
-                      <div><span className="text-primary-400">Destination:</span> {instance.destination?.city || instance.destination?.name || 'Not specified'}</div>
-                      <div><span className="text-primary-400">Cost:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost || 0).toFixed(2)}</div>
-                      <div><span className="text-primary-400">Providers:</span> {(() => {
+                      <div><span className="text-primary-400">Fechas:</span> {instance.checkIn && instance.checkOut ? `${instance.checkIn} a ${instance.checkOut}` : 'Sin indicar'}</div>
+                      <div><span className="text-primary-400">Destino:</span> {instance.destination?.city || instance.destination?.name || 'Sin indicar'}</div>
+                      <div><span className="text-primary-400">Costo:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost || 0).toFixed(2)}</div>
+                      <div><span className="text-primary-400">Proveedores:</span> {(() => {
                         console.log(`🔍 Service ${instance.templateName} providers:`, instance.providers);
                         console.log(`🔍 Service ${instance.templateName} provider:`, instance.provider);
                         
@@ -904,7 +928,7 @@ const NewSaleWizardSteps = ({
                           // Group providers by name and count occurrences
                           const providerCounts = {};
                           instance.providers.forEach(p => {
-                            const providerName = p.name || p.providerId?.name || 'Unknown Provider';
+                            const providerName = p.name || p.providerId?.name || 'Proveedor desconocido';
                             providerCounts[providerName] = (providerCounts[providerName] || 0) + 1;
                           });
                           
@@ -915,7 +939,7 @@ const NewSaleWizardSteps = ({
                         } else if (instance.provider?.name) {
                           return instance.provider.name;
                         } else {
-                          return 'None';
+                          return 'Ninguno';
                         }
                       })()}</div>
                         </div>
@@ -927,12 +951,37 @@ const NewSaleWizardSteps = ({
         </div>
       )}
 
-      {/* Step 7: Review & Create */}
+      {/* Paso 7: Revisar y confirmar / guardar */}
       {currentStep === 7 && (
         <div className="space-y-8">
+          <div className="bg-dark-800/70 border border-primary-500/25 rounded-xl p-5 text-left">
+            <label htmlFor="nombreVenta" className="block text-sm font-semibold text-dark-100 mb-2">
+              Nombre/Identificación del Viaje/Venta/Reserva
+            </label>
+            <input
+              id="nombreVenta"
+              type="text"
+              value={nombreVenta || ''}
+              onChange={(e) => setNombreVenta(e.target.value)}
+              className="input-field w-full text-dark-100"
+              placeholder="Se sugiere un texto según destinos y servicios cargados"
+              maxLength={200}
+              autoComplete="off"
+            />
+            <p className="text-xs text-dark-400 mt-2 leading-relaxed">
+              Sugerencia: cargá una identificación para esta venta que incluya una palabra de una ciudad de destino relacionada al viaje.
+            </p>
+          </div>
+
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-dark-100 mb-2">Review & Create Sale</h3>
-            <p className="text-dark-400">Please review all information before finalizing your sale</p>
+            <h3 className="text-2xl font-bold text-dark-100 mb-2">
+              {isEditMode ? 'Revisar y guardar venta' : 'Revisar y confirmar venta'}
+            </h3>
+            <p className="text-dark-400">
+              {isEditMode
+                ? 'Revisá todos los datos antes de guardar los cambios'
+                : 'Revisá todos los datos antes de confirmar la venta'}
+            </p>
           </div>
           
           {/* Service Instances Summary */}
@@ -944,7 +993,7 @@ const NewSaleWizardSteps = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-semibold text-primary-200">Services ({serviceTemplateInstances.length})</h4>
+                <h4 className="text-lg font-semibold text-primary-200">Servicios ({serviceTemplateInstances.length})</h4>
               </div>
             </div>
             
@@ -957,17 +1006,17 @@ const NewSaleWizardSteps = ({
                         {index + 1}. {instance.serviceName || instance.templateName} - {instance.serviceInfo}
                       </h5>
                       <div className="text-sm text-dark-300 space-y-1">
-                        <div><span className="text-primary-400">Dates:</span> {instance.checkIn} to {instance.checkOut}</div>
-                        <div><span className="text-primary-400">Destination:</span> {instance.destination.city}</div>
+                        <div><span className="text-primary-400">Fechas:</span> {instance.checkIn} a {instance.checkOut}</div>
+                        <div><span className="text-primary-400">Destino:</span> {instance.destination.city}</div>
                         {instance.cost && instance.cost > 0 && (
-                        <div><span className="text-primary-400">Cost:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost).toFixed(2)}</div>
+                        <div><span className="text-primary-400">Costo:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost).toFixed(2)}</div>
                       )}
-                        <div><span className="text-primary-400">Provider(s):</span> {(() => {
+                        <div><span className="text-primary-400">Proveedor(es):</span> {(() => {
                           if (instance.providers && instance.providers.length > 0) {
                             // Group providers by name and count occurrences
                             const providerCounts = {};
                             instance.providers.forEach(p => {
-                              const providerName = p.name || p.providerId?.name || 'Unknown Provider';
+                              const providerName = p.name || p.providerId?.name || 'Proveedor desconocido';
                               providerCounts[providerName] = (providerCounts[providerName] || 0) + 1;
                             });
                             
@@ -978,7 +1027,7 @@ const NewSaleWizardSteps = ({
                           } else if (instance.provider?.name) {
                             return instance.provider.name;
                           } else {
-                            return 'None';
+                            return 'Ninguno';
                           }
                         })()}</div>
                       </div>
@@ -998,7 +1047,7 @@ const NewSaleWizardSteps = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-semibold text-blue-200">Passengers ({selectedPassengers.length + selectedCompanions.length})</h4>
+                <h4 className="text-lg font-semibold text-blue-200">Pasajeros ({selectedPassengers.length + selectedCompanions.length})</h4>
               </div>
               {(() => {
                 const totalPassengers = selectedPassengers.length + selectedCompanions.length;
@@ -1020,8 +1069,8 @@ const NewSaleWizardSteps = ({
                 <div key={passenger._id} className="bg-dark-800/50 border border-blue-500/20 rounded-lg p-3">
                   <h5 className="font-medium text-dark-100">{passenger.name} {passenger.surname}</h5>
                   <div className="text-sm text-dark-300">
-                    {passenger.phone && <span>Phone: {passenger.phone}</span>}
-                    {passenger.passportNumber && <span className="ml-4">Passport: {passenger.passportNumber}</span>}
+                    {passenger.phone && <span>Tel.: {passenger.phone}</span>}
+                    {passenger.passportNumber && <span className="ml-4">Pasaporte: {passenger.passportNumber}</span>}
                   </div>
                 </div>
               ))}
@@ -1030,8 +1079,8 @@ const NewSaleWizardSteps = ({
                 <div key={companion._id} className="bg-dark-800/50 border border-blue-500/20 rounded-lg p-3">
                   <h5 className="font-medium text-dark-100">{companion.name} {companion.surname}</h5>
                   <div className="text-sm text-dark-300">
-                    {companion.phone && <span>Phone: {companion.phone}</span>}
-                    {companion.passportNumber && <span className="ml-4">Passport: {companion.passportNumber}</span>}
+                    {companion.phone && <span>Tel.: {companion.phone}</span>}
+                    {companion.passportNumber && <span className="ml-4">Pasaporte: {companion.passportNumber}</span>}
                   </div>
                 </div>
               ))}
