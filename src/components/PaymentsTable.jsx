@@ -186,7 +186,7 @@ if (response.data.success) {
   };
 
   // LÓGICA MODIFICADA: Activa el Modal Visor en lugar de abrir pestaña nueva
-  const viewReceipt = async (paymentId) => {
+  const viewReceiptImage = async (paymentId) => {
     try {
       setError('');
       const paymentResponse = await api.get(`/api/payments/${paymentId}`);
@@ -212,17 +212,8 @@ if (response.data.success) {
             setError('Error al obtener la imagen de la nube');
             setTimeout(() => setError(''), 5000);
           }
-        } else if (existingReceipts.has(paymentId)) {
-          const receiptResponse = await api.get(`/api/receipts?paymentId=${paymentId}`);
-          if (receiptResponse.data.success && receiptResponse.data.data.length > 0) {
-            setSelectedPaymentId(paymentId);
-            setShowReceipt(true);
-          } else {
-            setError('No se encontró el recibo');
-            setTimeout(() => setError(''), 5000);
-          }
         } else {
-          setError('No se encontró el recibo');
+          setError('Este pago no tiene imagen de recibo.');
           setTimeout(() => setError(''), 5000);
         }
       }
@@ -230,6 +221,12 @@ if (response.data.success) {
       setError('Error al cargar el recibo');
       setTimeout(() => setError(''), 5000);
     }
+  };
+
+  const viewReceipt = async (paymentId) => {
+    // "Ver" debe abrir/generar el recibo del pago (no la imagen).
+    setSelectedPaymentId(paymentId);
+    setShowReceipt(true);
   };
 
   const checkReceiptStatus = async (paymentId) => {
@@ -386,14 +383,28 @@ const getPaymentTypeColor = (type) => {
                   </td>
                   <td className="px-3 py-4 text-sm text-dark-300">{new Date(payment.date).toLocaleDateString()}</td>
                   <td className="px-3 py-4 text-center">
-                    {(payment.receiptImage || existingReceipts.has(payment._id)) ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <span>{getReceiptIcon(payment.receiptImage)}</span>
-                        <button onClick={() => viewReceipt(payment._id)} className="text-primary-400 hover:text-primary-300 text-xs bg-primary-500/20 px-2 py-1 rounded border border-primary-500/30">Ver</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => generateReceipt(payment._id)} className="text-primary-400 hover:text-primary-300 text-xs bg-primary-500/20 px-2 py-1 rounded border border-primary-500/30">Generar</button>
-                    )}
+                    <div className="flex items-center justify-center space-x-2">
+                      {payment.receiptImage ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); viewReceiptImage(payment._id); }}
+                          className="inline-flex items-center justify-center"
+                          title="Ver imagen del recibo"
+                        >
+                          {getReceiptIcon(payment.receiptImage)}
+                        </button>
+                      ) : (
+                        <span className="text-dark-500" title="Sin imagen">—</span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); viewReceipt(payment._id); }}
+                        className="text-primary-400 hover:text-primary-300 text-xs bg-primary-500/20 px-2 py-1 rounded border border-primary-500/30"
+                      >
+                        Ver
+                      </button>
+                    </div>
                   </td>
                   <td className="px-3 py-4 text-sm text-dark-300 truncate">{payment.notes || '-'}</td>
                 </tr>

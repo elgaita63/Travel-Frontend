@@ -175,7 +175,7 @@ const SearchPage = () => {
             </div>
           </div>
         </div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading sales...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando ventas...</p>
       </div>
     );
   }

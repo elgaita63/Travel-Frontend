@@ -395,7 +395,7 @@ const SalesList = () => {
             </div>
           </div>
         </div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading sales...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando ventas...</p>
       </div>
     );
   }
@@ -406,10 +406,10 @@ const SalesList = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            Sales
+            Ventas
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Manage sales and reservations
+            Gestioná ventas y reservas
           </p>
           
 
@@ -417,7 +417,7 @@ const SalesList = () => {
             onClick={() => navigate('/sales/new')}
             className="btn-primary"
           >
-            Create New Sale
+            Crear nueva venta
           </button>
         </div>
 
@@ -439,7 +439,7 @@ const SalesList = () => {
           {searchLoading && (
             <div className="flex items-center justify-center mb-4">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-200 border-t-primary-500 mr-2"></div>
-              <span className="text-sm text-dark-300">Searching...</span>
+              <span className="text-sm text-dark-300">Buscando...</span>
             </div>
           )}
           
@@ -455,15 +455,15 @@ const SalesList = () => {
               <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-blue-300">Active Filters:</span>
+                    <span className="text-sm font-medium text-blue-300">Filtros activos:</span>
                     {filters.startDate && (
                       <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded">
-                        From: {new Date(filters.startDate).toLocaleDateString()}
+                        Desde: {new Date(filters.startDate).toLocaleDateString()}
                       </span>
                     )}
                     {filters.endDate && (
                       <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded">
-                        To: {new Date(filters.endDate).toLocaleDateString()}
+                        Hasta: {new Date(filters.endDate).toLocaleDateString()}
                       </span>
                     )}
                     {filters.status && (
@@ -610,7 +610,7 @@ const SalesList = () => {
           <div className="mb-8">
             <MultiCurrencySummary 
               currencyData={currencySummary}
-              title="Sales Summary by Currency"
+              title="Resumen de ventas por moneda"
             />
           </div>
         )}
@@ -619,8 +619,8 @@ const SalesList = () => {
         <div className="card p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Sales Overview</h2>
-              <p className="text-dark-300">Comprehensive financial data and profitability analysis</p>
+              <h2 className="text-xl font-semibold text-dark-100 mb-4">Resumen de ventas</h2>
+              <p className="text-dark-300">Datos financieros y análisis de rentabilidad</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -631,7 +631,7 @@ const SalesList = () => {
                     : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                 }`}
               >
-                Comprehensive
+                Completo
               </button>
               <button
                 onClick={() => setViewMode('monthly')}
@@ -641,7 +641,7 @@ const SalesList = () => {
                     : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                 }`}
               >
-                Monthly Analysis
+                Análisis mensual
               </button>
               <button
                 onClick={() => setViewMode('financial')}
@@ -651,7 +651,7 @@ const SalesList = () => {
                     : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                 }`}
               >
-                Financial Summary
+                Resumen financiero
               </button>
               <button
                 onClick={() => setViewMode('traditional')}
@@ -661,7 +661,7 @@ const SalesList = () => {
                     : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                 }`}
               >
-                Traditional View
+                Vista tradicional
               </button>
             </div>
           </div>
@@ -674,6 +674,12 @@ const SalesList = () => {
             onSaleClick={(sale) => navigate(`/sales/${sale.id || sale._id}`)}
             loading={loading}
             selectedCurrency={selectedCurrency}
+            totalSales={totalSales}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
           />
         )}
 
@@ -709,7 +715,7 @@ const SalesList = () => {
             {/* Passengers Table - Moved above Sales Table for better UX */}
             <div className="card overflow-hidden mb-8">
           <div className="px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-dark-100">Sales by Passengers</h2>
+            <h2 className="text-xl font-semibold text-dark-100">Ventas por pasajeros</h2>
           </div>
           {clients.length === 0 ? (
             <div className="py-20 px-6">
@@ -930,7 +936,7 @@ const SalesList = () => {
         {/* Sales Table */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-dark-100">Sales Overview</h2>
+            <h2 className="text-xl font-semibold text-dark-100">Resumen de ventas</h2>
           </div>
           {sales.length === 0 ? (
             <div className="py-20 px-6">

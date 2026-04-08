@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import ProvisionalReceipt from './ProvisionalReceipt';
 import Modal from './Modal';
 
 const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurrency = 'USD' }) => {
@@ -18,8 +17,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
   const [error, setError] = useState('');
   const [exchangeRate, setExchangeRate] = useState('');
   const [convertedAmount, setConvertedAmount] = useState(null);
-  const [showReceipt, setShowReceipt] = useState(false);
-  const [generatedPaymentId, setGeneratedPaymentId] = useState(null);
   const [currencyTypes, setCurrencyTypes] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [showCurrencyTooltip, setShowCurrencyTooltip] = useState(false);
@@ -263,17 +260,10 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
 
       if (response.data.success) {
         const payment = response.data.data.payment;
-        setGeneratedPaymentId(payment._id || payment.id);
-        
-        // REPARACIÓN DEFINITIVA: Solo intentamos mostrar recibo si REALMENTE hay un archivo.
-        // Esto aplica para pasajero, proveedor o vendedor indistintamente.
-        if (receiptFile) {
-          setShowReceipt(true);
-        } else {
-          // Si no hay archivo, refrescamos la tabla y cerramos el formulario de inmediato.
-          onPaymentAdded(payment);
-          onCancel(); 
-        }
+        // El pago puede tener imagen asociada (Supabase) pero el recibo "formal" se visualiza
+        // desde la tabla (ícono de imagen) y el botón "Ver" genera/abre el recibo.
+        onPaymentAdded(payment);
+        onCancel();
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Error al guardar el pago');
@@ -281,34 +271,6 @@ const PaymentForm = ({ saleId, paymentType, onPaymentAdded, onCancel, saleCurren
       setLoading(false);
     }
   };
-
-  const handleReceiptClose = () => {
-    setShowReceipt(false);
-    setGeneratedPaymentId(null);
-    setFormData({
-      amount: '',
-      currencyType: '',
-      paymentMethod: '',
-      date: new Date().toISOString().split('T')[0],
-      notes: ''
-    });
-    setReceiptFile(null);
-    setImagePreview(null); 
-    setExchangeRate('');
-    setConvertedAmount(null);
-    setShowAddMethod(false);
-    setNewMethodName('');
-    setExtractedCurrency('');
-    setShowExchangeRate(false);
-    
-    // Al cerrar el recibo, debemos informar que se agregó el pago y cerrar el form
-    onPaymentAdded();
-    onCancel();
-  };
-
-  if (showReceipt) {
-    return <ProvisionalReceipt paymentId={generatedPaymentId} saleId={saleId} onClose={handleReceiptClose} />;
-  }
 
   return (
     <div className="space-y-4">

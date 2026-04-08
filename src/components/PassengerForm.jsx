@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { API_BASE_URL } from '../config/api';
 
-const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
+const formatApiError = (data) => {
+  if (!data) return 'Error de red o respuesta vacía';
+  if (data.message) return data.message;
+  if (data.error) {
+    if (Array.isArray(data.errors) && data.errors.length) {
+      const parts = data.errors.map((e) => e.message || e.msg || JSON.stringify(e)).filter(Boolean);
+      return parts.length ? `${data.error}: ${parts.join(' · ')}` : data.error;
+    }
+    return data.error;
+  }
+  return 'No se pudo completar la operación';
+};
+
+const PassengerForm = ({ clientId, onPassengerAdded, onCancel, showExistingPicker = true }) => {
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
@@ -24,6 +37,50 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [success, setSuccess] = useState('');
+  const [existingSearch, setExistingSearch] = useState('');
+  const [candidates, setCandidates] = useState([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    if (!showExistingPicker || !clientId) return undefined;
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingCandidates(true);
+        const res = await api.get(`/api/clients/${clientId}/companion-candidates`, {
+          params: { search: existingSearch, limit: 50 }
+        });
+        if (res.data?.success) setCandidates(res.data.data?.candidates || []);
+      } catch (err) {
+        console.error(err);
+        setCandidates([]);
+      } finally {
+        setLoadingCandidates(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [existingSearch, clientId, showExistingPicker]);
+
+  const linkExistingPassenger = async (c) => {
+    setLinking(true);
+    setError('');
+    try {
+      const res = await api.post(`/api/clients/${clientId}/passengers/from-existing`, {
+        sourceClientId: c.id
+      });
+      if (res.data?.success && res.data.data?.passenger) {
+        onPassengerAdded(res.data.data.passenger);
+        setSuccess('¡Pasajero vinculado con éxito!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(formatApiError(res.data));
+      }
+    } catch (err) {
+      setError(formatApiError(err.response?.data));
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const handleChange = (e) => {
     let value = e.target.value;
@@ -135,9 +192,11 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
         return;
       }
       
-      if (!formData.dni?.trim()) {
-        setValidationErrors({ dni: 'El DNI/CUIT es obligatorio' });
-        setError('Por favor, completá todos los campos obligatorios');
+      const dniDigits = formData.dni.replace(/\D/g, '');
+      const passportTrim = formData.passportNumber?.trim() || '';
+      if (!dniDigits && !passportTrim) {
+        setValidationErrors({ dni: 'Indicá DNI o pasaporte' });
+        setError('Debés cargar DNI/CUIT o número de pasaporte (al menos uno)');
         setLoading(false);
         return;
       }
@@ -145,9 +204,10 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
       // Clean up form data
       const cleanedFormData = {
         name: formData.name.trim(),
-        surname: formData.surname.trim(),
-        dni: formData.dni.replace(/\D/g, '')
+        surname: formData.surname.trim()
       };
+      if (dniDigits.length >= 7) cleanedFormData.dni = dniDigits;
+      if (passportTrim) cleanedFormData.passportNumber = passportTrim;
       
       if (formData.email?.trim()) cleanedFormData.email = formData.email.trim();
       if (formData.phone?.trim()) cleanedFormData.phone = formData.phone.trim();
@@ -158,9 +218,9 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
       if (formData.gender) cleanedFormData.gender = formData.gender;
       if (formData.specialRequests?.trim()) cleanedFormData.specialRequests = formData.specialRequests.trim();
 
-      if (cleanedFormData.dni.length < 7 || cleanedFormData.dni.length > 20) {
-        setValidationErrors({ dni: 'DNI must be between 7 and 20 characters' });
-        setError('Por favor, ingresá un DNI válido');
+      if (cleanedFormData.dni && (cleanedFormData.dni.length < 7 || cleanedFormData.dni.length > 20)) {
+        setValidationErrors({ dni: 'DNI debe tener entre 7 y 20 dígitos' });
+        setError('Revisá el DNI o usá solo pasaporte');
         setLoading(false);
         return;
       }
@@ -196,10 +256,10 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
         setSuccess('¡Acompañante agregado con éxito!');
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        setError(responseData.message || 'Error al agregar el acompañante');
+        setError(formatApiError(responseData));
       }
     } catch (error) {
-      setError('Error al agregar el acompañante');
+      setError(error?.message || 'Error al agregar el acompañante');
     } finally {
       setLoading(false);
     }
@@ -207,7 +267,10 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-medium text-dark-100 mb-4">Agregar Nuevo Acompañante</h3>
+      <h3 className="text-lg font-medium text-dark-100 mb-4">Agregar acompañante</h3>
+
+      <h4 className="text-md font-medium text-dark-200 mb-3">Cargar datos nuevos</h4>
+      <p className="text-xs text-dark-500 mb-3">DNI o pasaporte obligatorio (al menos uno). No afecta a otros titulares.</p>
       
       {error && (
         <div className="bg-error-500/10 border border-error-500/20 text-error-400 px-4 py-3 rounded-md mb-4">
@@ -301,15 +364,14 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              DNI/CUIT *
+              DNI/CUIT (si no cargás pasaporte)
             </label>
             <input
               type="text"
               name="dni"
               value={formData.dni}
               onChange={handleChange}
-              required
-              placeholder="Ingresá DNI/CUIT (solo números)"
+              placeholder="Solo números, 7–20 dígitos"
               maxLength={20}
               className={`input-field text-sm ${validationErrors.dni ? 'border-red-500' : ''}`}
             />
@@ -389,7 +451,7 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium text-dark-400 mb-1">
-              Número de Pasaporte
+              Número de pasaporte (si no cargás DNI)
             </label>
             <input
               type="text"
@@ -482,6 +544,46 @@ const PassengerForm = ({ clientId, onPassengerAdded, onCancel }) => {
           </button>
         </div>
       </form>
+
+      {showExistingPicker && clientId ? (
+        <div className="mt-8 p-4 rounded-lg border border-primary-500/30 bg-dark-800/40">
+          <h4 className="text-sm font-semibold text-primary-300 mb-2">Segunda opción: copiar desde otro titular</h4>
+          <p className="text-xs text-dark-400 mb-3">
+            Solo aparecen <strong>otros titulares</strong> de la base. Se crea un acompañante nuevo con los mismos datos; no se desvincula a nadie de su grupo actual.
+          </p>
+          <input
+            type="search"
+            value={existingSearch}
+            onChange={(e) => setExistingSearch(e.target.value)}
+            placeholder="Buscar por nombre, apellido, DNI, pasaporte o email…"
+            className="input-field text-sm w-full mb-3"
+          />
+          <div className="max-h-48 overflow-y-auto space-y-1 rounded border border-white/10">
+            {loadingCandidates ? (
+              <div className="p-3 text-sm text-dark-400">Buscando…</div>
+            ) : candidates.length === 0 ? (
+              <div className="p-3 text-sm text-dark-500">No hay coincidencias.</div>
+            ) : (
+              candidates.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm border-b border-white/5 hover:bg-white/5"
+                >
+                  <span className="text-dark-100">{c.label}</span>
+                  <button
+                    type="button"
+                    disabled={linking}
+                    onClick={() => linkExistingPassenger(c)}
+                    className="btn-primary text-xs py-1 px-2 shrink-0 disabled:opacity-50"
+                  >
+                    {linking ? '…' : 'Copiar como acompañante'}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
 
     </div>
   );

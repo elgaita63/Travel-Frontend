@@ -752,13 +752,13 @@ const SaleEdit = () => {
     return (
       <div className="container mx-auto p-6 text-dark-100 min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-dark-100 mb-4">Sale Not Found</h1>
-          <p className="text-dark-400 mb-6">The sale you're looking for doesn't exist or has been deleted.</p>
+          <h1 className="text-2xl font-bold text-dark-100 mb-4">Venta no encontrada</h1>
+          <p className="text-dark-400 mb-6">La venta que buscás no existe o fue eliminada.</p>
           <button
             onClick={() => navigate('/sales')}
             className="btn-primary"
           >
-            Back to Sales
+            Volver a ventas
           </button>
         </div>
       </div>
@@ -770,22 +770,22 @@ const SaleEdit = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-dark-100">Edit Sale</h1>
-          <p className="text-dark-400">Make granular edits to service template instances</p>
+          <h1 className="text-2xl font-bold text-dark-100">Editar venta</h1>
+          <p className="text-dark-400">Realizá ediciones específicas sobre los servicios de la venta</p>
         </div>
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate(`/sales/${id}`)}
             className="px-4 py-2 text-dark-300 hover:text-dark-100 border border-white/10 rounded-lg"
           >
-            View Sale
+            Ver venta
           </button>
           <button
             onClick={handleSaveAll}
             disabled={saving}
             className="btn-primary"
           >
-            {saving ? 'Saving...' : 'Save All Changes'}
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </div>
@@ -805,18 +805,18 @@ const SaleEdit = () => {
 
       {/* Sale Info */}
       <div className="bg-dark-800 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-dark-100 mb-4">Sale Information</h2>
+        <h2 className="text-lg font-semibold text-dark-100 mb-4">Información de la venta</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <span className="text-sm text-dark-400">Sale ID:</span>
+            <span className="text-sm text-dark-400">ID de venta:</span>
             <div className="text-dark-100 font-medium">{sale._id}</div>
           </div>
           <div>
-            <span className="text-sm text-dark-400">Status:</span>
+            <span className="text-sm text-dark-400">Estado:</span>
             <div className="text-dark-100 font-medium capitalize">{sale.status}</div>
           </div>
           <div>
-            <span className="text-sm text-dark-400">Total Services:</span>
+            <span className="text-sm text-dark-400">Servicios totales:</span>
             <div className="text-dark-100 font-medium">{serviceTemplateInstances.length}</div>
           </div>
         </div>
@@ -826,7 +826,7 @@ const SaleEdit = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-semibold text-dark-100">Service Template Instances</h2>
+            <h2 className="text-lg font-semibold text-dark-100">Servicios</h2>
             {/* <div className="text-sm text-red-400 font-medium">
               Total Cost: {sale?.saleCurrency || 'USD'} {(() => {
                 // Calculate real-time total cost from current serviceTemplateInstances
@@ -847,7 +847,7 @@ const SaleEdit = () => {
           <button
             onClick={() => setShowAddServiceModal(true)}
             className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg transition-colors"
-            title="Add New Service"
+            title="Agregar servicio"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

@@ -3,15 +3,22 @@ import { formatCurrency } from '../utils/formatNumbers';
 import CurrencyDisplay from './CurrencyDisplay';
 import api from '../utils/api';
 
-const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selectedCurrency = 'ARS' }) => {
+const ComprehensiveSalesOverview = ({
+  sales,
+  onSaleClick,
+  loading = false,
+  selectedCurrency = 'ARS',
+  totalSales = 0,
+  currentPage = 1,
+  totalPages = 1,
+  rowsPerPage = 20,
+  onPageChange,
+  onRowsPerPageChange
+}) => {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [allUsers, setAllUsers] = useState([]);
   const [allServices, setAllServices] = useState([]); 
-  
-  // Estados para filtros
-  const [selectedPassenger, setSelectedPassenger] = useState('all');
-  const [selectedProvider, setSelectedProvider] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,41 +40,11 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
     return idObj.$oid || (idObj._id ? (typeof idObj._id === 'string' ? idObj._id : idObj._id.$oid) : idObj.toString());
   };
 
-  const uniquePassengers = React.useMemo(() => {
-    if (!sales) return [];
-    const names = sales.map(s => `${s.clientId?.name || ''} ${s.clientId?.surname || ''}`.trim().toUpperCase()).filter(n => n !== "");
-    return ['all', ...new Set(names)];
-  }, [sales]);
-
-  const uniqueProviders = React.useMemo(() => {
-    if (!sales) return [];
-    const provs = [];
-    sales.forEach(sale => {
-      sale.services?.forEach(srv => {
-        const mSrv = allServices.find(ms => getSafeId(ms._id) === getSafeId(srv.serviceId));
-        provs.push((mSrv?.providerId?.name || srv.providerId?.name || 'PROV. DESCONOCIDO').toUpperCase());
-      });
-    });
-    return ['all', ...new Set(provs)];
-  }, [sales, allServices]);
-
   const filteredSales = React.useMemo(() => {
     if (!sales) return [];
     let result = sales.filter(sale => sale.saleCurrency === selectedCurrency);
-
-    if (selectedPassenger !== 'all') {
-      result = result.filter(sale => `${sale.clientId?.name || ''} ${sale.clientId?.surname || ''}`.trim().toUpperCase() === selectedPassenger);
-    }
-
-    if (selectedProvider !== 'all') {
-      result = result.filter(sale => sale.services?.some(srv => {
-        const mSrv = allServices.find(ms => getSafeId(ms._id) === getSafeId(srv.serviceId));
-        const pName = (mSrv?.providerId?.name || srv.providerId?.name || 'PROV. DESCONOCIDO').toUpperCase();
-        return pName === selectedProvider;
-      }));
-    }
     return result;
-  }, [sales, selectedCurrency, selectedPassenger, selectedProvider, allServices]);
+  }, [sales, selectedCurrency]);
 
   const sortedSales = React.useMemo(() => {
     return [...filteredSales].sort((a, b) => {
@@ -149,18 +126,12 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
                   <th className="px-4 py-3 text-left text-sm font-semibold text-dark-300 uppercase max-w-[250px]">
                     <div className="flex flex-col space-y-1">
                       <span className="cursor-pointer text-base" onClick={() => handleSort('passenger')}>Pasajero {getSortIcon('passenger')}</span>
-                      <select className="bg-dark-800 border border-white/10 rounded text-[10px] py-1 px-1 focus:outline-none text-dark-100 font-normal uppercase" value={selectedPassenger} onChange={(e) => setSelectedPassenger(e.target.value)} onClick={(e)=>e.stopPropagation()}>
-                        {uniquePassengers.map(p => <option key={p} value={p}>{p === 'all' ? 'TODOS LOS PASAJEROS' : p}</option>)}
-                      </select>
                       <span className="text-sm text-dark-200">Destino</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-dark-300 uppercase">
                     <div className="flex flex-col space-y-1">
-                      <span className="cursor-pointer" onClick={() => handleSort('provider')}>Proveedor {getSortIcon('provider')}</span>
-                      <select className="bg-dark-800 border border-white/10 rounded text-[10px] py-1 px-1 focus:outline-none text-dark-100 font-normal uppercase" value={selectedProvider} onChange={(e) => setSelectedProvider(e.target.value)} onClick={(e)=>e.stopPropagation()}>
-                        {uniqueProviders.map(p => <option key={p} value={p}>{p === 'all' ? 'TODOS LOS PROV' : p}</option>)}
-                      </select>
+                      <span>Proveedor</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-dark-300 uppercase cursor-pointer" onClick={() => handleSort('seller')}>Vendedor {getSortIcon('seller')}</th>
@@ -255,6 +226,53 @@ const ComprehensiveSalesOverview = ({ sales, onSaleClick, loading = false, selec
               </tfoot>
             </table>
           </div>
+
+          {typeof totalSales === 'number' && totalSales > 0 && onPageChange && onRowsPerPageChange ? (
+            <div className="px-6 py-4 border-t border-white/10">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-dark-300">Rows per page:</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
+                    className="input-field text-sm py-1 px-2 w-16"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <div className="text-sm text-dark-300">
+                  Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalSales)} of {totalSales} sales
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-dark-300 px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

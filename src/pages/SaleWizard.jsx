@@ -2890,14 +2890,14 @@ const SaleWizard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark-100">
-              {isEditMode ? 'Edit Sale' : isCupoReservation ? 'Cupo Reservation' : 'Create New Sale'}
+              {isEditMode ? 'Editar venta' : isCupoReservation ? 'Reserva de cupo' : 'Crear nueva venta'}
             </h1>
             <p className="text-dark-300 mt-2">
               {isEditMode 
-                ? 'Update the sale information by following the steps below' 
+                ? 'Actualizá la información de la venta siguiendo los pasos' 
                 : isCupoReservation
-                ? 'Reserve seats from your inventory - same process as creating a regular sale'
-                : 'Follow the steps to create a new sale with the updated flow'
+                ? 'Reservá lugares desde tu inventario (mismo flujo que una venta normal)'
+                : 'Seguí los pasos para crear una nueva venta con el flujo actualizado'
               }
             </p>
           </div>
@@ -2905,10 +2905,10 @@ const SaleWizard = () => {
             <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                <span className="text-sm font-medium text-primary-400">Cupo Reservation</span>
+                <span className="text-sm font-medium text-primary-400">Reserva de cupo</span>
               </div>
               <div className="text-xs text-dark-300 mt-1">
-                Available: {cupoContext.availableSeats} seats
+                Disponible: {cupoContext.availableSeats} lugares
               </div>
             </div>
           )}

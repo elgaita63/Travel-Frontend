@@ -159,9 +159,9 @@ const MonthlySales = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-dark-100 mb-2">Monthly Sales</h1>
+            <h1 className="text-4xl font-bold text-dark-100 mb-2">Ventas mensuales</h1>
             <p className="text-dark-300">
-              View all your sales and profit for {new Date(filters.year, filters.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              Visualizá tus ventas y ganancias de {new Date(filters.year, filters.month - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div className="flex items-center space-x-3">
