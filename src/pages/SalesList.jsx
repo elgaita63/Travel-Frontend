@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import ComprehensiveSalesOverview from '../components/ComprehensiveSalesOverview';
 import MonthlyProfitabilityChart from '../components/MonthlyProfitabilityChart';
@@ -47,6 +47,7 @@ const TruncatedText = ({ text, className = '', title = '' }) => {
 
 const SalesList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { formatCurrencyJSX } = useCurrencyFormat();
   
   // Helper function to get earliest start date from all services
@@ -142,6 +143,19 @@ const SalesList = () => {
 
     return () => clearTimeout(timer);
   }, [filters]);
+
+  // Allow deep-linking from other pages (e.g. Cupos -> Sales)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cupoIdFromUrl = params.get('cupoId');
+    if (cupoIdFromUrl) {
+      setFilters(prev => ({
+        ...prev,
+        cupoId: cupoIdFromUrl
+      }));
+      setCurrentPage(1);
+    }
+  }, [location.search]);
 
   const fetchSales = useCallback(async (isInitialLoad = false) => {
     try {

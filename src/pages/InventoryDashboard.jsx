@@ -55,12 +55,12 @@ const InventoryDashboard = () => {
   };
 
   const statusOptions = useMemo(() => [
-    { value: '', label: 'All Statuses' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'sold_out', label: 'Sold Out' },
-    { value: 'cancelled', label: 'Cancelled' },
-    { value: 'completed', label: 'Completed' }
+    { value: '', label: 'Todos' },
+    { value: 'active', label: 'Activo' },
+    { value: 'inactive', label: 'Inactivo' },
+    { value: 'sold_out', label: 'Agotado' },
+    { value: 'cancelled', label: 'Cancelado' },
+    { value: 'completed', label: 'Finalizado' }
   ], []);
 
   const fetchCupos = useCallback(async (isInitialLoad = false) => {
@@ -91,17 +91,17 @@ const InventoryDashboard = () => {
       console.error('Failed to fetch cupos:', error);
       
       if (error.response?.status === 401) {
-        setError('Authentication required. Please log in again.');
+        setError('Autenticación requerida. Por favor, iniciá sesión nuevamente.');
         // Redirect to login if not authenticated
         setTimeout(() => {
           window.location.href = '/login';
         }, 2000);
       } else if (error.response?.status === 403) {
-        setError('Access denied. You need admin or seller permissions to view <CurrencyDisplay>cupos</CurrencyDisplay>.');
+        setError('Acceso denegado. Necesitás permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
       } else if (error.response?.status === 404) {
-        setError('<CurrencyDisplay>Cupos</CurrencyDisplay> endpoint not found. Please check your connection.');
+        setError('No se encontró el endpoint de <CurrencyDisplay>cupos</CurrencyDisplay>. Revisá tu conexión.');
       } else {
-        setError(error.response?.data?.message || 'Failed to fetch <CurrencyDisplay>cupos</CurrencyDisplay>');
+        setError(error.response?.data?.message || 'No se pudieron cargar los <CurrencyDisplay>cupos</CurrencyDisplay>.');
       }
     } finally {
       if (isInitialLoad) {
@@ -140,7 +140,7 @@ const InventoryDashboard = () => {
       }
       
       if (!isAdmin && !isSeller) {
-        setError('Access denied. You need admin or seller permissions to view <CurrencyDisplay>cupos</CurrencyDisplay>.');
+        setError('Acceso denegado. Necesitás permisos de administrador o vendedor para ver <CurrencyDisplay>cupos</CurrencyDisplay>.');
         return;
       }
       
@@ -202,12 +202,12 @@ const InventoryDashboard = () => {
   const handleReserve = useCallback((cupo) => {
     // Check if required data exists
     if (!cupo.serviceId || (!cupo.serviceId.id && !cupo.serviceId._id)) {
-      setError('Invalid service data. Cannot create reservation.');
+      setError('Datos de servicio inválidos. No se puede crear la reserva.');
       return;
     }
 
     if (!cupo.serviceId.providerId || (!cupo.serviceId.providerId.id && !cupo.serviceId.providerId._id)) {
-        setError(`Invalid provider data. Service: ${cupo.serviceId.destino}, Provider: ${cupo.serviceId.providerId ? 'exists but no ID' : 'missing'}. Cannot create reservation.`);
+        setError(`Datos de proveedor inválidos. Servicio: ${cupo.serviceId.destino}, Proveedor: ${cupo.serviceId.providerId ? 'existe pero sin ID' : 'faltante'}. No se puede crear la reserva.`);
       return;
     }
 
@@ -225,7 +225,7 @@ const InventoryDashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 mx-auto mb-4"></div>
-          <p className="text-dark-300">Checking permissions...</p>
+          <p className="text-dark-300">Verificando permisos...</p>
         </div>
       </div>
     );
@@ -244,7 +244,7 @@ const InventoryDashboard = () => {
             </div>
           </div>
         </div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading slots...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando cupos...</p>
       </div>
     );
   }
@@ -255,16 +255,16 @@ const InventoryDashboard = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            <CurrencyDisplay>Cupos</CurrencyDisplay> Dashboard
+            Panel de <CurrencyDisplay>Cupos</CurrencyDisplay>
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Manage pre-purchased <CurrencyDisplay>cupos</CurrencyDisplay> and reservations
+            Gestioná <CurrencyDisplay>cupos</CurrencyDisplay> precomprados y sus reservas
           </p>
           <button
             onClick={() => navigate('/cupos/new')}
             className="btn-primary"
           >
-            Add New Cupo
+            Agregar nuevo cupo
           </button>
         </div>
 
@@ -282,7 +282,7 @@ const InventoryDashboard = () => {
               <button
                 onClick={dismissError}
                 className="text-error-400 hover:text-error-300 transition-colors p-1 rounded-full hover:bg-error-500/10"
-                title="Dismiss error"
+                title="Cerrar"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -299,14 +299,14 @@ const InventoryDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Service
+                  Servicio
                 </label>
                 <select
                   value={filters.serviceId}
                   onChange={(e) => handleFilterChange('serviceId', e.target.value)}
                   className="input-field"
                 >
-                  <option value="">All Services</option>
+                  <option value="">Todos los servicios</option>
                   {services.map((service, index) => (
                     <option key={service._id || service.id || `service-${index}`} value={service._id || service.id}>
                           {service.destino}
@@ -317,7 +317,7 @@ const InventoryDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Status
+                  Estado
                 </label>
                 <select
                   value={filters.status}
@@ -334,7 +334,7 @@ const InventoryDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Min Available Seats
+                  Mínimo de lugares disponibles
                 </label>
                 <input
                   type="number"
@@ -350,7 +350,7 @@ const InventoryDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Start Date
+                  Fecha de inicio
                 </label>
                 <input
                   type="date"
@@ -362,7 +362,7 @@ const InventoryDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2">
-                  Completion Date
+                  Fecha de finalización
                 </label>
                 <input
                   type="date"
@@ -377,7 +377,7 @@ const InventoryDashboard = () => {
                   onClick={clearFilters}
                   className="w-full px-4 py-2 text-sm font-medium text-dark-300 bg-dark-700/50 hover:bg-dark-700 border border-white/10 rounded-md transition-colors"
                 >
-                  Clear Filters
+                  Limpiar filtros
                 </button>
               </div>
             </div>
@@ -394,18 +394,18 @@ const InventoryDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
-                <div className="text-dark-200 text-xl font-bold">No <CurrencyDisplay>cupos</CurrencyDisplay> found</div>
+                <div className="text-dark-200 text-xl font-bold">No se encontraron <CurrencyDisplay>cupos</CurrencyDisplay></div>
               </div>
               <div className="text-center">
                 <p className="text-dark-400 text-sm mb-6">
-                  {Object.values(filters).some(f => f) ? 'Try adjusting your filter criteria' : 'Get started by adding your first cupo'}
+                  {Object.values(filters).some(f => f) ? 'Probá ajustando los filtros' : 'Empezá agregando tu primer cupo'}
                 </p>
                 {!Object.values(filters).some(f => f) && (
                   <button
                     onClick={() => navigate('/cupos/new')}
                     className="btn-primary"
                   >
-                    Add First Cupo
+                    Agregar primer cupo
                   </button>
                 )}
               </div>
@@ -431,7 +431,7 @@ const InventoryDashboard = () => {
                         </p>
                         {cupo.metadata.completionDate && (
                           <p className="text-sm text-dark-400">
-                            Completion: {new Date(cupo.metadata.completionDate).toLocaleDateString()}
+                            Finaliza: {new Date(cupo.metadata.completionDate).toLocaleDateString()}
                           </p>
                         )}
                       </div>
@@ -442,10 +442,21 @@ const InventoryDashboard = () => {
                           cupo.status === 'completed' ? 'badge-secondary' :
                           'badge-error'
                         } justify-center`}>
-                          {cupo.status.replace('_', ' ').toUpperCase()}
+                          {(cupo.status === 'active' ? 'ACTIVO' :
+                            cupo.status === 'inactive' ? 'INACTIVO' :
+                            cupo.status === 'sold_out' ? 'AGOTADO' :
+                            cupo.status === 'cancelled' ? 'CANCELADO' :
+                            cupo.status === 'completed' ? 'FINALIZADO' :
+                            cupo.status.replace('_', ' ').toUpperCase()
+                          )}
                         </span>
                         <span className={`badge ${cupo.availabilityStatus === 'available' ? 'badge-success' : cupo.availabilityStatus === 'limited_availability' ? 'badge-warning' : 'badge-error'} justify-center`}>
-                          {cupo.availabilityStatus === 'limited_availability' ? 'LIMITED AVAIL...' : cupo.availabilityStatus.replace('_', ' ')}
+                          {cupo.availabilityStatus === 'limited_availability'
+                            ? 'DISP. LIMITADA'
+                            : cupo.availabilityStatus === 'available'
+                            ? 'DISPONIBLE'
+                            : cupo.availabilityStatus.replace('_', ' ')
+                          }
                         </span>
                       </div>
                     </div>
@@ -456,22 +467,32 @@ const InventoryDashboard = () => {
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-dark-100">{cupo.totalSeats}</div>
-                        <div className="text-xs text-dark-400">Total Seats</div>
+                        <div className="text-xs text-dark-400">Total</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-primary-400">{cupo.reservedSeats}</div>
-                        <div className="text-xs text-dark-400">Reserved</div>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/sales?cupoId=${encodeURIComponent(cupo.id || cupo._id)}`)}
+                          disabled={!cupo.reservedSeats || !cupo.id && !cupo._id}
+                          className={`text-2xl font-bold text-primary-400 ${
+                            cupo.reservedSeats ? 'hover:underline cursor-pointer' : 'cursor-default opacity-70'
+                          }`}
+                          title="Ver ventas asociadas"
+                        >
+                          {cupo.reservedSeats}
+                        </button>
+                        <div className="text-xs text-dark-400">Reservados</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-success-400">{cupo.availableSeats}</div>
-                        <div className="text-xs text-dark-400">Available</div>
+                        <div className="text-xs text-dark-400">Disponibles</div>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
                     <div className="mb-4">
                       <div className="flex justify-between text-xs text-dark-400 mb-1">
-                        <span>Occupancy</span>
+                        <span>Ocupación</span>
                         <span>{cupo.occupancyPercentage}%</span>
                       </div>
                       <div className="w-full bg-dark-700 rounded-full h-2">
@@ -485,27 +506,27 @@ const InventoryDashboard = () => {
                     {/* Metadata */}
                     {cupo.metadata.roomType && (
                       <div className="text-sm text-dark-300 mb-2">
-                        <span className="font-medium">Room Type:</span> {cupo.metadata.roomType}
+                        <span className="font-medium">Tipo de habitación:</span> {cupo.metadata.roomType}
                       </div>
                     )}
                     {cupo.metadata.flightName && (
                       <div className="text-sm text-dark-300 mb-2">
-                        <span className="font-medium">Flight:</span> {cupo.metadata.flightName}
+                        <span className="font-medium">Vuelo:</span> {cupo.metadata.flightName}
                       </div>
                     )}
                     {cupo.metadata.destination && (
                       <div className="text-sm text-dark-300 mb-2">
-                        <span className="font-medium">Destination:</span> {cupo.metadata.destination}
+                        <span className="font-medium">Destino:</span> {cupo.metadata.destination}
                       </div>
                     )}
                     {cupo.metadata.value && (
                       <div className="text-sm text-dark-300 mb-2">
-                        <span className="font-medium">Value:</span> {cupo.metadata.currency === 'USD' ? 'U$' : cupo.metadata.currency === 'ARS' ? 'AR$' : cupo.metadata.currency} {cupo.metadata.value.toLocaleString()}
+                        <span className="font-medium">Valor:</span> {cupo.metadata.currency === 'USD' ? 'U$' : cupo.metadata.currency === 'ARS' ? 'AR$' : cupo.metadata.currency} {cupo.metadata.value.toLocaleString()}
                       </div>
                     )}
                     {cupo.metadata.providerRef && (
                       <div className="text-sm text-dark-300 mb-4">
-                        <span className="font-medium">Provider Ref:</span> {cupo.metadata.providerRef}
+                        <span className="font-medium">Ref. proveedor:</span> {cupo.metadata.providerRef}
                       </div>
                     )}
 
@@ -533,25 +554,25 @@ const InventoryDashboard = () => {
                         }`}
                         title={
                           cupo.status === 'completed'
-                            ? 'Service completed'
+                            ? 'Servicio finalizado'
                             : !cupo.serviceId || (!cupo.serviceId.id && !cupo.serviceId._id)
-                            ? 'Missing service data'
+                            ? 'Faltan datos del servicio'
                             : !cupo.serviceId.providerId || (!cupo.serviceId.providerId.id && !cupo.serviceId.providerId._id)
-                            ? 'Missing provider data'
+                            ? 'Faltan datos del proveedor'
                             : cupo.availableSeats === 0
-                            ? 'Sold out'
-                            : 'Click to reserve'
+                            ? 'Agotado'
+                            : 'Click para reservar'
                         }
                       >
                         {cupo.status === 'completed'
-                          ? 'Completed'
+                          ? 'Finalizado'
                           : cupo.availableSeats === 0 
-                          ? 'Sold Out' 
+                          ? 'Agotado' 
                           : !cupo.serviceId || (!cupo.serviceId.id && !cupo.serviceId._id)
-                          ? 'No Service'
+                          ? 'Sin servicio'
                           : !cupo.serviceId.providerId || (!cupo.serviceId.providerId.id && !cupo.serviceId.providerId._id)
-                          ? 'No Provider'
-                          : 'Reserve'
+                          ? 'Sin proveedor'
+                          : 'Reservar'
                         }
                       </button>
                       <button
@@ -562,9 +583,9 @@ const InventoryDashboard = () => {
                             ? 'bg-dark-800 text-dark-500 cursor-not-allowed'
                             : 'bg-dark-700 text-dark-200 hover:bg-dark-600'
                         }`}
-                        title={cupo.status === 'completed' ? 'Service completed' : 'View details'}
+                        title={cupo.status === 'completed' ? 'Servicio finalizado' : 'Ver detalles'}
                       >
-                        View
+                        Ver
                       </button>
                     </div>
                   </div>
@@ -581,20 +602,20 @@ const InventoryDashboard = () => {
                     disabled={currentPage === 1}
                     className="relative inline-flex items-center px-4 py-2 border border-white/10 text-sm font-medium rounded-md text-dark-200 bg-dark-700/50 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
-                    Previous
+                    Anterior
                   </button>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-white/10 text-sm font-medium rounded-md text-dark-200 bg-dark-700/50 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
-                    Next
+                    Siguiente
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-dark-300">
-                      Page <span className="font-medium text-dark-100">{currentPage}</span> of{' '}
+                      Página <span className="font-medium text-dark-100">{currentPage}</span> de{' '}
                       <span className="font-medium text-dark-100">{totalPages}</span>
                     </p>
                   </div>
@@ -605,14 +626,14 @@ const InventoryDashboard = () => {
                         disabled={currentPage === 1}
                         className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-white/10 bg-dark-700/50 text-sm font-medium text-dark-300 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                       >
-                        Previous
+                        Anterior
                       </button>
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
                         className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-white/10 bg-dark-700/50 text-sm font-medium text-dark-300 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                       >
-                        Next
+                        Siguiente
                       </button>
                     </nav>
                   </div>
