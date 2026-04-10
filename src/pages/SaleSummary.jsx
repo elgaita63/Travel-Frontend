@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import PaymentsTable from '../components/PaymentsTable';
 import ProfitChart from '../components/ProfitChart';
@@ -8,6 +9,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { formatCurrencyCompact, formatWithWarning, formatCurrencyFull, getCurrencySymbol } from '../utils/formatNumbers';
 import { formatDateOnlyLocal } from '../utils/dateDisplay';
+import { downloadSaleVoucherDocx } from '../utils/saleVoucherDocx';
 
 // Component for individual provider cards with expandable details
 const ProviderCard = ({ provider, serviceIndex, providerIndex, saleCurrency = 'USD' }) => {
@@ -392,6 +394,7 @@ const SaleSummary = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAuth();
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -400,6 +403,7 @@ const SaleSummary = () => {
   const [showPassengers, setShowPassengers] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [voucherLoading, setVoucherLoading] = useState(false);
 
   useEffect(() => {
     fetchSale();
@@ -469,14 +473,9 @@ const SaleSummary = () => {
   };
 
   const handlePaymentAdded = async () => {
-    // Refresh sale data to get updated balances
     await fetchSale();
-    
-    // Check if status should be updated after payment
-    if (sale && sale.clientBalance <= 0 && sale.status === 'open') {
-      console.log('Payment added - checking if sale should be closed...');
-      await checkSaleStatus();
-    }
+    // checkAndUpdateStatus ya corre en el backend al registrar/editar pagos; un PUT extra a check-status
+    // aquí competía en carrera y podía disparar dos veces el cierre/comisión para la misma venta.
   };
 
   // Function to check and update sale status
@@ -504,6 +503,19 @@ const SaleSummary = () => {
   };
 
   // Function to delete sale
+  const handleDownloadVoucher = async () => {
+    if (!sale) return;
+    try {
+      setVoucherLoading(true);
+      await downloadSaleVoucherDocx(sale);
+    } catch (e) {
+      console.error(e);
+      alert(`No se pudo generar el PDF: ${e.message || 'error desconocido'}`);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
   const handleDeleteSale = async () => {
     try {
       setIsDeleting(true);
@@ -731,7 +743,7 @@ const SaleSummary = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-dark-100">Resumen de Venta</h1>
-              <p className="text-dark-300 mt-2">ID de Venta: {sale.id}</p>
+              <p className="text-dark-300 mt-2">ID de Venta: {sale.id || sale._id}</p>
             </div>
             <div className="flex space-x-3">
               <button
@@ -742,7 +754,7 @@ const SaleSummary = () => {
                 🔄 Chequear Estatus
               </button>
               <button
-                onClick={() => navigate(`/sales/${sale.id}/edit`)}
+                onClick={() => navigate(`/sales/${sale.id || sale._id}/edit`)}
                 className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
                 title="Editar Venta"
               >
@@ -759,15 +771,18 @@ const SaleSummary = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                title="Eliminar Venta"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  title="Eliminar venta (solo administración)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -777,7 +792,25 @@ const SaleSummary = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Sale Information */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-dark-100 mb-4">Información de la Venta</h2>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <h2 className="text-xl font-semibold text-dark-100">Información de la Venta</h2>
+                <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleDownloadVoucher}
+                    disabled={voucherLoading}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-500/20 text-primary-300 hover:bg-primary-500/30 border border-primary-500/40 text-sm font-semibold transition-colors disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap"
+                  >
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {voucherLoading ? 'Generando Word…' : 'Generar Voucher de venta'}
+                  </button>
+                  <p className="text-xs text-dark-500 max-w-xs text-right">
+                    Descarga un .docx editable con los datos de la reserva.
+                  </p>
+                </div>
+              </div>
               {sale.nombreVenta && (
                 <div className="mb-4 pb-4 border-b border-white/10">
                   <label className="block text-sm font-medium text-dark-200">Nombre/Identificación del Viaje/Venta/Reserva</label>
@@ -1169,7 +1202,7 @@ const SaleSummary = () => {
             {/* Payments */}
             <div className="bg-dark-700 shadow rounded-lg p-6">
               <PaymentsTable
-                saleId={sale.id}
+                saleId={sale.id || sale._id}
                 sale={sale}
                 onPaymentAdded={handlePaymentAdded}
                 saleCurrency={sale.saleCurrency}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
+import PassportImagePasteArea from './PassportImagePasteArea';
 
 const ServiceCostProviderModal = ({ 
   isOpen, 
@@ -23,6 +24,9 @@ const ServiceCostProviderModal = ({
   const [providerFiles, setProviderFiles] = useState({}); // Store files by provider ID
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingProvider, setViewingProvider] = useState(null);
+  const [aiFile, setAiFile] = useState(null);
+  const [aiPreviewUrl, setAiPreviewUrl] = useState('');
+  const [aiExtracting, setAiExtracting] = useState(false);
 
   // Update currency when globalCurrency changes
   useEffect(() => {
@@ -62,8 +66,63 @@ const ServiceCostProviderModal = ({
       setSelectedProviders(currentProviders);
       setLocalProviderSearch('');
       setError('');
+      setAiFile(null);
+      if (aiPreviewUrl) URL.revokeObjectURL(aiPreviewUrl);
+      setAiPreviewUrl('');
     }
   }, [isOpen, service]);
+
+  const applyAiFile = (file) => {
+    if (!file) return;
+    setAiFile(file);
+    setError('');
+    if (aiPreviewUrl) URL.revokeObjectURL(aiPreviewUrl);
+    if (file.type && file.type.startsWith('image/')) {
+      setAiPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setAiPreviewUrl('');
+    }
+  };
+
+  const handleExtractSupplierLiquidation = async () => {
+    if (!aiFile) {
+      toast.error('Subí o pegá una imagen de la liquidación/factura');
+      return;
+    }
+    setAiExtracting(true);
+    try {
+      const fd = new FormData();
+      fd.append('receipt', aiFile);
+      const res = await api.post('/api/receipts/extract-supplier-liquidation', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || 'No se pudo extraer');
+      }
+
+      const d = res.data.data || {};
+      if (typeof d.totalCost === 'number') setServiceCost(d.totalCost);
+      if (d.currency) setServiceCurrency(String(d.currency).toUpperCase());
+
+      // Si hay un solo proveedor seleccionado, aplicamos también commissionRate si viene.
+      if (selectedProviders.length === 1 && d.commissionRate != null) {
+        const pct = Number(d.commissionRate);
+        if (Number.isFinite(pct)) {
+          setSelectedProviders((prev) =>
+            prev.map((p) => ({ ...p, commissionRate: Math.min(100, Math.max(0, pct)) }))
+          );
+        }
+      }
+
+      toast.success('Liquidación extraída. Revisá los datos antes de guardar.');
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || 'No se pudo extraer la liquidación';
+      toast.error(msg);
+    } finally {
+      setAiExtracting(false);
+    }
+  };
 
   const handleProviderToggle = (provider) => {
     setSelectedProviders(prev => {
@@ -375,6 +434,59 @@ const ServiceCostProviderModal = ({
           <div className="space-y-4">
             <h4 className="text-lg font-medium text-dark-100">Proveedores del servicio</h4>
             <p className="text-sm text-dark-400">Elegí proveedores para este servicio (hasta 7)</p>
+
+            {/* IA: extracción de liquidación/factura */}
+            <div className="bg-dark-800/40 border border-white/10 rounded-lg p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h5 className="text-sm font-semibold text-dark-100">Liquidación / Factura (IA)</h5>
+                  <p className="text-xs text-dark-400 mt-1">
+                    Subí o pegá una imagen del comprobante para completar costo y moneda automáticamente.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExtractSupplierLiquidation}
+                    disabled={aiExtracting || !aiFile}
+                    className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                  >
+                    {aiExtracting ? 'Extrayendo…' : 'Extraer con IA'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      onChange={(e) => applyAiFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept="image/*,.pdf"
+                    />
+                    <button type="button" className="btn-secondary text-sm w-full py-2">
+                      Subir archivo (imagen o PDF)
+                    </button>
+                  </div>
+                  <PassportImagePasteArea onImageFile={applyAiFile} disabled={aiExtracting} />
+                  <p className="text-[11px] text-dark-500">
+                    Si el comprobante es PDF, para IA usá una captura (imagen). El PDF igual lo podés adjuntar como documento del proveedor.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-dark-900/30 p-3">
+                  <div className="text-xs text-dark-400 mb-2">Vista previa</div>
+                  {aiPreviewUrl ? (
+                    <img src={aiPreviewUrl} alt="Liquidación preview" className="w-full max-h-40 object-contain rounded" />
+                  ) : (
+                    <div className="text-xs text-dark-500">
+                      {aiFile ? `Archivo: ${aiFile.name}` : 'Sin archivo seleccionado'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             
             {/* Selected Providers */}
             {selectedProviders.length > 0 && (

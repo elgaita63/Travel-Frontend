@@ -186,10 +186,10 @@ const SearchPage = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            Quick Search
+            Buscar ventas
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Search sales by passenger name, email, DNI, or acompañante information
+            Buscá ventas por nombre de pasajero, email, DNI o datos de acompañantes
           </p>
         </div>
 
@@ -211,20 +211,20 @@ const SearchPage = () => {
           {searchLoading && (
             <div className="flex items-center justify-center mb-4">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-200 border-t-primary-500 mr-2"></div>
-              <span className="text-sm text-dark-300">Searching...</span>
+              <span className="text-sm text-dark-300">Buscando…</span>
             </div>
           )}
           
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-semibold text-dark-200 mb-4">
-                Search Sales
+                Buscar en ventas
               </label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by passenger name, email, DNI, or acompañante information..."
+                placeholder="Nombre, email, DNI, acompañante…"
                 className="input-field w-full"
               />
             </div>
@@ -237,7 +237,7 @@ const SearchPage = () => {
                 }}
                 className="px-4 py-3 text-sm font-medium text-white bg-dark-600 hover:bg-dark-500 border border-white/20 rounded-md h-12"
               >
-                Clear Search
+                Limpiar
               </button>
             </div>
           </div>
@@ -246,9 +246,9 @@ const SearchPage = () => {
         {/* Sales Table */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-dark-100">Search Results</h2>
+            <h2 className="text-xl font-semibold text-dark-100">Resultados</h2>
             <p className="text-sm text-dark-300 mt-1">
-              {totalSales > 0 ? `Found ${totalSales} sales` : 'No sales found'}
+              {totalSales > 0 ? `${totalSales} venta${totalSales === 1 ? '' : 's'}` : 'Sin resultados'}
             </p>
           </div>
           {sales.length === 0 ? (

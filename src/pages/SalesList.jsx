@@ -98,12 +98,11 @@ const SalesList = () => {
     search: '',
     includeNoSales: 'true',
     providerId: '',
-    createdBy: '',
-    currency: '',
+    createdByIds: [],
+    currency: 'USD',
     cupoId: ''
   });
   const [viewMode, setViewMode] = useState('comprehensive'); // 'comprehensive', 'monthly', 'financial', 'traditional'
-  const [selectedCurrency, setSelectedCurrency] = useState('USD'); // Default to USD to match currency summary
   const [debouncedFilters, setDebouncedFilters] = useState({
     status: '',
     startDate: '',
@@ -112,8 +111,8 @@ const SalesList = () => {
     search: '',
     includeNoSales: 'true',
     providerId: '',
-    createdBy: '',
-    currency: '',
+    createdByIds: [],
+    currency: 'USD',
     cupoId: ''
   });
   
@@ -134,6 +133,23 @@ const SalesList = () => {
   useEffect(() => {
     debouncedFiltersRef.current = debouncedFilters;
   }, [debouncedFilters]);
+
+  const displayCurrency = debouncedFilters.currency || 'USD';
+
+  const toggleSellerFilter = (userId) => {
+    const id = String(userId);
+    setFilters((prev) => {
+      const cur = prev.createdByIds || [];
+      const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+      return { ...prev, createdByIds: next };
+    });
+    setCurrentPage(1);
+  };
+
+  const clearSellerFilter = () => {
+    setFilters((prev) => ({ ...prev, createdByIds: [] }));
+    setCurrentPage(1);
+  };
 
   // Get status options from i18n
   const statusOptions = getDropdownOptions.status();
@@ -168,12 +184,22 @@ const SalesList = () => {
         setSearchLoading(true);
       }
       
-      // Get current values from refs
-      const params = new URLSearchParams({
-        page: currentPageRef.current,
-        limit: rowsPerPageRef.current,
-        ...debouncedFiltersRef.current
-      });
+      const df = debouncedFiltersRef.current;
+      const params = new URLSearchParams();
+      params.set('page', String(currentPageRef.current));
+      params.set('limit', String(rowsPerPageRef.current));
+      params.set('search', df.search ?? '');
+      params.set('includeNoSales', df.includeNoSales ?? 'true');
+      if (df.status) params.set('status', df.status);
+      if (df.startDate) params.set('startDate', df.startDate);
+      if (df.endDate) params.set('endDate', df.endDate);
+      if (df.dateRangeType) params.set('dateRangeType', df.dateRangeType);
+      if (df.providerId) params.set('providerId', df.providerId);
+      if (df.currency) params.set('currency', df.currency);
+      if (df.cupoId) params.set('cupoId', df.cupoId);
+      if (df.createdByIds && df.createdByIds.length > 0) {
+        params.set('createdBy', df.createdByIds.join(','));
+      }
 
       console.log('Fetching sales with filters:', debouncedFiltersRef.current);
       console.log('API URL:', `/api/sales?${params}`);
@@ -284,7 +310,7 @@ const SalesList = () => {
   }, [currentPage, debouncedFilters, rowsPerPage, loading]);
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [field]: value
     }));
@@ -303,8 +329,8 @@ const SalesList = () => {
         search: '',
         includeNoSales: 'true',
         providerId: '',
-        createdBy: '',
-        currency: '',
+        createdByIds: [],
+        currency: 'USD',
         cupoId: ''
       });
       navigate('/sales');
@@ -317,8 +343,8 @@ const SalesList = () => {
         search: '',
         includeNoSales: 'true',
         providerId: '',
-        createdBy: '',
-        currency: '',
+        createdByIds: [],
+        currency: 'USD',
         cupoId: ''
       });
       navigate('/sales?tab=passengers');
@@ -334,8 +360,8 @@ const SalesList = () => {
       search: '',
       includeNoSales: 'true',
       providerId: '',
-      createdBy: '',
-      currency: '',
+      createdByIds: [],
+      currency: 'USD',
       cupoId: ''
     });
     setCurrentPage(1);
@@ -417,14 +443,6 @@ const SalesList = () => {
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
             Gestioná ventas y reservas
           </p>
-          
-
-          <button
-            onClick={() => navigate('/sales/new')}
-            className="btn-primary"
-          >
-            Crear nueva venta
-          </button>
         </div>
 
         {error && (
@@ -457,7 +475,7 @@ const SalesList = () => {
             </div> */}
             
             {/* Active Filters Summary */}
-            {(filters.startDate || filters.endDate || filters.status || filters.providerId || filters.createdBy || filters.currency || filters.cupoId) && (
+            {(filters.startDate || filters.endDate || filters.status || filters.providerId || (filters.createdByIds && filters.createdByIds.length > 0) || filters.currency || filters.cupoId) && (
               <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -486,7 +504,12 @@ const SalesList = () => {
                     )}
                     {filters.currency && (
                       <span className="px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded">
-                        Currency: {filters.currency}
+                        Divisa: {filters.currency}
+                      </span>
+                    )}
+                    {filters.createdByIds && filters.createdByIds.length > 0 && (
+                      <span className="px-2 py-1 bg-amber-600 text-amber-100 text-xs rounded">
+                        Vendedores: {filters.createdByIds.length} seleccionado{filters.createdByIds.length > 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
@@ -499,136 +522,164 @@ const SalesList = () => {
                 </div>
               </div>
             )}
-            <div className="sales-filter-grid">
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('status')}
-                </label>
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="input-field"
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+            <div className="sales-filter-rows space-y-4 max-w-[1200px] mx-auto">
+              <div className="sales-filter-grid">
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    Rango de fechas según
+                  </label>
+                  <select
+                    value={filters.dateRangeType || 'creation'}
+                    onChange={(e) => handleFilterChange('dateRangeType', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="creation">Fecha de creación del registro de venta</option>
+                    <option value="trip">Fecha de inicio del viaje (servicios)</option>
+                  </select>
+                  <p className="text-xs text-dark-500 mt-2">
+                    «Desde» / «Hasta» aplican a la opción elegida: creación en el sistema o la primera fecha de servicio del viaje.
+                  </p>
+                </div>
+
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('startDate')} {filters.startDate && <span className="text-green-400">●</span>}
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('endDate')} {filters.endDate && <span className="text-green-400">●</span>}
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('status')}
+                  </label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="input-field"
+                  >
+                    {statusOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('currency')}
-                </label>
-                <select
-                  value={selectedCurrency}
-                  onChange={(e) => setSelectedCurrency(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="ARS"><CurrencyDisplay>ARS (AR$)</CurrencyDisplay></option>
-                  <option value="USD"><CurrencyDisplay>USD (U$)</CurrencyDisplay></option>
-                </select>
-              </div>
+              <div className="sales-filter-grid">
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('currency')}
+                  </label>
+                  <select
+                    value={filters.currency || 'USD'}
+                    onChange={(e) => handleFilterChange('currency', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="ARS"><CurrencyDisplay>ARS (AR$)</CurrencyDisplay></option>
+                    <option value="USD"><CurrencyDisplay>USD (U$)</CurrencyDisplay></option>
+                  </select>
+                </div>
 
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('provider')}
+                  </label>
+                  <select
+                    value={filters.providerId}
+                    onChange={(e) => handleFilterChange('providerId', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">{t('allProviders')}</option>
+                    {providers.map(provider => (
+                      <option key={provider._id} value={provider._id}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="filter-dropdown-container lg:col-span-2">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  Rango de fechas según
-                </label>
-                <select
-                  value={filters.dateRangeType || 'creation'}
-                  onChange={(e) => handleFilterChange('dateRangeType', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="creation">Fecha de creación del registro de venta</option>
-                  <option value="trip">Fecha de inicio del viaje (servicios)</option>
-                </select>
-                <p className="text-xs text-dark-500 mt-2">
-                  «Desde» / «Hasta» aplican a la opción elegida: creación en el sistema o la primera fecha de servicio del viaje.
-                </p>
-              </div>
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
+                    {t('salesperson')}
+                  </label>
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-dark-800/40 p-2 space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={clearSellerFilter}
+                      className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
+                        filters.createdByIds.length === 0
+                          ? 'bg-primary-600/25 text-primary-200 font-semibold ring-1 ring-primary-500/40'
+                          : 'text-dark-200 hover:bg-dark-700/50'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {users.length === 0 ? (
+                      <p className="text-xs text-dark-500 px-1">Sin vendedores</p>
+                    ) : (
+                      users.map((user) => {
+                        const uid = String(user._id);
+                        const checked = filters.createdByIds.includes(uid);
+                        const label = user.firstName && user.lastName
+                          ? `${user.firstName} ${user.lastName}`
+                          : user.username;
+                        return (
+                          <label
+                            key={uid}
+                            className="flex items-center gap-2 text-sm text-dark-200 cursor-pointer hover:bg-dark-700/40 rounded px-1 py-0.5"
+                          >
+                            <input
+                              type="checkbox"
+                              className="rounded border-dark-500 text-primary-500 focus:ring-primary-500"
+                              checked={checked}
+                              onChange={() => toggleSellerFilter(uid)}
+                            />
+                            <span className="truncate">{label} <span className="text-dark-500 text-xs">({user.role})</span></span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                  <p className="text-xs text-dark-500 mt-1">Todos: sin filtro por vendedor. Podés marcar uno o más vendedores.</p>
+                </div>
 
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('startDate')} {filters.startDate && <span className="text-green-400">●</span>}
-                </label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="input-field"
-                  placeholder="Select start date"
-                />
-              </div>
-
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('endDate')} {filters.endDate && <span className="text-green-400">●</span>}
-                </label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="input-field"
-                  placeholder="Select end date"
-                />
-              </div>
-
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('provider')}
-                </label>
-                <select
-                  value={filters.providerId}
-                  onChange={(e) => handleFilterChange('providerId', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">{t('allProviders')}</option>
-                  {providers.map(provider => (
-                    <option key={provider._id} value={provider._id}>
-                      {provider.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words">
-                  {t('salesperson')}
-                </label>
-                <select
-                  value={filters.createdBy}
-                  onChange={(e) => handleFilterChange('createdBy', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">{t('allSalespeople')}</option>
-                  {users.map(user => (
-                    <option key={user._id} value={user._id}>
-                      {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username} ({user.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-dropdown-container">
-                <label className="block text-sm font-semibold text-dark-200 mb-4 break-words notranslate">
-                  Cupo Filter
-                </label>
-                <select
-                  value={filters.cupoId}
-                  onChange={(e) => handleFilterChange('cupoId', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="" className="notranslate">All Sales</option>
-                  <option value="none" className="notranslate">No-Cupo Sales</option>
-                  <option value="all_quotas" className="notranslate">All Cupo Sales</option>
-                  {availableQuotas.map(quota => (
-                    <option key={quota._id} value={quota._id} className="notranslate">
-                      {quota.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="filter-dropdown-container">
+                  <label className="block text-sm font-semibold text-dark-200 mb-2 break-words notranslate">
+                    Cupo
+                  </label>
+                  <select
+                    value={filters.cupoId}
+                    onChange={(e) => handleFilterChange('cupoId', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="" className="notranslate">Todas las ventas</option>
+                    <option value="none" className="notranslate">Sin cupo</option>
+                    <option value="all_quotas" className="notranslate">Con cupo (cualquiera)</option>
+                    {availableQuotas.map(quota => (
+                      <option key={quota._id} value={quota._id} className="notranslate">
+                        {quota.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -703,7 +754,7 @@ const SalesList = () => {
             sales={sales}
             onSaleClick={(sale) => navigate(`/sales/${sale.id || sale._id}`)}
             loading={loading}
-            selectedCurrency={selectedCurrency}
+            selectedCurrency={displayCurrency}
             totalSales={totalSales}
             currentPage={currentPage}
             totalPages={totalPages}
@@ -717,7 +768,7 @@ const SalesList = () => {
         {viewMode === 'monthly' && (
           <MonthlyProfitabilityChart
             sales={sales}
-            selectedCurrency={selectedCurrency}
+            selectedCurrency={displayCurrency}
             onMonthClick={(month) => {
               // Filter sales by month and show in comprehensive view
               const monthSales = sales.filter(sale => {
@@ -734,7 +785,7 @@ const SalesList = () => {
         {viewMode === 'financial' && (
           <FinancialSummary
             sales={sales}
-            selectedCurrency={selectedCurrency}
+            selectedCurrency={displayCurrency}
             period="all"
           />
         )}
@@ -805,10 +856,10 @@ const SalesList = () => {
                   <tbody className="divide-y divide-white/10">
                     {clients.filter(client => {
                       // Filter clients that have sales in the selected currency
-                      return client.sales && client.sales.some(sale => sale.saleCurrency === selectedCurrency);
+                      return client.sales && client.sales.some(sale => sale.saleCurrency === displayCurrency);
                     }).map((client) => {
                       // Filter sales by selected currency
-                      const filteredSales = client.sales.filter(sale => sale.saleCurrency === selectedCurrency);
+                      const filteredSales = client.sales.filter(sale => sale.saleCurrency === displayCurrency);
                       
                       return (
                       <tr key={client._id} className="table-row cursor-pointer">
@@ -846,7 +897,7 @@ const SalesList = () => {
                           <CurrencyDisplay>
                             {(() => {
                               const totalSales = filteredSales.reduce((sum, sale) => sum + (sale.totalSalePrice || 0), 0);
-                              return formatCurrencyJSX(totalSales, selectedCurrency, 'en-US', '');
+                              return formatCurrencyJSX(totalSales, displayCurrency, 'en-US', '');
                             })()}
                           </CurrencyDisplay>
                         </td>
@@ -854,7 +905,7 @@ const SalesList = () => {
                           <CurrencyDisplay>
                             {(() => {
                               const totalProfit = filteredSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-                              return formatCurrencyJSX(totalProfit, selectedCurrency, 'en-US', '');
+                              return formatCurrencyJSX(totalProfit, displayCurrency, 'en-US', '');
                             })()}
                           </CurrencyDisplay>
                         </td>
@@ -1049,7 +1100,7 @@ const SalesList = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {sales.filter(sale => sale.saleCurrency === selectedCurrency).map((sale) => {
+                    {sales.filter(sale => sale.saleCurrency === displayCurrency).map((sale) => {
                       const earliestStartDate = getEarliestStartDate(sale);
                       const latestEndDate = getLatestEndDate(sale);
                       
@@ -1091,19 +1142,19 @@ const SalesList = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-dark-100">
-                            <CurrencyDisplay>{formatCurrencyJSX(sale.totalSalePrice, selectedCurrency, 'en-US', '')}</CurrencyDisplay>
+                            <CurrencyDisplay>{formatCurrencyJSX(sale.totalSalePrice, displayCurrency, 'en-US', '')}</CurrencyDisplay>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-dark-100">
-                            <CurrencyDisplay>{formatCurrencyJSX(sale.totalCost, selectedCurrency, 'en-US', '')}</CurrencyDisplay>
+                            <CurrencyDisplay>{formatCurrencyJSX(sale.totalCost, displayCurrency, 'en-US', '')}</CurrencyDisplay>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`text-sm font-medium ${
                             sale.profit >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            <CurrencyDisplay>{formatCurrencyJSX(sale.profit, selectedCurrency, 'en-US', '')}</CurrencyDisplay>
+                            <CurrencyDisplay>{formatCurrencyJSX(sale.profit, displayCurrency, 'en-US', '')}</CurrencyDisplay>
                           </div>
                           <div className="text-xs text-dark-400">
                             {sale.totalSalePrice > 0 ? Math.round((sale.profit / sale.totalSalePrice) * 100) : 0}% margin
@@ -1112,7 +1163,7 @@ const SalesList = () => {
                         {/* CELDA COMISION AGREGADA AQUI */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-bold text-accent-400">
-                            <CurrencyDisplay>{formatCurrencyJSX(comisionImporte, selectedCurrency, 'en-US', '')}</CurrencyDisplay>
+                            <CurrencyDisplay>{formatCurrencyJSX(comisionImporte, displayCurrency, 'en-US', '')}</CurrencyDisplay>
                           </div>
                           <div className="text-xs text-dark-400">({userComisionPct}%)</div>
                         </td>

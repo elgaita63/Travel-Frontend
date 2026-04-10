@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../utils/api';
+import SellerBalanceLedgerModal from '../components/SellerBalanceLedgerModal';
 
 const UserSettings = () => {
   const { user, updateUser, isSeller } = useAuth();
@@ -34,6 +35,7 @@ const UserSettings = () => {
     new: false,
     confirm: false
   });
+  const [showBalanceLedger, setShowBalanceLedger] = useState(false);
 
   // Handlers para el efecto "Hold to show"
   const handleShow = (field) => setShowPasswords(prev => ({ ...prev, [field]: true }));
@@ -228,23 +230,25 @@ const handleProfileSubmit = async (e) => {
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/10 mt-2">
                     <div>
                       <label className="block text-sm font-black text-cyan-400 mb-2 uppercase tracking-tight">Balance Vendedor (ARS)</label>
-                      <input 
-                        type="text" 
-                        value={formatBalance(profileData.balanceARS, '$')} 
-                        className={`input-field bg-dark-800/50 cursor-not-allowed font-black border-white/5 ${getBalanceColor(profileData.balanceARS)}`} 
-                        disabled
-                        readOnly
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowBalanceLedger(true)}
+                        className={`input-field w-full text-left bg-dark-800/50 cursor-pointer font-black border-white/5 hover:border-primary-500/40 transition-colors ${getBalanceColor(profileData.balanceARS)}`}
+                      >
+                        {formatBalance(profileData.balanceARS, '$')}
+                      </button>
+                      <p className="text-[11px] text-dark-500 mt-1">Clic para ver créditos y pagos</p>
                     </div>
                     <div>
                       <label className="block text-sm font-black text-green-400 mb-2 uppercase tracking-tight">Balance Vendedor (USD)</label>
-                      <input 
-                        type="text" 
-                        value={formatBalance(profileData.balanceUSD, 'U$D')} 
-                        className={`input-field bg-dark-800/50 cursor-not-allowed font-black border-white/5 ${getBalanceColor(profileData.balanceUSD)}`} 
-                        disabled
-                        readOnly
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowBalanceLedger(true)}
+                        className={`input-field w-full text-left bg-dark-800/50 cursor-pointer font-black border-white/5 hover:border-primary-500/40 transition-colors ${getBalanceColor(profileData.balanceUSD)}`}
+                      >
+                        {formatBalance(profileData.balanceUSD, 'U$D')}
+                      </button>
+                      <p className="text-[11px] text-dark-500 mt-1">Clic para ver créditos y pagos</p>
                     </div>
                   </div>
                 )}
@@ -334,6 +338,10 @@ const handleProfileSubmit = async (e) => {
           )}
         </div>
       </div>
+
+      {showBalanceLedger && user?.id && (
+        <SellerBalanceLedgerModal userId={user.id || user._id} onClose={() => setShowBalanceLedger(false)} />
+      )}
     </div>
   );
 };

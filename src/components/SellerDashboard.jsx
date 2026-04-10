@@ -329,15 +329,6 @@ const SellerDashboard = () => {
                             >
                               Editar Venta
                             </button>
-                            <button
-                              onClick={() => {
-                                // Lógica de eliminación si corresponde
-                                setActiveDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-error-400 hover:bg-error-500/10 hover:text-error-300 transition-colors"
-                            >
-                              Eliminar Venta
-                            </button>
                           </div>
                         </div>
                       )}

@@ -396,7 +396,7 @@ const ProvisionalReceipt = ({ paymentId, saleId, onClose, onReceiptCompleted, on
                   <label className="block text-xs font-medium text-gray-500">Mensaje</label>
                   <textarea
                     readOnly
-                    className="w-full min-h-[200px] text-sm border border-gray-300 rounded-md p-3 font-mono bg-gray-50"
+                    className="w-full min-h-[280px] text-sm border border-gray-300 rounded-md p-3 bg-gray-50 text-gray-900 whitespace-pre-wrap"
                     value={previewData.whatsappText || ''}
                   />
                 </div>
@@ -418,11 +418,13 @@ const ProvisionalReceipt = ({ paymentId, saleId, onClose, onReceiptCompleted, on
                     <p className="text-sm border border-gray-200 rounded-md px-3 py-2 bg-gray-50">{previewData.emailSubject}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Cuerpo</label>
-                    <div
-                      className="text-sm border border-gray-200 rounded-md p-3 bg-white max-h-[40vh] overflow-y-auto [&_p]:my-1"
-                      dangerouslySetInnerHTML={{ __html: previewData.emailHtml || '' }}
-                    />
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Cuerpo (como en el correo)</label>
+                    <div className="border border-gray-200 rounded-md max-h-[50vh] overflow-y-auto overflow-x-auto bg-gray-200">
+                      <div
+                        className="text-sm [&_p]:my-1 min-w-[320px]"
+                        dangerouslySetInnerHTML={{ __html: previewData.emailHtml || '' }}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : null}

@@ -46,16 +46,17 @@ const PaymentsTable = ({ saleId, onPaymentAdded, saleCurrency = 'USD', sale = nu
     fetchPayments();
   }, [saleId]);
 
-const fetchPayments = async () => {
+  /** silent: no muestra spinner (evita parpadeo al refrescar tras recibos / estado) */
+  const fetchPayments = async (opts = {}) => {
+    const silent = opts.silent === true;
     try {
-      setLoading(true);
-      
+      if (!silent) setLoading(true);
+
       if (!saleId || saleId === 'undefined') {
         setPayments([]);
-        setLoading(false);
         return;
       }
-      
+
       const response = await api.get(`/api/payments?saleId=${saleId}`);
 
 if (response.data.success) {
@@ -76,13 +77,16 @@ if (response.data.success) {
           
           return createdB - createdA;
         });
-        
-        setPayments(sortedPayments);
+
+        // Comisión automática: no se lista acá (sigue existiendo en backend / saldo vendedor)
+        const sortedWithoutCommission = sortedPayments.filter((p) => p.type !== 'commission');
+
+        setPayments(sortedWithoutCommission);
         // --------------------------------------------
-        
+
         const respondedSet = new Set();
         const existingSet = new Set();
-        for (const payment of sortedPayments) { // Usamos los ya ordenados
+        for (const payment of sortedWithoutCommission) {
           const isResponded = await checkReceiptStatus(payment._id);
           if (isResponded) {
             respondedSet.add(payment._id);
@@ -99,17 +103,18 @@ if (response.data.success) {
     } catch (error) {
       setError(error.response?.data?.message || 'Error al cargar los pagos');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   
   const handlePaymentAdded = (newPayment) => {
-    setPayments(prev => [newPayment, ...prev]);
+    if (newPayment?.type === 'commission') return;
+    setPayments((prev) => [newPayment, ...prev]);
     setShowClientForm(false);
     setShowProviderForm(false);
     setShowSellerForm(false);
-    onPaymentAdded && onPaymentAdded();
+    onPaymentAdded?.();
   };
 
   const handleRowDoubleClick = (payment) => {
@@ -123,7 +128,7 @@ if (response.data.success) {
     if (!updatedPaymentData) {
         handleCancelEdit();
         await fetchPayments();
-        onPaymentAdded && onPaymentAdded();
+        onPaymentAdded?.();
         return;
     }
 
@@ -143,7 +148,7 @@ if (response.data.success) {
         setShowEditModal(false);
         setEditingPayment(null);
         await fetchPayments();
-        onPaymentAdded && onPaymentAdded();
+        onPaymentAdded?.();
       }
     } catch (error) {
       console.error('Error actualizando pago:', error);
@@ -157,7 +162,7 @@ if (response.data.success) {
     setShowEditModal(false);
     setEditingPayment(null);
     await fetchPayments();
-    if (onPaymentAdded) onPaymentAdded();
+    onPaymentAdded?.();
   };
 
   const handleCancelEdit = () => {
@@ -177,7 +182,7 @@ if (response.data.success) {
       if (response.data.success) {
         setSelectedPaymentId(paymentId);
         setShowReceipt(true);
-        await fetchPayments();
+        await fetchPayments({ silent: true });
       }
     } catch (error) {
       console.error('Error generando recibo:', error);
@@ -258,16 +263,16 @@ if (response.data.success) {
     setSelectedPaymentId(null);
   };
 
+  /** Recibo generado al abrir el visor: no dispara refresh de la venta (solo estado local). */
   const handleReceiptCompleted = (paymentId) => {
     setCompletedReceipts(prev => new Set([...prev, paymentId]));
     setExistingReceipts(prev => new Set([...prev, paymentId]));
-    if (onPaymentAdded) onPaymentAdded();
   };
 
+  /** Email enviado: actualizar badges de la tabla sin recargar toda la venta. */
   const handleReceiptResponded = (paymentId) => {
     setRespondedReceipts(prev => new Set([...prev, paymentId]));
-    fetchPayments();
-    if (onPaymentAdded) onPaymentAdded();
+    fetchPayments({ silent: true });
   };
 
   const formatCurrency = (amount, currency) => {
@@ -284,7 +289,8 @@ if (response.data.success) {
 const getPaymentTypeColor = (type) => {
     if (type === 'client') return 'bg-success-500/20 text-success-400 border border-success-500/30';
     if (type === 'provider') return 'bg-primary-500/20 text-primary-400 border border-primary-500/30';
-    if (type === 'commission') return 'bg-purple-500/20 text-purple-400 border border-purple-500/30'; // Color para la comisión
+    if (type === 'commission') return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
+    if (type === 'seller') return 'bg-warning-500/20 text-warning-400 border border-warning-500/30';
     return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
   };
 
@@ -324,7 +330,7 @@ const getPaymentTypeColor = (type) => {
           <button onClick={() => setShowClientForm(true)} className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">+ Pago de Pasajero</button>
           <button onClick={() => setShowProviderForm(true)} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">+ Pago a Proveedor</button>
           {user?.role === 'admin' && (
-            <button onClick={() => setShowSellerForm(true)} className="px-3 py-1 bg-cyan-600 text-white text-sm rounded-md hover:bg-cyan-700">+ Pago al Vendedor</button>
+            <button onClick={() => setShowSellerForm(true)} className="px-3 py-1 bg-warning-600 text-white text-sm rounded-md hover:bg-warning-700 shadow-sm border border-warning-500/40">+ Pago al Vendedor</button>
           )}
         </div>
       </div>
@@ -368,7 +374,6 @@ const getPaymentTypeColor = (type) => {
             <thead className="bg-dark-700">
               <tr>
                 <th className={`${columnWidths.type} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('type')}>Tipo</th>
-                <th className="w-36 px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider">Proveedor</th>
                 <th className={`${columnWidths.method} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('method')}>Método</th>
                 <th className={`${columnWidths.amount} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('amount')}>Monto</th>
                 <th className={`${columnWidths.date} px-3 py-3 text-left text-xs font-semibold text-dark-300 uppercase tracking-wider cursor-pointer hover:bg-dark-600 transition-colors`} onDoubleClick={() => handleColumnResize('date')}>Fecha</th>
@@ -386,11 +391,6 @@ const getPaymentTypeColor = (type) => {
                           payment.type === 'commission' ? 'Comisión vendedor' : 'Pago Vendedor'}
                         </span>
                       </td>
-                      <td className="px-3 py-4 text-sm text-dark-300 truncate max-w-[9rem]" title={payment.type === 'provider' && payment.paymentTo?.name ? payment.paymentTo.name : ''}>
-                        {payment.type === 'provider'
-                          ? (payment.paymentTo?.name || '—')
-                          : '—'}
-                      </td>
                   <td className="px-3 py-4 text-sm text-dark-100">{formatMethodNameShort(payment.method)}</td>
                   <td className="px-3 py-4">
                     <div className="text-sm font-medium text-dark-100"><CurrencyDisplay>{formatCurrency(payment.amount, saleCurrency)}</CurrencyDisplay></div>
@@ -399,12 +399,16 @@ const getPaymentTypeColor = (type) => {
                     )}
                   </td>
                   <td className="px-3 py-4 text-sm text-dark-300">{new Date(payment.date).toLocaleDateString()}</td>
-                  <td className="px-3 py-4 text-center">
+                  <td
+                    className="px-3 py-4 text-center"
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-center space-x-2">
                       {payment.receiptImage ? (
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); viewReceiptImage(payment._id); }}
+                          onDoubleClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center justify-center"
                           title="Ver imagen del recibo"
                         >
@@ -417,6 +421,7 @@ const getPaymentTypeColor = (type) => {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); viewReceipt(payment._id); }}
+                        onDoubleClick={(e) => e.stopPropagation()}
                         className="text-primary-400 hover:text-primary-300 text-xs bg-primary-500/20 px-2 py-1 rounded border border-primary-500/30"
                       >
                         Ver

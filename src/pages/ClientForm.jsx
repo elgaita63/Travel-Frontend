@@ -25,7 +25,7 @@ const genderLabel = (g) => {
 
 const ClientForm = () => {
   const [formData, setFormData] = useState({
-    name: '', surname: '', dni: '', dob: '', email: '', phone: '',
+    name: '', surname: '', dni: '', companyCuit: '', dob: '', email: '', phone: '',
     passportNumber: '', nationality: '', expirationDate: '', gender: '',
     specialRequests: '', passportImage: '',
     addressStreet: '', addressCity: '', addressState: '', addressCountry: '', addressZipCode: '',
@@ -137,6 +137,8 @@ const ClientForm = () => {
       finalPayload.append('name', rest.name.trim());
       finalPayload.append('surname', rest.surname.trim());
       if (dniDigits) finalPayload.append('dni', dniDigits);
+      const companyCuitClean = (rest.companyCuit || '').replace(/\./g, '').replace(/-/g, '').trim();
+      if (companyCuitClean) finalPayload.append('companyCuit', companyCuitClean);
       if (passportTrim) finalPayload.append('passportNumber', passportTrim);
       if (rest.dob) finalPayload.append('dob', rest.dob);
       if (emailTrim) finalPayload.append('email', emailTrim);
@@ -230,6 +232,11 @@ const ClientForm = () => {
 
   const handleFinish = () => {
     navigate('/clients');
+  };
+
+  const handleCreateSale = () => {
+    if (!createdClientId) return;
+    navigate(`/sales/new?clientId=${createdClientId}`);
   };
 
   return (
@@ -352,6 +359,17 @@ const ClientForm = () => {
                 name="dni"
                 value={formData.dni}
                 onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-dark-200">CUIT empresa (opcional)</label>
+              <input
+                type="text"
+                name="companyCuit"
+                value={formData.companyCuit}
+                onChange={handleChange}
+                placeholder="Si el titular es NN y paga una empresa"
                 className="mt-1 block w-full px-3 py-2 border rounded-md text-dark-100 bg-dark-800/50 border-white/20"
               />
             </div>
@@ -562,6 +580,9 @@ const ClientForm = () => {
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={() => setShowPassengerForm((v) => !v)} className="btn-primary text-sm">
               {showPassengerForm ? 'Cerrar formulario de acompañante' : 'Agregar acompañante'}
+            </button>
+            <button type="button" onClick={handleCreateSale} className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md">
+              Crear venta
             </button>
             <button type="button" onClick={handleFinish} className="btn-secondary text-sm">
               Finalizar y volver a la lista

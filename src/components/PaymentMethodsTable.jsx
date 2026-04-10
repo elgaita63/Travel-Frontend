@@ -9,7 +9,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-500 dark:text-gray-400">No payment methods data available</p>
+          <p className="text-gray-500 dark:text-gray-400">No hay datos de medios de pago</p>
         </div>
       </div>
     );
@@ -39,17 +39,17 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-dark-100">
-              Payment Methods Analysis
+              Análisis por medio de pago
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Breakdown of payments by method and currency
+              Desglose de cobros por método y moneda
             </p>
           </div>
           
           {/* Rows per page selector */}
           <div className="flex items-center space-x-2">
             <label htmlFor="rowsPerPage" className="text-sm text-gray-600 dark:text-gray-400">
-              Rows per page:
+              Filas por página:
             </label>
             <select
               id="rowsPerPage"
@@ -72,25 +72,25 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Type
+                  Tipo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Method
+                  Método
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Currency
+                  Moneda
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Transactions
+                  Operaciones
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Total Amount
+                  Importe total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Total USD
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Avg USD
+                  Prom. USD
                 </th>
               </tr>
             </thead>
@@ -103,7 +103,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
                         ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                         : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                     }`}>
-                      {detail._id.type === 'client' ? 'Client' : 'Provider'}
+                      {detail._id.type === 'client' ? 'Cliente' : 'Proveedor'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -137,7 +137,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
                     <span className="notranslate">{currency === 'ARS' ? 'AR$' : 'U$'}{detail.totalAmountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
-                    <span className="notranslate">{currency === 'ARS' ? 'AR$' : 'U$'}{detail.avgAmountUSD ? detail.avgAmountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}</span>
+                    <span className="notranslate">{currency === 'ARS' ? 'AR$' : 'U$'}{detail.avgAmountUSD ? detail.avgAmountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/D'}</span>
                   </td>
                 </tr>
               ))}
@@ -148,7 +148,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
         {/* Pagination Controls */}
         <div className="flex items-center justify-between mt-6">
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            Showing {startIndex + 1} to {Math.min(endIndex, totalRows)} of {totalRows} results
+            Mostrando {startIndex + 1} a {Math.min(endIndex, totalRows)} de {totalRows} resultados
           </div>
           
           <div className="flex items-center space-x-2">
@@ -158,7 +158,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
               disabled={currentPage === 1}
               className="px-3 py-1 text-sm border border-gray-600 rounded-md bg-dark-800 text-dark-100 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Previous
+              Anterior
             </button>
             
             {/* Page numbers */}
@@ -197,7 +197,7 @@ const PaymentMethodsTable = ({ data, currency = 'USD' }) => {
               disabled={currentPage === totalPages}
               className="px-3 py-1 text-sm border border-gray-600 rounded-md bg-dark-800 text-dark-100 hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
+              Siguiente
             </button>
           </div>
         </div>

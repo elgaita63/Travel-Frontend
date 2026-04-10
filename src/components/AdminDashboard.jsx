@@ -7,10 +7,11 @@ import { t, getCurrentLanguage } from '../utils/i18n';
 import { useCurrencyFormat } from '../hooks/useCurrencyFormat';
 import DatabaseValue from './DatabaseValue';
 import EditUserModal from './EditUserModal';
+import SellerBalanceLedgerModal from './SellerBalanceLedgerModal';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, impersonate } = useAuth();
+  const { user, impersonate, logout } = useAuth();
   const { systemStats, businessStats, fetchSystemStats, fetchBusinessStats, refreshStats } = useSystemStats();
   const { formatCurrencyFullJSX } = useCurrencyFormat();
 
@@ -19,6 +20,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState(null);
+  const [ledgerUserId, setLedgerUserId] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10); // Empezamos con 10 por defecto
@@ -35,6 +37,12 @@ const AdminDashboard = () => {
   const [systemLoading, setSystemLoading] = useState(false);
   const [systemMessage, setSystemMessage] = useState('');
   const [systemMessageType, setSystemMessageType] = useState('');
+
+  // SUPERID: sesiones activas (solo consulta manual)
+  const [activeSessions, setActiveSessions] = useState(null);
+  const [activeSessionsLoading, setActiveSessionsLoading] = useState(false);
+  const [activeSessionsError, setActiveSessionsError] = useState('');
+  const [revokingSessionId, setRevokingSessionId] = useState(null);
 
   // Language state
   const [currentLanguage, setCurrentLanguage] = useState(getCurrentLanguage());
@@ -174,6 +182,50 @@ const AdminDashboard = () => {
     finally { setSystemLoading(false); }
   };
 
+  const fetchActiveSessions = async () => {
+    try {
+      setActiveSessionsLoading(true);
+      setActiveSessionsError('');
+      const response = await api.get('/api/system/active-sessions');
+      if (response.data.success) {
+        setActiveSessions(response.data.data?.sessions || []);
+      } else {
+        setActiveSessions(null);
+        setActiveSessionsError('No se pudo obtener el listado.');
+      }
+    } catch (err) {
+      setActiveSessions(null);
+      setActiveSessionsError(
+        err.response?.data?.message || err.message || 'Error al consultar sesiones'
+      );
+    } finally {
+      setActiveSessionsLoading(false);
+    }
+  };
+
+  const handleRevokeSession = async (row) => {
+    if (!row?.sessionId) return;
+    const msg = row.isCurrentSession
+      ? 'Esta es tu sesión actual: vas a cerrar tu propia sesión y volver al login. ¿Continuar?'
+      : `¿Cerrar la sesión de «${row.username}» (${row.ipAddress})? Esa persona deberá volver a iniciar sesión.`;
+    if (!window.confirm(msg)) return;
+    try {
+      setRevokingSessionId(row.sessionId);
+      await api.delete(`/api/system/active-sessions/${row.sessionId}`);
+      showSystemMessage('Sesión cerrada', 'success');
+      if (row.isCurrentSession) {
+        logout();
+        navigate('/login');
+        return;
+      }
+      await fetchActiveSessions();
+    } catch (err) {
+      showSystemMessage(err.response?.data?.message || 'No se pudo cerrar la sesión', 'error');
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-20 w-20 border-4 border-primary-500"></div></div>;
 
   return (
@@ -285,8 +337,31 @@ const AdminDashboard = () => {
                     </div>
                     <div className="w-[10%] text-center text-primary-400 font-medium">{userItem.comision || 0}%</div>
                     <div className="w-[30%] flex justify-center space-x-2 text-center">
-                        <div className="px-2 py-1 bg-primary-500/10 rounded border border-primary-500/20 text-xs text-primary-300 font-mono">ARS: {formatCurrencyFullJSX(userItem.balance?.ars || 0, 'ARS')}</div>
-                        <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
+                        {userItem.role === 'seller' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setLedgerUserId(userItem._id || userItem.id)}
+                              className="px-2 py-1 bg-primary-500/10 rounded border border-primary-500/20 text-xs text-primary-300 font-mono hover:bg-primary-500/20 hover:border-primary-500/40 transition-colors cursor-pointer"
+                              title="Ver movimientos de saldo"
+                            >
+                              ARS: {formatCurrencyFullJSX(userItem.balance?.ars || 0, 'ARS')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setLedgerUserId(userItem._id || userItem.id)}
+                              className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono hover:bg-success-500/20 hover:border-success-500/40 transition-colors cursor-pointer"
+                              title="Ver movimientos de saldo"
+                            >
+                              USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="px-2 py-1 bg-primary-500/10 rounded border border-primary-500/20 text-xs text-primary-300 font-mono">ARS: {formatCurrencyFullJSX(userItem.balance?.ars || 0, 'ARS')}</div>
+                            <div className="px-2 py-1 bg-success-500/10 rounded border border-success-500/20 text-xs text-success-300 font-mono">USD: {formatCurrencyFullJSX(userItem.balance?.usd || 0, 'USD')}</div>
+                          </>
+                        )}
                     </div>
                     <div className="w-[15%] text-right space-x-2 flex items-center justify-end">
                     {user?.isSuper && (
@@ -405,6 +480,100 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+        {user?.isSuper && (
+          <div className="card p-6 mb-12">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h4 className="text-xl font-bold text-dark-100 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.414 23M12 15h.01" />
+                </svg>
+                Sesiones activas (SUPERID)
+              </h4>
+              <button
+                type="button"
+                onClick={fetchActiveSessions}
+                disabled={activeSessionsLoading}
+                className="btn-primary px-5 py-2.5 rounded-xl shrink-0 disabled:opacity-60"
+              >
+                {activeSessionsLoading ? 'Consultando…' : 'Consultar ahora'}
+              </button>
+            </div>
+            <p className="text-sm text-dark-400 mb-4">
+              Listado de sesiones vigentes (una fila por dispositivo o pestaña). Podés revocar una sesión: el usuario queda desconectado en el próximo uso del sistema. Presioná «Consultar ahora» para refrescar.
+            </p>
+            {activeSessionsError && (
+              <div className="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                {activeSessionsError}
+              </div>
+            )}
+            {activeSessions === null && !activeSessionsLoading && !activeSessionsError && (
+              <p className="text-sm text-dark-500 italic">Todavía no consultaste. Presioná «Consultar ahora» para ver el listado.</p>
+            )}
+            {Array.isArray(activeSessions) && activeSessions.length === 0 && !activeSessionsLoading && !activeSessionsError && (
+              <p className="text-sm text-dark-400">No hay sesiones activas en este momento.</p>
+            )}
+            {Array.isArray(activeSessions) && activeSessions.length > 0 && (
+              <div className="overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-dark-700/50 text-[11px] font-bold text-dark-400 uppercase tracking-widest">
+                      <th className="px-4 py-3">Usuario</th>
+                      <th className="px-4 py-3">Rol</th>
+                      <th className="px-4 py-3">IP</th>
+                      <th className="px-4 py-3">Última actividad</th>
+                      <th className="px-4 py-3 hidden lg:table-cell">Navegador</th>
+                      <th className="px-4 py-3 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {activeSessions.map((row) => (
+                      <tr key={row.sessionId} className="hover:bg-white/5">
+                        <td className="px-4 py-3 text-dark-100">
+                          <div className="font-medium flex items-center gap-2 flex-wrap">
+                            {row.username}
+                            {row.isCurrentSession && (
+                              <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-primary-500/20 text-primary-300">
+                                vos
+                              </span>
+                            )}
+                          </div>
+                          {row.email && <div className="text-xs text-dark-500">{row.email}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-dark-300 whitespace-nowrap">
+                          {row.isSuper ? (
+                            <span className="text-accent-400 font-semibold">SUPERID</span>
+                          ) : (
+                            row.role || '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-dark-300 font-mono text-xs">{row.ipAddress}</td>
+                        <td className="px-4 py-3 text-dark-300 text-xs whitespace-nowrap">
+                          {row.lastActivity
+                            ? new Date(row.lastActivity).toLocaleString()
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-dark-500 text-xs max-w-md truncate hidden lg:table-cell" title={row.userAgent}>
+                          {row.userAgent || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeSession(row)}
+                            disabled={!!revokingSessionId}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30 disabled:opacity-50"
+                          >
+                            {revokingSessionId === row.sessionId ? '…' : 'Cerrar sesión'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Reporte de Salud Detallado */}
         {systemHealth && (
           <div className="card-glass p-8 mb-12 animate-fade-in">
@@ -426,6 +595,12 @@ const AdminDashboard = () => {
             user={editingUser} 
             onClose={() => setEditingUser(null)} 
             onUpdate={fetchUsers} 
+          />
+        )}
+        {ledgerUserId && (
+          <SellerBalanceLedgerModal
+            userId={ledgerUserId}
+            onClose={() => setLedgerUserId(null)}
           />
         )}
       </div>

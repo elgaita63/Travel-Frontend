@@ -30,6 +30,7 @@ const emptyEditState = () => ({
   name: '',
   surname: '',
   dni: '',
+  companyCuit: '',
   gender: '',
   email: '',
   phone: '',
@@ -165,6 +166,7 @@ const ClientDetails = () => {
       name: c.name || '',
       surname: c.surname || '',
       dni: c.dni || '',
+      companyCuit: c.companyCuit || '',
       gender: c.gender || '',
       email: c.email || '',
       phone: c.phone || '',
@@ -250,6 +252,7 @@ const ClientDetails = () => {
         name: editFormData.name,
         surname: editFormData.surname,
         dni: editFormData.dni || undefined,
+        companyCuit: editFormData.companyCuit || undefined,
         gender: editFormData.gender || undefined,
         email: editFormData.email || undefined,
         phone: editFormData.phone || undefined,
@@ -386,6 +389,7 @@ const ClientDetails = () => {
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">Apellido</dt><dd className="text-dark-100">{fmt(client.surname)}</dd></div>
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">Nombre completo</dt><dd className="text-dark-100">{fmt(client.fullName)}</dd></div>
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">DNI / CUIT</dt><dd className="text-dark-100">{fmt(client.dni)}</dd></div>
+                    <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">CUIT empresa</dt><dd className="text-dark-100">{fmt(client.companyCuit)}</dd></div>
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">Género</dt><dd className="text-dark-100">{genderEs(client.gender)}</dd></div>
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">Fecha de nacimiento</dt><dd className="text-dark-100">{fmtDateOnly(client.dob)}</dd></div>
                     <div className="flex flex-col sm:flex-row sm:gap-2"><dt className="text-dark-400">Edad</dt><dd className="text-dark-100">{client.age != null ? `${client.age} años` : '—'}</dd></div>
@@ -552,6 +556,10 @@ const ClientDetails = () => {
                     <div>
                       <label className="block text-sm font-medium text-dark-200 mb-1">DNI / CUIT</label>
                       <input type="text" name="dni" value={editFormData.dni} onChange={handleEditChange} className="input-field text-sm w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-dark-200 mb-1">CUIT empresa (opcional)</label>
+                      <input type="text" name="companyCuit" value={editFormData.companyCuit} onChange={handleEditChange} className="input-field text-sm w-full" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-dark-200 mb-1">Género</label>

@@ -83,8 +83,14 @@ const SaleWizard = () => {
   const [saleCurrency, setSaleCurrency] = useState('USD');
   const [pricingModel, setPricingModel] = useState('unit');
   const [saleNotes, setSaleNotes] = useState('');
-  /** Nombre/identificación del viaje o venta (obligatorio; sugerido en paso 7) */
+  /** Nombre/identificación del viaje (opcional; si falta se genera al confirmar) */
   const [nombreVenta, setNombreVenta] = useState('');
+
+  const getResolvedNombreVenta = () => {
+    const t = nombreVenta && String(nombreVenta).trim();
+    if (t) return t;
+    return buildNombreVentaSuggestion(destination, serviceTemplateInstances);
+  };
 
   // Step 4: Destination
   const [destination, setDestination] = useState({ country: '', city: '' });
@@ -177,12 +183,11 @@ const SaleWizard = () => {
     { number: 3, title: 'Tipo de servicio', description: 'Elegir el tipo de servicio' },
     { number: 4, title: 'Fechas y ciudad', description: 'Fechas de servicio y destino' },
     { number: 5, title: 'Costo y proveedor', description: 'Costo y proveedores por servicio' },
-    { number: 6, title: 'Editar servicios', description: 'Revisar y ajustar servicios' },
-    { number: 7, title: 'Revisar y confirmar', description: isEditMode ? 'Última revisión antes de guardar' : 'Última revisión antes de crear' }
+    { number: 6, title: 'Revisar Servicios y Crear Venta', description: 'Revisar servicios y confirmar' }
   ], [isEditMode]);
 
   useEffect(() => {
-    if (currentStep !== 7 || isEditMode) return;
+    if (currentStep !== 6) return;
     setNombreVenta((prev) => {
       if (prev && prev.trim()) return prev;
       return buildNombreVentaSuggestion(destination, serviceTemplateInstances);
@@ -202,10 +207,12 @@ const SaleWizard = () => {
         // Set incomplete data for now, will be completed when available passengers load
         setSelectedPassengers([location.state.preSelectedPassenger]);
         setClientId(location.state.preSelectedPassenger._id);
+        setCurrentStep(2);
       } else {
         console.log('✅ Pre-selected passenger has complete data');
         setSelectedPassengers([location.state.preSelectedPassenger]);
         setClientId(location.state.preSelectedPassenger._id);
+        setCurrentStep(2);
       }
     }
   }, [location.state, location.search, isEditMode]);
@@ -267,6 +274,7 @@ const SaleWizard = () => {
               // Set the client as pre-selected passenger with complete data
               setSelectedPassengers([clientData]);
               setClientId(clientData._id);
+              if (!isEditMode) setCurrentStep(2);
               console.log('✅ Set pre-selected passenger with complete data');
             } else {
               setError('No se pudieron cargar los datos del cliente');
@@ -477,11 +485,16 @@ const SaleWizard = () => {
   // Connect pricePerPassenger to salePrice for sale creation
   // Calculate total sale price (price per passenger × number of passengers)
   useEffect(() => {
-    if (pricePerPassenger) {
-      const totalPassengers = selectedPassengers.length + selectedCompanions.length;
-      const totalSalePrice = parseFloat(pricePerPassenger) * totalPassengers;
-      setSalePrice(totalSalePrice.toString());
+    const totalPassengers = selectedPassengers.length + selectedCompanions.length;
+    const ppm = parseFloat(pricePerPassenger);
+    if (!pricePerPassenger || pricePerPassenger === '' || !Number.isFinite(ppm) || ppm <= 0) {
+      return;
     }
+    if (totalPassengers <= 0) {
+      setSalePrice('');
+      return;
+    }
+    setSalePrice((ppm * totalPassengers).toString());
   }, [pricePerPassenger, selectedPassengers.length, selectedCompanions.length]);
 
   const fetchServices = async () => {
@@ -1374,6 +1387,11 @@ const SaleWizard = () => {
           }
         }
         
+        const cupoListPrice = cupo.metadata?.value;
+        if (cupoListPrice != null && cupoListPrice !== '' && !Number.isNaN(Number(cupoListPrice)) && Number(cupoListPrice) > 0) {
+          setPricePerPassenger(String(Number(cupoListPrice)));
+        }
+
         console.log('✅ Cupo data pre-populated successfully');
       } else {
         console.warn('⚠️ No matching service template found for cupo');
@@ -2104,12 +2122,6 @@ const SaleWizard = () => {
         }
       }
 
-      if (!nombreVenta || !nombreVenta.trim()) {
-        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
-        setLoading(false);
-        return;
-      }
-      
       // Show upload progress message
       const totalFiles = allProviders.reduce((count, provider) => {
         const providerId = provider._id || provider.providerId;
@@ -2123,10 +2135,22 @@ const SaleWizard = () => {
         setError(`Subiendo ${totalFiles} documento(s)... espere.`);
       }
 
-      // Calculate per-passenger price from total salePrice
       const totalPassengers = selectedPassengers.length + selectedCompanions.length;
-      const perPassengerPrice = salePrice && totalPassengers > 0 ? parseFloat(salePrice) / totalPassengers : 0;
-      
+      const ppm = parseFloat(pricePerPassenger);
+      let computedOriginalSalePrice = 0;
+      if (Number.isFinite(ppm) && ppm > 0 && totalPassengers > 0) {
+        computedOriginalSalePrice = ppm * totalPassengers;
+      } else {
+        const sp = parseFloat(salePrice);
+        if (Number.isFinite(sp) && sp > 0) computedOriginalSalePrice = sp;
+      }
+      if (!computedOriginalSalePrice || computedOriginalSalePrice <= 0) {
+        setError('Ingrese un precio por pasajero válido. El total de venta es precio por persona × cantidad de pasajeros.');
+        setLoading(false);
+        return;
+      }
+      const perPassengerPrice = computedOriginalSalePrice / totalPassengers;
+
       const saleData = {
         passengers: [
           ...selectedPassengers.map(p => {
@@ -2254,7 +2278,7 @@ const SaleWizard = () => {
         pricingModel: 'unit', // Always unit pricing
         saleCurrency,
         baseCurrency: 'USD',
-        originalSalePrice: salePrice ? parseFloat(salePrice) : null, // This is the total price
+        originalSalePrice: computedOriginalSalePrice,
         originalCurrency: saleCurrency,
         // Add cupo context for seat reservation
         ...(isCupoReservation && cupoContext && {
@@ -2264,7 +2288,7 @@ const SaleWizard = () => {
             availableSeats: cupoContext.availableSeats
           }
         }),
-        nombreVenta: nombreVenta.trim()
+        nombreVenta: getResolvedNombreVenta()
       };
 
       // Map documents from selectedProviders to serviceTemplateInstances providers
@@ -2341,7 +2365,7 @@ const SaleWizard = () => {
   };
 
   const nextStep = () => {
-    if (currentStep < 7) {
+    if (currentStep < 6) {
       // Validate current step before proceeding
       if (currentStep === 1 && selectedPassengers.length === 0) {
         setError('Seleccione al menos un pasajero para continuar');
@@ -2468,11 +2492,6 @@ const SaleWizard = () => {
       
       if (!salePrice || parseFloat(salePrice) <= 0) {
         setError('Ingrese un precio de venta válido');
-        return;
-      }
-
-      if (!nombreVenta || !nombreVenta.trim()) {
-        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
         return;
       }
 
@@ -2621,7 +2640,7 @@ const SaleWizard = () => {
         pricingModel: 'unit', // Always unit pricing
         saleCurrency,
         notes: saleNotes || '',
-        nombreVenta: nombreVenta.trim()
+        nombreVenta: getResolvedNombreVenta()
       };
 
       // Debug: Log the request details
@@ -2719,11 +2738,6 @@ const SaleWizard = () => {
       
       if (!salePrice || parseFloat(salePrice) <= 0) {
         setError('Ingrese un precio de venta válido');
-        return;
-      }
-
-      if (!nombreVenta || !nombreVenta.trim()) {
-        setError('Debe indicar el nombre o identificación del viaje, venta o reserva.');
         return;
       }
 
@@ -2844,7 +2858,7 @@ const SaleWizard = () => {
         },
         saleCurrency: saleCurrency,
         notes: saleNotes || '',
-        nombreVenta: nombreVenta.trim()
+        nombreVenta: getResolvedNombreVenta()
       };
 
       // Debug: Log the IDs being used
@@ -3016,9 +3030,9 @@ const SaleWizard = () => {
             ))}
           </div>
 
-          {/* Second Row - Steps 5-7 */}
+          {/* Second Row - Steps 5-6 */}
           <div className="flex items-start justify-center gap-8">
-            {steps.slice(4, 7).map((step, index) => (
+            {steps.slice(4, 6).map((step, index) => (
               <div key={step.number} className="flex items-start">
                 <div className="flex flex-col items-center">
                   <div className={`flex items-center justify-center w-12 h-12 rounded-full text-sm font-bold transition-all duration-300 ${
@@ -3038,7 +3052,7 @@ const SaleWizard = () => {
                   </div>
                 </div>
                 {/* Directional Arrow */}
-                {index < 2 && (
+                {index < 1 && (
                   <div className="flex justify-center mx-4 mt-6">
                     <div className={`text-lg transition-colors duration-300 ${
                       currentStep > step.number ? 'text-primary-500' : 'text-dark-500'
@@ -3058,10 +3072,10 @@ const SaleWizard = () => {
               <div className="w-64 bg-dark-700 rounded-full h-2">
                 <div 
                   className="bg-primary-600 h-2 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${(currentStep / 7) * 100}%` }}
+                  style={{ width: `${(currentStep / 6) * 100}%` }}
                 ></div>
               </div>
-              <div className="text-sm text-dark-300">{Math.round((currentStep / 7) * 100)}%</div>
+              <div className="text-sm text-dark-300">{Math.round((currentStep / 6) * 100)}%</div>
             </div>
           </div>
         </div>
@@ -3199,6 +3213,10 @@ const SaleWizard = () => {
           nombreVenta={nombreVenta}
           setNombreVenta={setNombreVenta}
           isEditMode={isEditMode}
+          onConfirmSale={isEditMode ? handleUpdateSale : createSale}
+          confirmDisabled={loading}
+          confirmLabel={isEditMode ? 'Guardar cambios' : 'Confirmar Venta'}
+          confirmLoading={loading}
         />
       </div>
 
@@ -3213,20 +3231,10 @@ const SaleWizard = () => {
         </button>
 
         <div className="flex space-x-4">
-          {currentStep === 7 ? (
-            <button
-              onClick={isEditMode ? handleUpdateSale : createSale}
-              disabled={loading}
-              className="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
-            >
-              {loading
-                ? (isEditMode ? 'Guardando…' : 'Creando venta…')
-                : (isEditMode ? 'Guardar cambios' : 'Confirmar venta')}
-            </button>
-          ) : (
+          {currentStep !== 6 && (
             <button
               onClick={nextStep}
-              disabled={currentStep === 7}
+              disabled={currentStep === 6}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-50"
             >
               Siguiente

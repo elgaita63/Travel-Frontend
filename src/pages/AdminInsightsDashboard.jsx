@@ -24,6 +24,12 @@ const paymentMethodMapping = {
   'Cryptocurrency': 'crypto'  // Also map 'Cryptocurrency' to 'crypto' for backward compatibility
 };
 
+/** Etiquetas en castellano para estados de venta en tablas */
+const etiquetaEstadoVenta = (status) => {
+  const m = { open: 'Abierta', closed: 'Cerrada', cancelled: 'Cancelada' };
+  return m[status] || status;
+};
+
 const AdminInsightsDashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -110,8 +116,8 @@ const AdminInsightsDashboard = () => {
         const sellers = response.data.data.sellers || [];
         const validSellers = sellers.map(seller => ({
           ...seller,
-          sellerName: seller.sellerName || 'Unknown Seller',
-          sellerEmail: seller.sellerEmail || 'No email',
+          sellerName: seller.sellerName || 'Vendedor desconocido',
+          sellerEmail: seller.sellerEmail || 'Sin correo',
           // Backend returns data nested under performance object
           totalSales: seller.performance?.totalSales || 0,
           totalProfit: seller.performance?.totalProfit || 0,
@@ -252,7 +258,7 @@ const AdminInsightsDashboard = () => {
         // Set sales data for Sales Over Time chart
         setSalesData({
           chartData: {
-            labels: ['Total Sales'],
+            labels: ['Ventas totales'],
             values: [insights.businessMetrics?.totalRevenue || 0],
             profitValues: [insights.businessMetrics?.totalProfit || 0]
           }
@@ -261,7 +267,7 @@ const AdminInsightsDashboard = () => {
         // Set profit data for Profit by Seller chart
         setProfitData({
           chartData: {
-            labels: ['Total Profit'],
+            labels: ['Beneficio total'],
             values: [insights.businessMetrics?.totalProfit || 0],
             saleValues: [insights.businessMetrics?.totalRevenue || 0]
           }
@@ -301,7 +307,7 @@ const AdminInsightsDashboard = () => {
         fetchPaymentMethodsFromDB()
       ]);
     } catch (error) {
-      setError('Failed to fetch insights data');
+      setError('No se pudieron cargar los datos de estadísticas');
       console.error('Error fetching all data:', error);
     } finally {
       setLoading(false);
@@ -384,7 +390,7 @@ const AdminInsightsDashboard = () => {
       setShowExportModal(false);
     } catch (error) {
       console.error('Export error:', error);
-      setError('Failed to export data');
+      setError('No se pudo exportar los datos');
     }
   };
 
@@ -412,7 +418,7 @@ const AdminInsightsDashboard = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-20 w-20 border-4 border-primary-200 border-t-primary-500"></div>
-        <p className="text-dark-300 text-lg font-medium ml-4">Loading insights...</p>
+        <p className="text-dark-300 text-lg font-medium ml-4">Cargando estadísticas…</p>
       </div>
     );
   }
@@ -438,10 +444,10 @@ const AdminInsightsDashboard = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold gradient-text mb-6 font-poppins">
-            Admin Insights
+            Estadísticas y reportes
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Comprehensive analytics and performance insights for administrators
+            Análisis integral del desempeño comercial para administradores
           </p>
         </div>
 
@@ -456,7 +462,7 @@ const AdminInsightsDashboard = () => {
                   : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
               }`}
             >
-              Overview
+              Resumen
             </button>
             <button
               onClick={() => setActiveView('sellers')}
@@ -466,7 +472,7 @@ const AdminInsightsDashboard = () => {
                   : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
               }`}
             >
-              Seller Performance
+              Desempeño por vendedor
             </button>
             <button
               onClick={() => setActiveView('transactions')}
@@ -476,7 +482,7 @@ const AdminInsightsDashboard = () => {
                   : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
               }`}
             >
-              Transaction Details
+              Detalle de operaciones
             </button>
             <button
               onClick={() => setActiveView('trends')}
@@ -486,7 +492,7 @@ const AdminInsightsDashboard = () => {
                   : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
               }`}
             >
-              Monthly Trends
+              Tendencias mensuales
             </button>
             {/* <button
               onClick={() => setShowExportModal(true)}
@@ -502,7 +508,7 @@ const AdminInsightsDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Period
+                  Período
                 </label>
                 <select
                   value={filters.period}
@@ -510,17 +516,17 @@ const AdminInsightsDashboard = () => {
                   className="input-field"
                   style={{ wordWrap: 'break-word' }}
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="daily">Diario</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="monthly">Mensual</option>
+                  <option value="quarterly">Trimestral</option>
+                  <option value="yearly">Anual</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Start Date
+                  Fecha inicial
                 </label>
                 <input
                   type="date"
@@ -532,7 +538,7 @@ const AdminInsightsDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  End Date
+                  Fecha final
                 </label>
                 <input
                   type="date"
@@ -544,7 +550,7 @@ const AdminInsightsDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Status
+                  Estado
                 </label>
                 <select
                   value={filters.status}
@@ -552,10 +558,10 @@ const AdminInsightsDashboard = () => {
                   className="input-field"
                   style={{ wordWrap: 'break-word' }}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="open">Open</option>
-                  <option value="closed">Closed</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="">Todos los estados</option>
+                  <option value="open">Abierta</option>
+                  <option value="closed">Cerrada</option>
+                  <option value="cancelled">Cancelada</option>
                 </select>
               </div>
             </div>
@@ -564,7 +570,7 @@ const AdminInsightsDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Payment Type
+                  Tipo de pago
                 </label>
                 <select
                   value={filters.paymentType}
@@ -572,15 +578,15 @@ const AdminInsightsDashboard = () => {
                   className="input-field"
                   style={{ wordWrap: 'break-word' }}
                 >
-                  <option value="">All Types</option>
-                  <option value="client">Passenger Payments</option>
-                  <option value="provider">Provider Payments</option>
+                  <option value="">Todos los tipos</option>
+                  <option value="client">Pagos de pasajeros</option>
+                  <option value="provider">Pagos a proveedores</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Payment Method
+                  Medio de pago
                 </label>
                 <select
                   value={filters.paymentMethod}
@@ -588,7 +594,7 @@ const AdminInsightsDashboard = () => {
                   className="input-field"
                   style={{ wordWrap: 'break-word' }}
                 >
-                  <option value="">All Methods</option>
+                  <option value="">Todos los medios</option>
                   {paymentMethods.map((method) => (
                     <option key={method._id} value={method.name}>
                       {method.name}
@@ -599,7 +605,7 @@ const AdminInsightsDashboard = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-dark-200 mb-2 break-words">
-                  Currency
+                  Moneda
                 </label>
                 <select
                   value={filters.currency}
@@ -617,7 +623,7 @@ const AdminInsightsDashboard = () => {
                   onClick={clearFilters}
                   className="btn-secondary w-full"
                 >
-                  Clear Filters
+                  Limpiar filtros
                 </button>
               </div>
             </div>
@@ -630,9 +636,9 @@ const AdminInsightsDashboard = () => {
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <KPICard
-                title="Total Revenue"
+                title="Ingresos totales"
                 value={overview.businessMetrics?.totalRevenue || 0}
-                subtitle={`${overview.businessMetrics?.saleCount || 0} sales`}
+                subtitle={`${overview.businessMetrics?.saleCount || 0} ventas`}
                 icon="money"
                 color="blue"
                 valueType="currency"
@@ -640,9 +646,9 @@ const AdminInsightsDashboard = () => {
                 currency={filters.currency || 'ARS'}
               />
               <KPICard
-                title="Total Profit"
+                title="Beneficio total"
                 value={overview.businessMetrics?.totalProfit || 0}
-                subtitle={`${overview.businessMetrics?.profitMargin || 0}% margin`}
+                subtitle={`${overview.businessMetrics?.profitMargin || 0}% margen`}
                 icon="chart"
                 color="green"
                 valueType="currency"
@@ -650,17 +656,17 @@ const AdminInsightsDashboard = () => {
                 currency={filters.currency || 'ARS'}
               />
               <KPICard
-                title="Total Users"
+                title="Clientes totales"
                 value={overview.businessMetrics?.totalClients || 0}
-                subtitle={`${overview.businessMetrics?.newClients || 0} new`}
+                subtitle={`${overview.businessMetrics?.newClients || 0} nuevos`}
                 icon="users"
                 color="yellow"
                 valueType="number"
               />
               <KPICard
-                title="Avg Sale Value"
+                title="Ticket medio"
                 value={overview.businessMetrics?.totalClients > 0 ? (overview.businessMetrics?.totalRevenue / overview.businessMetrics?.totalClients) : 0}
-                subtitle="Per passenger"
+                subtitle="Por pasajero"
                 icon="dollar"
                 color="purple"
                 valueType="currency"
@@ -674,15 +680,15 @@ const AdminInsightsDashboard = () => {
               {/* Monthly Trends */}
               {monthlyTrends.length > 0 && (
                 <LineChart
-                  title="Revenue & Profit Trends"
+                  title="Tendencia de ingresos y beneficio"
                   data={monthlyTrends.map(trend => ({
                     label: `${trend.month} ${trend.year}`,
                     revenue: trend.metrics.totalRevenue,
                     profit: trend.metrics.totalProfit
                   }))}
                   lines={[
-                    { dataKey: 'revenue', name: 'Revenue', color: '#3B82F6' },
-                    { dataKey: 'profit', name: 'Profit', color: '#10B981' }
+                    { dataKey: 'revenue', name: 'Ingresos', color: '#3B82F6' },
+                    { dataKey: 'profit', name: 'Beneficio', color: '#10B981' }
                   ]}
                   height={350}
                   currency={filters.currency || 'ARS'}
@@ -696,15 +702,15 @@ const AdminInsightsDashboard = () => {
               {/* Sales Over Time */}
               {salesData && salesData.chartData && salesData.chartData.labels && salesData.chartData.values && salesData.chartData.profitValues && (
                 <LineChart
-                  title="Sales Over Time"
+                  title="Ventas en el tiempo"
                   data={salesData.chartData.labels.map((label, index) => ({
                     label,
                     value: salesData.chartData.values[index] || 0,
                     profit: salesData.chartData.profitValues[index] || 0
                   }))}
                   lines={[
-                    { dataKey: 'value', name: 'Sales', color: '#3B82F6' },
-                    { dataKey: 'profit', name: 'Profit', color: '#10B981' }
+                    { dataKey: 'value', name: 'Ventas', color: '#3B82F6' },
+                    { dataKey: 'profit', name: 'Beneficio', color: '#10B981' }
                   ]}
                   height={350}
                   currency={filters.currency || 'ARS'}
@@ -714,15 +720,15 @@ const AdminInsightsDashboard = () => {
               {/* Profit by Seller */}
               {profitData && profitData.chartData && profitData.chartData.labels && profitData.chartData.values && profitData.chartData.saleValues && (
                 <BarChart
-                  title="Profit by Seller"
+                  title="Beneficio por vendedor"
                   data={profitData.chartData.labels.map((label, index) => ({
                     label,
                     value: profitData.chartData.values[index] || 0,
                     sales: profitData.chartData.saleValues[index] || 0
                   }))}
                   bars={[
-                    { dataKey: 'value', name: 'Profit', color: '#10B981' },
-                    { dataKey: 'sales', name: 'Sales', color: '#3B82F6' }
+                    { dataKey: 'value', name: 'Beneficio', color: '#10B981' },
+                    { dataKey: 'sales', name: 'Ventas', color: '#3B82F6' }
                   ]}
                   height={350}
                   currency={filters.currency || 'ARS'}
@@ -736,7 +742,7 @@ const AdminInsightsDashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-medium text-dark-100">
-                      Activity for {selectedSeller.sellerName}
+                      Actividad de {selectedSeller.sellerName}
                     </h3>
                     <p className="text-sm text-dark-300">{selectedSeller.sellerEmail}</p>
                   </div>
@@ -753,7 +759,7 @@ const AdminInsightsDashboard = () => {
                 {activityLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-                    <span className="ml-2 text-dark-300">Loading activity...</span>
+                    <span className="ml-2 text-dark-300">Cargando actividad…</span>
                   </div>
                 ) : sellerActivity.length > 0 ? (
                   <div className="space-y-3">
@@ -769,19 +775,19 @@ const AdminInsightsDashboard = () => {
                           <div>
                             <p className="text-sm font-medium text-dark-100">{activity.action}</p>
                             <p className="text-xs text-dark-400">
-                              {activity.details || 'No additional details'}
+                              {activity.details || 'Sin detalle adicional'}
                             </p>
                           </div>
                         </div>
                         <div className="text-xs text-dark-400">
-                          {new Date(activity.timestamp).toLocaleString()}
+                          {new Date(activity.timestamp).toLocaleString('es-AR')}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-dark-400">
-                    <p>No activity found for this seller in the selected period.</p>
+                    <p>No hay actividad para este vendedor en el período seleccionado.</p>
                   </div>
                 )}
               </div>
@@ -801,32 +807,32 @@ const AdminInsightsDashboard = () => {
           <div className="space-y-6">
             <div className="card overflow-hidden">
               <div className="px-6 py-4 border-b border-white/10">
-                <h3 className="text-lg font-medium text-dark-100">Seller Performance Rankings</h3>
+                <h3 className="text-lg font-medium text-dark-100">Ranking de desempeño por vendedor</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-white/10">
                   <thead className="bg-dark-700/50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Rank
+                        Puesto
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Seller
+                        Vendedor
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Revenue
+                        Ingresos
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Profit
+                        Beneficio
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Margin
+                        Margen
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Sales Count
+                        N.º ventas
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Avg Sale
+                        Ticket medio
                       </th>
                     </tr>
                   </thead>
@@ -838,8 +844,8 @@ const AdminInsightsDashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
                           <div>
-                            <div className="font-medium">{seller.sellerName || 'Unknown Seller'}</div>
-                            <div className="text-dark-400">{seller.sellerEmail || 'No email'}</div>
+                            <div className="font-medium">{seller.sellerName || 'Vendedor desconocido'}</div>
+                            <div className="text-dark-400">{seller.sellerEmail || 'Sin correo'}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
@@ -871,32 +877,32 @@ const AdminInsightsDashboard = () => {
           <div className="space-y-6">
             <div className="card overflow-hidden">
               <div className="px-6 py-4 border-b border-white/10">
-                <h3 className="text-lg font-medium text-dark-100">Transaction Details</h3>
+                <h3 className="text-lg font-medium text-dark-100">Detalle de operaciones</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-white/10">
                   <thead className="bg-dark-700/50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Passenger
+                        Pasajero
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Seller
+                        Vendedor
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Amount
+                        Importe
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Profit
+                        Beneficio
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Status
+                        Estado
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Date
+                        Fecha
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-dark-300 uppercase tracking-wider">
-                        Sale ID
+                        ID venta
                       </th>
                     </tr>
                   </thead>
@@ -926,11 +932,11 @@ const AdminInsightsDashboard = () => {
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-red-100 text-red-800'
                           }`}>
-                            {transaction.status}
+                            {etiquetaEstadoVenta(transaction.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-dark-100">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
+                          {new Date(transaction.createdAt).toLocaleDateString('es-AR')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-dark-100">
                           #{transaction.saleId.slice(-8)}
@@ -946,10 +952,10 @@ const AdminInsightsDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-sm text-dark-300">
-                      Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount} transactions
+                      Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.totalCount)} de {pagination.totalCount} operaciones
                     </div>
                     <div className="flex items-center space-x-2">
-                      <label className="text-sm text-dark-300">Rows per page:</label>
+                      <label className="text-sm text-dark-300">Filas por página:</label>
                       <select
                         value={pagination.limit}
                         onChange={(e) => handleRowsPerPageChange(e.target.value)}
@@ -968,17 +974,17 @@ const AdminInsightsDashboard = () => {
                         disabled={pagination.page === 1}
                         className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Previous
+                        Anterior
                       </button>
                       <span className="text-sm text-dark-300 px-2">
-                        Page {pagination.page} of {pagination.totalPages}
+                        Página {pagination.page} de {pagination.totalPages}
                       </span>
                       <button
                         onClick={() => handlePageChange(pagination.page + 1)}
                         disabled={pagination.page === pagination.totalPages}
                         className="btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Next
+                        Siguiente
                       </button>
                     </div>
                   )}
@@ -993,30 +999,30 @@ const AdminInsightsDashboard = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LineChart
-                title="Revenue Trends"
+                title="Tendencia de ingresos"
                 data={monthlyTrends.map(trend => ({
                   label: `${trend.month} ${trend.year}`,
                   revenue: trend.metrics.totalRevenue,
                   sales: trend.metrics.saleCount
                 }))}
                 lines={[
-                  { dataKey: 'revenue', name: 'Revenue', color: '#3B82F6' },
-                  { dataKey: 'sales', name: 'Sales Count', color: '#10B981' }
+                  { dataKey: 'revenue', name: 'Ingresos', color: '#3B82F6' },
+                  { dataKey: 'sales', name: 'Cantidad de ventas', color: '#10B981' }
                 ]}
                 height={400}
                 currency={filters.currency || 'ARS'}
               />
               
               <LineChart
-                title="Profit & Margin Trends"
+                title="Beneficio y margen"
                 data={monthlyTrends.map(trend => ({
                   label: `${trend.month} ${trend.year}`,
                   profit: trend.metrics.totalProfit,
                   margin: trend.metrics.profitMargin
                 }))}
                 lines={[
-                  { dataKey: 'profit', name: 'Profit', color: '#10B981' },
-                  { dataKey: 'margin', name: 'Margin %', color: '#F59E0B' }
+                  { dataKey: 'profit', name: 'Beneficio', color: '#10B981' },
+                  { dataKey: 'margin', name: 'Margen %', color: '#F59E0B' }
                 ]}
                 height={400}
                 currency={filters.currency || 'ARS'}
@@ -1031,27 +1037,27 @@ const AdminInsightsDashboard = () => {
         {showExportModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Data</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Exportar datos</h3>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Export Type
+                    Tipo de exportación
                   </label>
                   <select
                     value={exportType}
                     onChange={(e) => setExportType(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="seller-performance">Seller Performance</option>
-                    <option value="transaction-details">Transaction Details</option>
-                    <option value="monthly-trends">Monthly Trends</option>
+                    <option value="seller-performance">Desempeño por vendedor</option>
+                    <option value="transaction-details">Detalle de operaciones</option>
+                    <option value="monthly-trends">Tendencias mensuales</option>
                   </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Format
+                    Formato
                   </label>
                   <select
                     value={exportFormat}
@@ -1069,13 +1075,13 @@ const AdminInsightsDashboard = () => {
                   onClick={() => setShowExportModal(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   onClick={handleExport}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
                 >
-                  Export
+                  Exportar
                 </button>
               </div>
             </div>

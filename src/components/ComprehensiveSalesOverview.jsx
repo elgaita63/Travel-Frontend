@@ -3,6 +3,29 @@ import { formatCurrency } from '../utils/formatNumbers';
 import CurrencyDisplay from './CurrencyDisplay';
 import api from '../utils/api';
 import { buildNombreVentaSuggestion } from '../utils/buildNombreVentaSuggestion';
+import { createReportPDF, downloadPDF } from '../utils/pdfUtils';
+
+const truncateExport = (s, max = 80) => {
+  const t = s == null ? '' : String(s);
+  return t.length <= max ? t : `${t.slice(0, max - 3)}...`;
+};
+
+function downloadCsvSemicolon(filename, headers, rows) {
+  const sep = ';';
+  const esc = (v) => {
+    const s = String(v ?? '');
+    if (/[;\r\n"]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [headers.map(esc).join(sep), ...rows.map((row) => headers.map((h) => esc(row[h])).join(sep))];
+  const blob = new Blob([`\uFEFF${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /** Texto bajo "Destino" en la grilla: nombreVenta si existe; si no, misma composición que el wizard (paso 7). */
 function getComprehensiveSaleDestinationLabel(sale) {
@@ -43,7 +66,8 @@ const ComprehensiveSalesOverview = ({
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [allUsers, setAllUsers] = useState([]);
-  const [allServices, setAllServices] = useState([]); 
+  const [allServices, setAllServices] = useState([]);
+  const [exportBusy, setExportBusy] = useState(false); 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -117,10 +141,13 @@ const ComprehensiveSalesOverview = ({
   const BalanceCell = ({ amount, currency, className = "" }) => {
     const symbol = currency === 'USD' ? 'U$D' : 'AR$';
     const symbolColor = currency === 'USD' ? 'text-green-300' : 'text-cyan-400';
+    const negative = amount < 0;
+    const abs = Math.abs(amount);
     return (
       <div className={`text-right font-medium ${getAmountColor(amount)} ${className}`}>
+        {negative ? <span className="mr-0.5">−</span> : null}
         <span className={`${symbolColor} mr-1`}>{symbol}</span>
-        {Math.abs(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {abs.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
     );
   };
@@ -143,12 +170,150 @@ const ComprehensiveSalesOverview = ({
     }
   };
 
+  const exportHeaders = React.useMemo(
+    () => [
+      'Fecha',
+      'Pasajero',
+      'Destino',
+      'Proveedores',
+      'Vendedor',
+      'Pendiente vendedor',
+      'Estado',
+      'Comisión',
+      '% Comisión',
+      `Precio (${selectedCurrency})`,
+      `Costo (${selectedCurrency})`,
+      `Ganancia (${selectedCurrency})`,
+      'Margen %',
+      `Saldo pasajero (${selectedCurrency})`,
+      `Saldo proveedor (${selectedCurrency})`
+    ],
+    [selectedCurrency]
+  );
+
+  const buildExportRows = () => {
+    const rows = sortedSales.map((sale) => {
+      const profitMargin = sale.totalSalePrice > 0 ? (sale.profit / sale.totalSalePrice) * 100 : 0;
+      const sellerName = (sale.createdBy?.fullName || sale.createdBy?.username || 'SISTEMA').toUpperCase();
+      const currentSaleBalance = sale.sellerBalance
+        ? (sale.saleCurrency === 'ARS' ? (sale.sellerBalance.ars || 0) : (sale.sellerBalance.usd || 0))
+        : 0;
+      const userInMaster = allUsers.find((u) => getSafeId(u._id) === getSafeId(sale.createdBy));
+      const comisionPct = Number(userInMaster?.comision || sale.createdBy?.comision || 0);
+      const comisionImp = (sale.profit || 0) * (comisionPct / 100);
+      const destino = getComprehensiveSaleDestinationLabel(sale);
+      const providerNames = (sale.services || [])
+        .map((srv) => {
+          const ms = allServices.find((x) => getSafeId(x._id) === getSafeId(srv.serviceId));
+          return (ms?.providerId?.name || srv.providerId?.name || 'N/A').toUpperCase();
+        })
+        .join(' | ');
+      const statusLabel = sale.status === 'open' ? 'Abierta' : sale.status === 'closed' ? 'Cerrada' : 'Cancelada';
+      return {
+        Fecha: new Date(sale.createdAt).toLocaleDateString('es-AR'),
+        Pasajero: `${sale.clientId?.name || ''} ${sale.clientId?.surname || ''}`.trim(),
+        Destino: destino,
+        Proveedores: providerNames,
+        Vendedor: sellerName,
+        'Pendiente vendedor': formatCurrency(currentSaleBalance, selectedCurrency),
+        Estado: statusLabel,
+        Comisión: formatCurrency(comisionImp, selectedCurrency),
+        '% Comisión': String(comisionPct),
+        [`Precio (${selectedCurrency})`]: formatCurrency(sale.totalSalePrice, selectedCurrency),
+        [`Costo (${selectedCurrency})`]: formatCurrency(sale.totalCost, selectedCurrency),
+        [`Ganancia (${selectedCurrency})`]: formatCurrency(sale.profit, selectedCurrency),
+        'Margen %': `${profitMargin.toFixed(1)}%`,
+        [`Saldo pasajero (${selectedCurrency})`]: formatCurrency(sale.clientBalance || 0, selectedCurrency),
+        [`Saldo proveedor (${selectedCurrency})`]: formatCurrency(sale.providerBalance || 0, selectedCurrency)
+      };
+    });
+
+    rows.push({
+      Fecha: 'TOTALES',
+      Pasajero: '',
+      Destino: '',
+      Proveedores: '',
+      Vendedor: '',
+      'Pendiente vendedor': formatCurrency(totals.sumVendedores, selectedCurrency),
+      Estado: '',
+      Comisión: '',
+      '% Comisión': '',
+      [`Precio (${selectedCurrency})`]: formatCurrency(totals.sumPrecio, selectedCurrency),
+      [`Costo (${selectedCurrency})`]: formatCurrency(totals.sumCosto, selectedCurrency),
+      [`Ganancia (${selectedCurrency})`]: formatCurrency(totals.sumGanancia, selectedCurrency),
+      'Margen %': `${totals.marginTotalPct.toFixed(1)}%`,
+      [`Saldo pasajero (${selectedCurrency})`]: formatCurrency(totals.sumPasajero, selectedCurrency),
+      [`Saldo proveedor (${selectedCurrency})`]: formatCurrency(totals.sumProveedor, selectedCurrency)
+    });
+
+    return rows;
+  };
+
+  const handleExportPdf = () => {
+    if (!sortedSales.length) return;
+    setExportBusy(true);
+    try {
+      const raw = buildExportRows();
+      const pdfData = raw.map((row) => {
+        const o = {};
+        exportHeaders.forEach((h) => {
+          o[h] = truncateExport(row[h], h.includes('Proveedores') || h.includes('Destino') ? 55 : 70);
+        });
+        return o;
+      });
+      const title = `Resumen de ventas — ${selectedCurrency}`;
+      const stamp = new Date().toISOString().slice(0, 10);
+      const doc = createReportPDF(pdfData, title, {
+        filename: `resumen-ventas-${selectedCurrency}-${stamp}.pdf`,
+        orientation: 'landscape'
+      });
+      downloadPDF(doc, `resumen-ventas-${selectedCurrency}-${stamp}.pdf`);
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!sortedSales.length) return;
+    setExportBusy(true);
+    try {
+      const rows = buildExportRows();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsvSemicolon(`resumen-ventas-${selectedCurrency}-${stamp}.csv`, exportHeaders, rows);
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-20 w-20 border-4 border-t-primary-500"></div></div>;
 
   return (
     <div className="space-y-6">
       <div className="px-2">
         <div className="card overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-dark-800/40">
+            <p className="text-xs text-dark-400 max-w-xl">
+              Exportación según filtros y página actual del listado (cliente). Abrí el CSV en Excel o LibreOffice.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={exportBusy || sortedSales.length === 0}
+                onClick={handleExportPdf}
+                className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+              >
+                Generar PDF
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy || sortedSales.length === 0}
+                onClick={handleExportExcel}
+                className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+              >
+                Generar Excel (CSV)
+              </button>
+            </div>
+          </div>
           <div className="overflow-x-auto w-full">
             <table className="min-w-full divide-y divide-white/10 table-auto">
               <thead className="bg-dark-700/50">
@@ -252,22 +417,26 @@ const ComprehensiveSalesOverview = ({
                   <td className="px-2 py-6 align-top" aria-hidden="true" />
                   <td className="px-4 py-6 align-top" aria-hidden="true" />
                   <td className="px-4 py-6 text-right align-top">
-                    <div className="flex flex-col items-end w-full">
-                      <div className="w-full max-w-[11rem] text-xs text-dark-300 uppercase tracking-wide leading-tight space-y-0.5 text-right">
-                        <div>Precios</div>
-                        <div>Costos</div>
-                        <div>Ganancia</div>
-                      </div>
-                      <div className="mt-1.5 w-full max-w-[11rem] border-b border-solid border-white/35" />
-                      <div className="mt-2 space-y-1 w-full">
-                        <div className="text-sm text-dark-100 font-medium">
-                          <CurrencyDisplay>{formatCurrency(totals.sumPrecio, selectedCurrency)}</CurrencyDisplay>
+                    <div className="flex flex-col items-stretch w-full max-w-[14rem] ml-auto">
+                      <div className="mt-1.5 w-full border-b border-solid border-white/35" />
+                      <div className="mt-2 space-y-1.5 w-full">
+                        <div className="flex justify-between items-baseline gap-3 text-sm">
+                          <span className="text-xs text-dark-300 uppercase tracking-wide shrink-0">Precios</span>
+                          <span className="text-dark-100 font-medium text-right tabular-nums">
+                            <CurrencyDisplay>{formatCurrency(totals.sumPrecio, selectedCurrency)}</CurrencyDisplay>
+                          </span>
                         </div>
-                        <div className="text-sm text-dark-300">
-                          <CurrencyDisplay>{formatCurrency(totals.sumCosto, selectedCurrency)}</CurrencyDisplay>
+                        <div className="flex justify-between items-baseline gap-3 text-sm">
+                          <span className="text-xs text-dark-300 uppercase tracking-wide shrink-0">Costos</span>
+                          <span className="text-dark-300 text-right tabular-nums">
+                            <CurrencyDisplay>{formatCurrency(totals.sumCosto, selectedCurrency)}</CurrencyDisplay>
+                          </span>
                         </div>
-                        <div className={`text-sm font-bold ${getAmountColor(totals.sumGanancia)}`}>
-                          <CurrencyDisplay>{formatCurrency(totals.sumGanancia, selectedCurrency)}</CurrencyDisplay>
+                        <div className="flex justify-between items-baseline gap-3 text-sm">
+                          <span className="text-xs text-dark-300 uppercase tracking-wide shrink-0">Ganancia</span>
+                          <span className={`font-bold text-right tabular-nums ${getAmountColor(totals.sumGanancia)}`}>
+                            <CurrencyDisplay>{formatCurrency(totals.sumGanancia, selectedCurrency)}</CurrencyDisplay>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -276,16 +445,18 @@ const ComprehensiveSalesOverview = ({
                     {totals.marginTotalPct.toFixed(1)}%
                   </td>
                   <td className="px-4 py-6 align-top text-right">
-                    <div className="flex flex-col items-end">
-                      <div className="text-xs text-dark-300 uppercase tracking-wide leading-tight space-y-0.5">
-                        <div>Balances</div>
-                        <div>Pasajeros</div>
-                        <div>Proveedor</div>
-                      </div>
-                      <div className="mt-1.5 w-full max-w-[11rem] border-b border-solid border-white/35" />
-                      <div className="mt-2 space-y-1 w-full">
-                        <BalanceCell amount={totals.sumPasajero} currency={selectedCurrency} className="text-sm" />
-                        <BalanceCell amount={totals.sumProveedor} currency={selectedCurrency} className="text-sm" />
+                    <div className="flex flex-col items-stretch w-full max-w-[14rem] ml-auto">
+                      <div className="text-xs text-dark-300 uppercase tracking-wide text-center w-full">Balances</div>
+                      <div className="mt-1.5 w-full border-b border-solid border-white/35" />
+                      <div className="mt-2 space-y-1.5 w-full">
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-xs text-dark-400 shrink-0">Pasajero</span>
+                          <BalanceCell amount={totals.sumPasajero} currency={selectedCurrency} className="text-sm" />
+                        </div>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-xs text-dark-400 shrink-0">Proveedor</span>
+                          <BalanceCell amount={totals.sumProveedor} currency={selectedCurrency} className="text-sm" />
+                        </div>
                       </div>
                     </div>
                   </td>

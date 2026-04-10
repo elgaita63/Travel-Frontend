@@ -30,6 +30,7 @@ import PaymentReports from './pages/PaymentReports';
 import UserSettings from './pages/UserSettings';
 import UsersList from './pages/UsersList';
 import UserForm from './pages/UserForm';
+import UserSellerProfile from './pages/UserSellerProfile';
 import DailyReports from './pages/DailyReports';
 import AdminInsightsDashboard from './pages/AdminInsightsDashboard';
 import Balances from './pages/Balances';
@@ -97,6 +98,7 @@ const AppRoutes = () => {
       <Route path="/settings" element={<ProtectedRoute><Layout><UserSettings /></Layout></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Layout><UsersList /></Layout></ProtectedRoute>} />
       <Route path="/users/new" element={<ProtectedRoute><Layout><UserForm /></Layout></ProtectedRoute>} />
+      <Route path="/users/:id/profile" element={<ProtectedRoute><Layout><UserSellerProfile /></Layout></ProtectedRoute>} />
       <Route path="/users/:id/edit" element={<ProtectedRoute><Layout><UserForm /></Layout></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Layout><SearchPage /></Layout></ProtectedRoute>} />
       <Route path="/system-config" element={<ProtectedRoute requireAdmin><Layout><SystemConfig /></Layout></ProtectedRoute>} />

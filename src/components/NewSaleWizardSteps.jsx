@@ -121,6 +121,11 @@ const NewSaleWizardSteps = ({
   passengerCurrency,
   setPassengerCurrency,
   passengerConvertedAmount,
+  // Final confirmation (migrated from Step 7 to Step 6)
+  onConfirmSale,
+  confirmDisabled = false,
+  confirmLabel = 'Confirmar venta',
+  confirmLoading = false,
   // Currency Consistency
   globalCurrency,
   currencyLocked,
@@ -198,26 +203,6 @@ const NewSaleWizardSteps = ({
       {/* Step 1: Select Passengers & Companions */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div className="bg-dark-800/70 border border-primary-500/25 rounded-xl p-5 text-left">
-            <label htmlFor="nombreVenta-wizard-step1" className="block text-sm font-semibold text-dark-100 mb-2">
-              Nombre / identificación del viaje, venta o reserva
-            </label>
-            <input
-              id="nombreVenta-wizard-step1"
-              type="text"
-              value={nombreVenta || ''}
-              onChange={(e) => setNombreVenta(e.target.value)}
-              className="input-field w-full max-w-3xl border-primary-500/40 focus:border-primary-500"
-              placeholder="Se sugiere según destino y servicios"
-              maxLength={200}
-              autoComplete="off"
-            />
-            <p className="text-xs text-dark-500 mt-2 leading-relaxed">
-              Opcional: si no cargás un nombre acá, en el paso 7 se completará automáticamente según destino y servicios cuando corresponda; podés editarlo antes de{' '}
-              {isEditMode ? 'guardar los cambios' : 'confirmar la venta'}.
-            </p>
-          </div>
-
           <h3 className="text-lg font-medium text-dark-100">Pasajeros y acompañantes</h3>
           <p className="text-sm text-dark-400">Elegí el titular y los acompañantes de esta venta</p>
           
@@ -820,8 +805,24 @@ const NewSaleWizardSteps = ({
       {/* Step 6: Edit Services */}
       {currentStep === 6 && (
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-dark-100">Editar servicios</h3>
-          <p className="text-sm text-dark-400">Revisá y ajustá los servicios elegidos</p>
+          <div className="bg-dark-800/70 border border-primary-500/25 rounded-xl p-5 text-left">
+            <label htmlFor="nombreVenta" className="block text-sm font-semibold text-dark-100 mb-2">
+              Nombre/Identificación del Viaje/Venta/Reserva
+            </label>
+            <input
+              id="nombreVenta"
+              type="text"
+              value={nombreVenta || ''}
+              onChange={(e) => setNombreVenta(e.target.value)}
+              className="input-field w-full text-dark-100"
+              placeholder="Se sugiere un texto según destinos y servicios cargados"
+              maxLength={200}
+              autoComplete="off"
+            />
+            <p className="text-xs text-dark-400 mt-2 leading-relaxed">
+              Sugerencia: cargá una identificación para esta venta que incluya una palabra de una ciudad de destino relacionada al viaje.
+            </p>
+          </div>
           
           {/* Current Services Summary */}
           {serviceTemplateInstances.length > 0 && (
@@ -882,8 +883,8 @@ const NewSaleWizardSteps = ({
 
           {/* Service Management */}
           {serviceTemplateInstances.length > 0 && (
-          <div className="space-y-4">
-              <h4 className="text-md font-medium text-dark-100">Gestionar servicios</h4>
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-dark-100">Servicios contratados:</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {serviceTemplateInstances.map((instance, index) => (
                   <div key={instance.id} className="bg-dark-700/50 border border-white/10 rounded-lg p-4">
@@ -891,18 +892,19 @@ const NewSaleWizardSteps = ({
                       <div className="flex-1">
                         <h5 className="font-medium text-dark-100 mb-1">
                           {index + 1}. {instance.serviceName || instance.templateName}
-              </h5>
+                        </h5>
                         <p className="text-sm text-dark-300">{instance.serviceInfo}</p>
-                </div>
+                      </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => editServiceInstance(instance)}
-                          className="text-blue-400 hover:text-blue-300 p-1"
+                          className="inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 p-1"
                           title="Editar servicio"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
+                          </svg>
+                          <span className="text-[11px] font-bold tracking-wider">EDITAR</span>
                         </button>
                         <button
                           onClick={() => removeServiceInstance(instance.id)}
@@ -911,28 +913,22 @@ const NewSaleWizardSteps = ({
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
+                          </svg>
                         </button>
-                            </div>
+                      </div>
                     </div>
-                    
+
                     <div className="text-xs text-dark-400 space-y-1">
                       <div><span className="text-primary-400">Fechas:</span> {instance.checkIn && instance.checkOut ? `${instance.checkIn} a ${instance.checkOut}` : 'Sin indicar'}</div>
                       <div><span className="text-primary-400">Destino:</span> {instance.destination?.city || instance.destination?.name || 'Sin indicar'}</div>
                       <div><span className="text-primary-400">Costo:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost || 0).toFixed(2)}</div>
                       <div><span className="text-primary-400">Proveedores:</span> {(() => {
-                        console.log(`🔍 Service ${instance.templateName} providers:`, instance.providers);
-                        console.log(`🔍 Service ${instance.templateName} provider:`, instance.provider);
-                        
                         if (instance.providers && instance.providers.length > 0) {
-                          // Group providers by name and count occurrences
                           const providerCounts = {};
                           instance.providers.forEach(p => {
                             const providerName = p.name || p.providerId?.name || 'Proveedor desconocido';
                             providerCounts[providerName] = (providerCounts[providerName] || 0) + 1;
                           });
-                          
-                          // Format providers with counts
                           return Object.entries(providerCounts)
                             .map(([name, count]) => count > 1 ? `${name} × ${count}` : name)
                             .join(', ');
@@ -942,103 +938,14 @@ const NewSaleWizardSteps = ({
                           return 'Ninguno';
                         }
                       })()}</div>
-                        </div>
-                      </div>
-                    ))}
-              </div>
-                </div>
-              )}
-        </div>
-      )}
-
-      {/* Paso 7: Revisar y confirmar / guardar */}
-      {currentStep === 7 && (
-        <div className="space-y-8">
-          <div className="bg-dark-800/70 border border-primary-500/25 rounded-xl p-5 text-left">
-            <label htmlFor="nombreVenta" className="block text-sm font-semibold text-dark-100 mb-2">
-              Nombre/Identificación del Viaje/Venta/Reserva
-            </label>
-            <input
-              id="nombreVenta"
-              type="text"
-              value={nombreVenta || ''}
-              onChange={(e) => setNombreVenta(e.target.value)}
-              className="input-field w-full text-dark-100"
-              placeholder="Se sugiere un texto según destinos y servicios cargados"
-              maxLength={200}
-              autoComplete="off"
-            />
-            <p className="text-xs text-dark-400 mt-2 leading-relaxed">
-              Sugerencia: cargá una identificación para esta venta que incluya una palabra de una ciudad de destino relacionada al viaje.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-2xl font-bold text-dark-100 mb-2">
-              {isEditMode ? 'Revisar y guardar venta' : 'Revisar y confirmar venta'}
-            </h3>
-            <p className="text-dark-400">
-              {isEditMode
-                ? 'Revisá todos los datos antes de guardar los cambios'
-                : 'Revisá todos los datos antes de confirmar la venta'}
-            </p>
-          </div>
-          
-          {/* Service Instances Summary */}
-          <div className="bg-gradient-to-r from-primary-900/20 to-primary-800/20 border border-primary-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-semibold text-primary-200">Servicios ({serviceTemplateInstances.length})</h4>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {serviceTemplateInstances.map((instance, index) => (
-                <div key={instance.id} className="bg-dark-800/50 border border-primary-500/20 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h5 className="font-medium text-dark-100 mb-2">
-                        {index + 1}. {instance.serviceName || instance.templateName} - {instance.serviceInfo}
-                      </h5>
-                      <div className="text-sm text-dark-300 space-y-1">
-                        <div><span className="text-primary-400">Fechas:</span> {instance.checkIn} a {instance.checkOut}</div>
-                        <div><span className="text-primary-400">Destino:</span> {instance.destination.city}</div>
-                        {instance.cost && instance.cost > 0 && (
-                        <div><span className="text-primary-400">Costo:</span> {globalCurrency === 'USD' ? 'U$' : 'AR$'} {parseFloat(instance.cost).toFixed(2)}</div>
-                      )}
-                        <div><span className="text-primary-400">Proveedor(es):</span> {(() => {
-                          if (instance.providers && instance.providers.length > 0) {
-                            // Group providers by name and count occurrences
-                            const providerCounts = {};
-                            instance.providers.forEach(p => {
-                              const providerName = p.name || p.providerId?.name || 'Proveedor desconocido';
-                              providerCounts[providerName] = (providerCounts[providerName] || 0) + 1;
-                            });
-                            
-                            // Format providers with counts
-                            return Object.entries(providerCounts)
-                              .map(([name, count]) => count > 1 ? `${name} × ${count}` : name)
-                              .join(', ');
-                          } else if (instance.provider?.name) {
-                            return instance.provider.name;
-                          } else {
-                            return 'Ninguno';
-                          }
-                        })()}</div>
-                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Passengers Summary */}
+          {/* Passengers Summary (migrado desde paso 7) */}
           <div className="bg-gradient-to-r from-blue-900/20 to-blue-800/20 border border-blue-500/30 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
@@ -1053,7 +960,6 @@ const NewSaleWizardSteps = ({
                 const totalPassengers = selectedPassengers.length + selectedCompanions.length;
                 const passengerPrice = parseFloat(pricePerPassenger) || 0;
                 const totalPassengerCost = passengerPrice * totalPassengers;
-                
                 return (
                   <div className="text-right">
                     <div className="text-sm text-blue-300 font-medium">
@@ -1063,7 +969,7 @@ const NewSaleWizardSteps = ({
                 );
               })()}
             </div>
-            
+
             <div className="space-y-3">
               {selectedPassengers.map((passenger) => (
                 <div key={passenger._id} className="bg-dark-800/50 border border-blue-500/20 rounded-lg p-3">
@@ -1074,7 +980,7 @@ const NewSaleWizardSteps = ({
                   </div>
                 </div>
               ))}
-              
+
               {selectedCompanions.map((companion) => (
                 <div key={companion._id} className="bg-dark-800/50 border border-blue-500/20 rounded-lg p-3">
                   <h5 className="font-medium text-dark-100">{companion.name} {companion.surname}</h5>
@@ -1086,8 +992,21 @@ const NewSaleWizardSteps = ({
               ))}
             </div>
           </div>
+
+          <div className="pt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={onConfirmSale}
+              disabled={confirmDisabled || confirmLoading}
+              className="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
+            >
+              {confirmLoading ? 'Creando venta…' : confirmLabel}
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Paso 7 eliminado: el cierre ahora es en el paso 6 */}
 
 
       {/* Service Entry Modal */}

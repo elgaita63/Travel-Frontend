@@ -45,8 +45,8 @@ const ReleaseNotesModal = ({ isOpen, onClose, isSuper }) => {
             </h2>
             <p className="text-xs text-dark-400 mt-2">
               {isSuper
-                ? 'Texto directo del backlog.'
-                : 'Resumen ejecutivo por ítem (administrador).'}
+                ? 'Texto del backlog tal como está cargado.'
+                : 'Resumen ejecutivo (administrador), mismo orden que el backlog.'}
             </p>
           </div>
           <button
@@ -62,13 +62,16 @@ const ReleaseNotesModal = ({ isOpen, onClose, isSuper }) => {
         </div>
 
         <div className="overflow-y-auto custom-scrollbar px-6 py-4">
-          <ol className="list-decimal list-outside space-y-3 pl-5 text-sm text-dark-200 leading-relaxed marker:text-primary-500 marker:font-semibold">
+          <div className="space-y-4 text-sm text-dark-200 leading-relaxed">
             {lines.map((text, i) => (
-              <li key={i} className={isSuper ? 'whitespace-pre-wrap break-words pl-1' : 'pl-1'}>
+              <div
+                key={i}
+                className="whitespace-pre-wrap break-words"
+              >
                 {text}
-              </li>
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
 
         <div className="px-6 py-3 border-t border-white/10 flex justify-end">
