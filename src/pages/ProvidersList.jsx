@@ -1,12 +1,21 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
+import ProviderImportModal from '../components/ProviderImportModal';
+import { downloadProvidersCsv, downloadProvidersXlsx } from '../utils/exportProviders';
+
+const EXPORT_PAGE_SIZE = 500;
 
 const ProvidersList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exportBusy, setExportBusy] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,6 +86,54 @@ const ProvidersList = () => {
     navigate(`/providers/${providerId}`);
   };
 
+  const fetchAllProvidersForExport = useCallback(async () => {
+    const search = debouncedSearchTerm;
+    const first = await api.get(
+      `/api/providers?page=1&limit=${EXPORT_PAGE_SIZE}&search=${encodeURIComponent(search)}`
+    );
+    if (!first.data.success) {
+      throw new Error(first.data.message || 'No se pudieron obtener los proveedores');
+    }
+    const { pages } = first.data.data;
+    let all = [...first.data.data.providers];
+    for (let page = 2; page <= pages; page++) {
+      const r = await api.get(
+        `/api/providers?page=${page}&limit=${EXPORT_PAGE_SIZE}&search=${encodeURIComponent(search)}`
+      );
+      if (r.data.success) {
+        all = all.concat(r.data.data.providers);
+      }
+    }
+    return all;
+  }, [debouncedSearchTerm]);
+
+  const handleExportCsv = async () => {
+    setExportBusy(true);
+    try {
+      const all = await fetchAllProvidersForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadProvidersCsv(`proveedores-${stamp}.csv`, all);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleExportXlsx = async () => {
+    setExportBusy(true);
+    try {
+      const all = await fetchAllProvidersForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadProvidersXlsx(`proveedores-${stamp}.xlsx`, all);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -147,7 +204,45 @@ const ProvidersList = () => {
               </button>
             </div>
           </div>
+          <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-dark-400 max-w-xl">
+              Exportar todos los proveedores que coinciden con la búsqueda actual (no solo esta página).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {user?.isSuper && (
+                <button
+                  type="button"
+                  onClick={() => setImportModalOpen(true)}
+                  className="btn-secondary text-sm px-3 py-1.5 border-primary-500/40 text-primary-300"
+                >
+                  Importar con IA
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={handleExportCsv}
+                className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+              >
+                {exportBusy ? 'Exportando…' : 'CSV'}
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={handleExportXlsx}
+                className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+              >
+                {exportBusy ? 'Exportando…' : 'Excel (.xlsx)'}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <ProviderImportModal
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImported={() => fetchProviders(false)}
+        />
 
         <div className="card overflow-hidden" style={{marginTop: "50px"}}>
           {providers.length === 0 ? (

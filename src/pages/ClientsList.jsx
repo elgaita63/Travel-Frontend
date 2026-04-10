@@ -615,8 +615,13 @@ const ClientsList = () => {
         {/* Clients List */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-dark-100">Lista de Pasajeros</h4>
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+                <h4 className="text-lg font-medium text-dark-100">Lista de Pasajeros</h4>
+                <span className="text-sm text-dark-400 font-normal">
+                  Clickear sobre el pasajero para ver detalles
+                </span>
+              </div>
             </div>
           </div>
 
@@ -653,7 +658,19 @@ const ClientsList = () => {
             <>
               <div className="divide-y divide-white/10">
                 {clients.map((client) => (
-                  <div key={client._id || client.id} className="px-6 py-4 hover:bg-white/5 transition-colors">
+                  <div
+                    key={client._id || client.id}
+                    role="button"
+                    tabIndex={0}
+                    className="px-6 py-4 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => handleClientClick(client._id || client.id, client)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleClientClick(client._id || client.id, client);
+                      }
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center shadow-lg">
@@ -679,7 +696,11 @@ const ClientsList = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
+                      <div
+                        className="flex items-center space-x-4"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
                         <span className={`badge ${client.status === 'active' || !client.status
                             ? 'badge-success'
                             : 'badge-warning'
@@ -688,21 +709,9 @@ const ClientsList = () => {
                         </span>
 
                         <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleClientClick(client._id || client.id, client)}
-                            className="btn-primary text-sm"
-                          >
-                            <span className="flex items-center space-x-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              <span>Ver Detalles</span>
-                            </span>
-                          </button>
-                          
                           {!client.isMainClient && (
                             <button
+                              type="button"
                               onClick={() => handlePromoteCompanion(client._id || client.id)}
                               className="btn-secondary text-sm"
                               title="Promover a Pasajero Titular"
@@ -719,7 +728,10 @@ const ClientsList = () => {
                           {isAdmin && (
                             <button
                               type="button"
-                              onClick={() => handleDeletePassengerRow(client)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePassengerRow(client);
+                              }}
                               className="btn-secondary text-sm text-red-300 hover:text-red-200 border border-red-500/30 hover:border-red-500/50 bg-red-500/10 hover:bg-red-500/15"
                               title="Eliminar (solo administración)"
                             >

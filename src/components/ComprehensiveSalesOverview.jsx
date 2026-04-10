@@ -4,28 +4,12 @@ import CurrencyDisplay from './CurrencyDisplay';
 import api from '../utils/api';
 import { buildNombreVentaSuggestion } from '../utils/buildNombreVentaSuggestion';
 import { createReportPDF, downloadPDF } from '../utils/pdfUtils';
+import { downloadCsvSemicolon } from '../utils/csvExport';
 
 const truncateExport = (s, max = 80) => {
   const t = s == null ? '' : String(s);
   return t.length <= max ? t : `${t.slice(0, max - 3)}...`;
 };
-
-function downloadCsvSemicolon(filename, headers, rows) {
-  const sep = ';';
-  const esc = (v) => {
-    const s = String(v ?? '');
-    if (/[;\r\n"]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
-  const lines = [headers.map(esc).join(sep), ...rows.map((row) => headers.map((h) => esc(row[h])).join(sep))];
-  const blob = new Blob([`\uFEFF${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /** Texto bajo "Destino" en la grilla: nombreVenta si existe; si no, misma composición que el wizard (paso 7). */
 function getComprehensiveSaleDestinationLabel(sale) {
