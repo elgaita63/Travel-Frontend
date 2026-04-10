@@ -103,7 +103,7 @@ const VendorDashboard = () => {
                 _id: sale._id,
                 saleId: { id: sale.saleNumber || sale._id },
                 serviceDetails: {
-                  serviceTitle: service.serviceId?.destino || service.serviceId?.title || service.serviceName || 'Unknown Service',
+                  serviceTitle: service.serviceId?.destino || service.serviceId?.title || service.serviceName || 'Servicio sin nombre',
                   quantity: service.quantity || 1
                 },
                 profit: {
@@ -136,7 +136,7 @@ const VendorDashboard = () => {
                 _id: payment._id,
                 saleId: { id: sale.saleNumber || sale._id },
                 serviceDetails: {
-                  serviceTitle: sale.services[0]?.serviceId?.destino || sale.services[0]?.serviceName || 'Unknown Service'
+                  serviceTitle: sale.services[0]?.serviceId?.destino || sale.services[0]?.serviceName || 'Servicio sin nombre'
                 },
                 paymentDetails: {
                   amount: payment.paymentId?.amount || 0,
@@ -170,7 +170,7 @@ const VendorDashboard = () => {
       }
 
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to fetch vendor data');
+      setError(error.response?.data?.message || 'No se pudieron cargar los datos del proveedor');
     } finally {
       setLoading(false);
     }
@@ -194,10 +194,34 @@ const VendorDashboard = () => {
     setSelectedCurrency(e.target.value);
   };
 
+  const paymentStatusLabel = (s) => {
+    const map = {
+      completed: 'Completado',
+      pending: 'Pendiente',
+      failed: 'Fallido',
+      overdue: 'Vencido',
+      unknown: '—'
+    };
+    return map[s] || s || '—';
+  };
+
+  const paymentMethodLabel = (m) => {
+    const map = {
+      transfer_from_mare_nostrum: 'Transferencia',
+      cash: 'Efectivo',
+      credit_card: 'Tarjeta',
+      cheque: 'Cheque',
+      deposit: 'Depósito',
+      unknown: '—'
+    };
+    if (!m || m === 'unknown') return map.unknown;
+    return map[m] || String(m).replace(/_/g, ' ');
+  };
+
   const formatCurrency = (amount, currency = selectedCurrency) => {
     // Handle undefined, null, or NaN values
     if (amount === undefined || amount === null || isNaN(amount)) {
-      const formatted = new Intl.NumberFormat('en-US', {
+      const formatted = new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: currency
       }).format(0);
@@ -210,7 +234,7 @@ const VendorDashboard = () => {
       return formatted;
     }
     
-    const formatted = new Intl.NumberFormat('en-US', {
+    const formatted = new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: currency
     }).format(amount);
@@ -224,7 +248,7 @@ const VendorDashboard = () => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString('es-AR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -259,8 +283,9 @@ const VendorDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex flex-col justify-center items-center h-64 gap-4">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500"></div>
+        <p className="text-dark-300">Cargando panel del proveedor...</p>
       </div>
     );
   }
@@ -274,7 +299,7 @@ const VendorDashboard = () => {
             onClick={() => navigate('/providers')}
             className="btn-secondary"
           >
-            Back to Providers
+            Volver a proveedores
           </button>
         </div>
       </div>
@@ -285,12 +310,12 @@ const VendorDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-500 text-xl mb-4">Provider not found</div>
+          <div className="text-gray-500 text-xl mb-4">Proveedor no encontrado</div>
           <button
             onClick={() => navigate('/providers')}
             className="btn-secondary"
           >
-            Back to Providers
+            Volver a proveedores
           </button>
         </div>
       </div>
@@ -309,19 +334,19 @@ const VendorDashboard = () => {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Providers
+            Volver a proveedores
           </button>
-          <h1 className="text-3xl font-bold text-white">{provider.name} Dashboard</h1>
-          <p className="text-gray-300 mt-2">Vendor payment tracking and analytics</p>
+          <h1 className="text-3xl font-bold text-white">Panel · {provider.name}</h1>
+          <p className="text-gray-300 mt-2">Seguimiento de pagos y totales asociados al proveedor</p>
         </div>
 
         {/* Date Range Filter */}
         <div className="card-glass p-6 mb-8">
-          <h3 className="text-lg font-medium text-white mb-4">Filter by Date Range</h3>
+          <h3 className="text-lg font-medium text-white mb-4">Filtrar por fechas</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-300 mb-2">
-                Start Date
+                Fecha desde
               </label>
               <input
                 type="date"
@@ -334,7 +359,7 @@ const VendorDashboard = () => {
             </div>
             <div>
               <label htmlFor="endDate" className="block text-sm font-medium text-gray-300 mb-2">
-                End Date
+                Fecha hasta
               </label>
               <input
                 type="date"
@@ -347,7 +372,7 @@ const VendorDashboard = () => {
             </div>
             <div>
               <label htmlFor="currency" className="block text-sm font-medium text-gray-300 mb-2">
-                Currency
+                Moneda
               </label>
               <select
                 id="currency"
@@ -373,7 +398,7 @@ const VendorDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-300">Total Payments</p>
+                  <p className="text-sm font-medium text-gray-300">Pagos totales</p>
                   <p className="text-2xl font-semibold text-white">
                     {formatCurrency(providerTotals.totalPayments, selectedCurrency)}
                   </p>
@@ -389,7 +414,7 @@ const VendorDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-300">Total Commissions</p>
+                  <p className="text-sm font-medium text-gray-300">Comisiones totales</p>
                   <p className="text-2xl font-semibold text-white">
                     {formatCurrency(providerTotals.totalCommissions, selectedCurrency)}
                   </p>
@@ -405,7 +430,7 @@ const VendorDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-300">Net Profit</p>
+                  <p className="text-sm font-medium text-gray-300">Ganancia neta</p>
                   <p className="text-2xl font-semibold text-white">
                     {formatCurrency(providerTotals.totalProfit, selectedCurrency)}
                   </p>
@@ -421,12 +446,12 @@ const VendorDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-300">Overdue Payments</p>
+                  <p className="text-sm font-medium text-gray-300">Pagos vencidos</p>
                   <p className="text-2xl font-semibold text-white">
                     {formatCurrency(providerTotals.overduePayments, selectedCurrency)}
                   </p>
                   <p className="text-sm text-red-400">
-                    {providerTotals.overdueCount} payments
+                    {providerTotals.overdueCount} pagos
                   </p>
                 </div>
               </div>
@@ -444,9 +469,9 @@ const VendorDashboard = () => {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-lg font-medium text-red-400">Overdue Payments</h3>
+                <h3 className="text-lg font-medium text-red-400">Pagos vencidos</h3>
                 <p className="text-red-300">
-                  You have {overduePayments.length} overdue payment(s) totaling {formatCurrency(providerTotals.overduePayments, selectedCurrency)}
+                  Hay {overduePayments.length} pago(s) vencido(s) por un total de {formatCurrency(providerTotals.overduePayments, selectedCurrency)}
                 </p>
               </div>
             </div>
@@ -456,29 +481,29 @@ const VendorDashboard = () => {
         {/* Recent Payments */}
         <div className="card-glass mb-8">
           <div className="px-6 py-4 border-b border-white/10">
-            <h3 className="text-lg font-medium text-white">Recent Payments</h3>
+            <h3 className="text-lg font-medium text-white">Pagos recientes</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-dark-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Sale ID
+                    Venta
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Service
+                    Servicio
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Amount
+                    Importe
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Method
+                    Medio
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Date
+                    Fecha
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Status
+                    Estado
                   </th>
                 </tr>
               </thead>
@@ -497,7 +522,7 @@ const VendorDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentMethodColor(payment.paymentDetails.method)}`}>
-                          {payment.paymentDetails.method.replace(/_/g, ' ')}
+                          {paymentMethodLabel(payment.paymentDetails.method)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
@@ -505,7 +530,7 @@ const VendorDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.paymentDetails.status)}`}>
-                          {payment.paymentDetails.status}
+                          {paymentStatusLabel(payment.paymentDetails.status)}
                         </span>
                       </td>
                     </tr>
@@ -513,7 +538,7 @@ const VendorDashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
-                      Currently unavailable
+                      Sin datos en este período
                     </td>
                   </tr>
                 )}
@@ -525,35 +550,35 @@ const VendorDashboard = () => {
         {/* Detailed Payment History */}
         <div className="card-glass">
           <div className="px-6 py-4 border-b border-white/10">
-            <h3 className="text-lg font-medium text-white">Payment History</h3>
+            <h3 className="text-lg font-medium text-white">Historial de pagos</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-dark-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Sale ID
+                    Venta
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Service
+                    Servicio
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Revenue
+                    Ingresos
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Cost
+                    Costo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Commission
+                    Comisión
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Profit
+                    Resultado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Payment Status
+                    Estado pago
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Due Date
+                    Vencimiento
                   </th>
                 </tr>
               </thead>
@@ -567,7 +592,7 @@ const VendorDashboard = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         <div>
                           <div className="font-medium">{payment.serviceDetails.serviceTitle}</div>
-                          <div className="text-gray-300">Qty: {payment.serviceDetails.quantity}</div>
+                          <div className="text-gray-300">Cant.: {payment.serviceDetails.quantity}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
@@ -586,18 +611,10 @@ const VendorDashboard = () => {
                         <span className={payment.profit.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}>
                           {formatCurrency(payment.profit.netProfit, selectedCurrency)}
                         </span>
-                        {/* Debug info - remove in production */}
-                        {console.log(`Frontend profit debug:`, {
-                          saleId: payment._id,
-                          netProfit: payment.profit.netProfit,
-                          grossRevenue: payment.profit.grossRevenue,
-                          providerCost: payment.profit.providerCost,
-                          currency: payment.profit.currency
-                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.paymentDetails.status)}`}>
-                          {payment.paymentDetails.status}
+                          {paymentStatusLabel(payment.paymentDetails.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
@@ -605,7 +622,7 @@ const VendorDashboard = () => {
                           <div>{formatDate(payment.dueDate)}</div>
                           {payment.isOverdue && (
                             <div className="text-red-400 text-xs">
-                              {payment.daysOverdue} days overdue
+                              {payment.daysOverdue} días de atraso
                             </div>
                           )}
                         </div>
@@ -615,7 +632,7 @@ const VendorDashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="8" className="px-6 py-8 text-center text-gray-400">
-                      Currently unavailable
+                      Sin datos en este período
                     </td>
                   </tr>
                 )}

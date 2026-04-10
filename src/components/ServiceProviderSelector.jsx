@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { getCurrencySymbol } from '../utils/formatNumbers';
+import { providerTypeLabel } from '../utils/providerLabels';
 
 const ServiceProviderSelector = ({ 
   service, 
@@ -28,11 +29,11 @@ const ServiceProviderSelector = ({
       if (response.data.success) {
         setProviders(response.data.data.serviceProviders);
       } else {
-        setError('Failed to fetch providers');
+        setError('No se pudieron cargar los proveedores');
       }
     } catch (error) {
       console.error('Error fetching providers:', error);
-      setError('Failed to fetch providers for this service');
+      setError('No se pudieron cargar los proveedores para este servicio');
     } finally {
       setLoading(false);
     }
@@ -78,7 +79,7 @@ const ServiceProviderSelector = ({
     return (
       <div className="flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
-        <span className="ml-2 text-sm text-dark-300">Loading providers...</span>
+        <span className="ml-2 text-sm text-dark-300">Cargando proveedores...</span>
       </div>
     );
   }
@@ -91,7 +92,7 @@ const ServiceProviderSelector = ({
           onClick={fetchProvidersForService}
           className="mt-2 text-xs text-red-400 hover:text-red-300 underline"
         >
-          Retry
+          Reintentar
         </button>
       </div>
     );
@@ -100,7 +101,7 @@ const ServiceProviderSelector = ({
   if (providers.length === 0) {
     return (
       <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-        <p className="text-yellow-400 text-sm">No providers available for this service</p>
+        <p className="text-yellow-400 text-sm">No hay proveedores asociados a este servicio</p>
       </div>
     );
   }
@@ -108,7 +109,7 @@ const ServiceProviderSelector = ({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-dark-200">
-        Select Providers (Multiple Selection Allowed)
+        Elegir proveedores (selección múltiple)
       </label>
       
       <div className="space-y-2">
@@ -136,7 +137,7 @@ const ServiceProviderSelector = ({
                   />
                   <div className="flex-1">
                     <h4 className="font-medium text-dark-100">{provider.name}</h4>
-                    <p className="text-sm text-dark-300">{provider.type}</p>
+                    <p className="text-sm text-dark-300">{providerTypeLabel(provider.type)}</p>
                     {provider.contactInfo?.email && (
                       <p className="text-xs text-dark-400">{provider.contactInfo.email}</p>
                     )}
@@ -147,7 +148,7 @@ const ServiceProviderSelector = ({
                   <div className="text-sm font-medium text-dark-100">
                     {getCurrencySymbol(serviceProvider.currency)} {serviceProvider.costProvider.toFixed(2)}
                   </div>
-                  <div className="text-xs text-dark-400">Base Cost</div>
+                  <div className="text-xs text-dark-400">Costo base</div>
                 </div>
               </div>
               
@@ -159,7 +160,7 @@ const ServiceProviderSelector = ({
               
               {!serviceProvider.isAvailable && (
                 <div className="mt-2 text-xs text-red-400">
-                  Currently unavailable
+                  No disponible
                 </div>
               )}
             </div>
@@ -170,7 +171,7 @@ const ServiceProviderSelector = ({
       {selectedProviderIds.length > 0 && (
         <div className="mt-3 p-2 bg-green-500/10 border border-green-500/20 rounded">
           <p className="text-xs text-green-400">
-            {selectedProviderIds.length} provider{selectedProviderIds.length !== 1 ? 's' : ''} selected. You can customize pricing in the pricing section.
+            {selectedProviderIds.length} proveedor{selectedProviderIds.length !== 1 ? 'es' : ''} seleccionado{selectedProviderIds.length !== 1 ? 's' : ''}. Podés ajustar montos en la sección de precios.
           </p>
         </div>
       )}

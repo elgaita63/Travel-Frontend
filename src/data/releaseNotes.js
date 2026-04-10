@@ -59,6 +59,9 @@ export const BACKLOG_RAW_ITEMS = [
 
 /** Mismo orden que BACKLOG_RAW_ITEMS — resumen ultra corto para Admin */
 export const BACKLOG_ADMIN_SUMMARIES = [
+  'Versión 5.2.1 :',
+  'Editar proveedores .1', 
+  ' ' , 
   'Versión 5.2.0 :',
   'Ventas: 1.ª fila filtros = rango según / inicio / fin / estado; 2.ª = divisa, prov., vendedores, cupo.',
   'Detalle venta — Estado financiero: barras sin pago vendedor; orden: precio, pagos pasajeros, costo, pagos proveedores (barra proveedores azul oscuro).',
@@ -79,9 +82,10 @@ export const BACKLOG_ADMIN_SUMMARIES = [
   'Cotización: PDFs descargables con servicios y costos proveedores.',
   'Corrección venta por cupo, que ponga bien el total', 
   ' ' , 
+  'Versión 5.2.1 :',
+  'Editar proveedores .1', 
+  ' ',
   'V5.1.0:',
-  ' ' , 
-  'Bug: acompañante no en 1.er intento, sí en el 2.º.',
   'Nueva venta en barra lateral + integrar ventas con balanza de pagos.',
   'Listados saldos prov./clientes y conciliación.',
   'Prioridad: fechas (nacimiento, cupos, TZ) desfasadas al guardar.',

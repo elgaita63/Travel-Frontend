@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
+import { providerTypeLabel } from '../utils/providerLabels';
 import PassportImagePasteArea from './PassportImagePasteArea';
 
 const ServiceCostProviderModal = ({ 
@@ -519,7 +520,7 @@ const ServiceCostProviderModal = ({
                               </span>
                             </div>
                             <div className="text-sm text-dark-300">
-                              {provider.type && <span>Tipo: {provider.type}</span>}
+                              {provider.type && <span>Tipo: {providerTypeLabel(provider.type)}</span>}
                               {provider.phone && <span className="ml-4">Tel.: {provider.phone}</span>}
                               {provider.email && <span className="ml-4">Email: {provider.email}</span>}
                             </div>
@@ -660,7 +661,7 @@ const ServiceCostProviderModal = ({
                               )}
                             </div>
                             <div className="text-sm text-dark-300">
-                              {provider.type && <span>Tipo: {provider.type}</span>}
+                              {provider.type && <span>Tipo: {providerTypeLabel(provider.type)}</span>}
                               {provider.phone && <span className="ml-4">Tel.: {provider.phone}</span>}
                               {provider.email && <span className="ml-4">Email: {provider.email}</span>}
                             </div>

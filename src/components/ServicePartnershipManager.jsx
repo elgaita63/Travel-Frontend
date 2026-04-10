@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { providerTypeLabel } from '../utils/providerLabels';
+
+const PAYMENT_TERMS_LABELS = {
+  immediate: 'Inmediato',
+  net_15: 'Net 15 días',
+  net_30: 'Net 30 días',
+  net_45: 'Net 45 días',
+  net_60: 'Net 60 días',
+};
+
+const PARTNERSHIP_STATUS_LABELS = {
+  active: 'Activo',
+  inactive: 'Inactivo',
+  suspended: 'Suspendido',
+  terminated: 'Terminado',
+};
+
+const paymentTermsLabel = (value) => PAYMENT_TERMS_LABELS[value] || value;
+const partnershipStatusLabel = (value) => PARTNERSHIP_STATUS_LABELS[value] || value;
 
 const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
   const [partnerships, setPartnerships] = useState([]);
@@ -33,7 +52,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
       }
     } catch (error) {
       console.error('Error fetching partnerships:', error);
-      setError('Failed to fetch partnerships');
+      setError('No se pudieron cargar las asociaciones');
     }
   };
 
@@ -50,7 +69,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
       }
     } catch (error) {
       console.error('Error fetching providers:', error);
-      setError('Failed to fetch available providers');
+      setError('No se pudieron cargar los proveedores disponibles');
     } finally {
       setLoading(false);
     }
@@ -132,12 +151,12 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
       }
     } catch (error) {
       console.error('Error adding partnership:', error);
-      setError('Failed to add partnership');
+      setError('No se pudo agregar la asociación');
     }
   };
 
   const handleRemovePartnership = async (partnershipId) => {
-    if (!window.confirm('Are you sure you want to remove this partnership?')) {
+    if (!window.confirm('¿Quitar esta asociación con el proveedor?')) {
       return;
     }
 
@@ -154,7 +173,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
       }
     } catch (error) {
       console.error('Error removing partnership:', error);
-      setError('Failed to remove partnership');
+      setError('No se pudo quitar la asociación');
     }
   };
 
@@ -162,7 +181,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
-        <span className="ml-2 text-sm text-dark-300">Loading partnerships...</span>
+        <span className="ml-2 text-sm text-dark-300">Cargando asociaciones...</span>
       </div>
     );
   }
@@ -170,12 +189,12 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-dark-100">Provider Partnerships</h3>
+        <h3 className="text-lg font-medium text-dark-100">Proveedores asociados al servicio</h3>
         <button
           onClick={() => setShowAddForm(true)}
           className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium"
         >
-          Add Provider Partnership
+          Asociar proveedor
         </button>
       </div>
 
@@ -198,33 +217,33 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                   {partnership.providerId.name}
                 </h4>
                 <p className="text-sm text-dark-300">
-                  Type: {partnership.providerId.type}
+                  Tipo: {providerTypeLabel(partnership.providerId.type)}
                 </p>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="text-dark-400">Cost:</span>
+                    <span className="text-dark-400">Costo:</span>
                     <span className="text-dark-200 ml-1">
                       {partnership.currency} {partnership.costProvider.toFixed(2)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-dark-400">Payment:</span>
+                    <span className="text-dark-400">Pago:</span>
                     <span className="text-dark-200 ml-1">
-                      {partnership.paymentTerms}
+                      {paymentTermsLabel(partnership.paymentTerms)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-dark-400">Status:</span>
+                    <span className="text-dark-400">Estado:</span>
                     <span className={`ml-1 ${
                       partnership.status === 'active' ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {partnership.status}
+                      {partnershipStatusLabel(partnership.status)}
                     </span>
                   </div>
                 </div>
                 {partnership.notes && (
                   <p className="text-xs text-dark-400 mt-2">
-                    Notes: {partnership.notes}
+                    Notas: {partnership.notes}
                   </p>
                 )}
               </div>
@@ -232,7 +251,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                 onClick={() => handleRemovePartnership(partnership._id)}
                 className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
               >
-                Remove
+                Quitar
               </button>
             </div>
           </div>
@@ -243,7 +262,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
       {showAddForm && (
         <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <h4 className="text-sm font-medium text-blue-400 mb-3">
-            Add New Provider Partnership
+            Nueva asociación con proveedor
           </h4>
           <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <div className="flex items-start">
@@ -251,10 +270,9 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="text-xs font-medium text-blue-400">Currency Conversion</p>
+                <p className="text-xs font-medium text-blue-400">Conversión de moneda</p>
                 <p className="text-xs text-blue-300 mt-1">
-                  All provider costs are automatically converted to USD for storage. 
-                  If you select ARS, the system will convert the amount using current exchange rates.
+                  Los costos de proveedor se guardan en USD. Si elegís ARS, el importe se convierte según la cotización disponible.
                 </p>
               </div>
             </div>
@@ -264,7 +282,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Select Provider *
+                  Proveedor *
                 </label>
                 <select
                   value={newPartnership.providerId}
@@ -275,10 +293,10 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                   required
                   className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-dark-800/50 text-dark-100 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 >
-                  <option value="">Choose a provider</option>
+                  <option value="">Elegir proveedor</option>
                   {availableProviders.map(provider => (
                     <option key={provider._id} value={provider._id}>
-                      {provider.name} ({provider.type})
+                      {provider.name} ({providerTypeLabel(provider.type)})
                     </option>
                   ))}
                 </select>
@@ -286,7 +304,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
 
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Provider Cost *
+                  Costo proveedor *
                 </label>
                 <input
                   type="number"
@@ -305,14 +323,14 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Converting...
+                        Convirtiendo…
                       </span>
                     ) : (
                       <span>
                         = USD {convertedAmount.toFixed(2)} 
                         {exchangeRate && (
                           <span className="text-dark-400 ml-1">
-                            (Rate: 1 {newPartnership.currency} = {exchangeRate.toFixed(4)} USD)
+                            (Cotización: 1 {newPartnership.currency} = {exchangeRate.toFixed(4)} USD)
                           </span>
                         )}
                       </span>
@@ -323,7 +341,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
 
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Currency
+                  Moneda
                 </label>
                 <select
                   value={newPartnership.currency}
@@ -334,14 +352,14 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                   <option value="ARS">ARS</option>
                 </select>
                 <div className="mt-1 text-xs text-dark-400">
-                  Cost will be converted to USD for storage
+                  El costo se guarda en USD
                 </div>
               </div>
 
 
               <div>
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Payment Terms
+                  Condiciones de pago
                 </label>
                 <select
                   value={newPartnership.paymentTerms}
@@ -351,17 +369,17 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                   }))}
                   className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-dark-800/50 text-dark-100 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 >
-                  <option value="immediate">Immediate</option>
-                  <option value="net_15">Net 15</option>
-                  <option value="net_30">Net 30</option>
-                  <option value="net_45">Net 45</option>
-                  <option value="net_60">Net 60</option>
+                  <option value="immediate">Inmediato</option>
+                  <option value="net_15">Net 15 días</option>
+                  <option value="net_30">Net 30 días</option>
+                  <option value="net_45">Net 45 días</option>
+                  <option value="net_60">Net 60 días</option>
                 </select>
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-dark-200 mb-2">
-                  Notes
+                  Notas
                 </label>
                 <textarea
                   value={newPartnership.notes}
@@ -371,7 +389,7 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                   }))}
                   rows={2}
                   className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-dark-800/50 text-dark-100 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                  placeholder="Additional notes about this partnership..."
+                  placeholder="Observaciones sobre esta asociación..."
                 />
               </div>
             </div>
@@ -382,13 +400,13 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
                 onClick={() => setShowAddForm(false)}
                 className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium"
               >
-                Add Partnership
+                Guardar asociación
               </button>
             </div>
           </form>
@@ -397,8 +415,8 @@ const ServicePartnershipManager = ({ service, onPartnershipUpdate }) => {
 
       {partnerships.length === 0 && !showAddForm && (
         <div className="text-center py-8 text-dark-400">
-          <p>No provider partnerships found for this service.</p>
-          <p className="text-sm mt-1">Add partnerships to allow multiple providers to offer this service.</p>
+          <p>No hay proveedores asociados a este servicio.</p>
+          <p className="text-sm mt-1">Agregá asociaciones para que varios proveedores puedan ofrecer este servicio.</p>
         </div>
       )}
     </div>
