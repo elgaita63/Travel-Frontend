@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import DatabaseValue from '../components/DatabaseValue';
 import { useAuth } from '../contexts/AuthContext';
+import { downloadClientsCsv, downloadClientsXlsx } from '../utils/exportClients';
+
+const EXPORT_PAGE_SIZE = 200;
 
 const ClientsList = () => {
   const navigate = useNavigate();
@@ -33,6 +37,7 @@ const ClientsList = () => {
   const [basicDeleteBusy, setBasicDeleteBusy] = useState(false);
   const [basicSalesCheckLoading, setBasicSalesCheckLoading] = useState(false);
   const [basicSalesCount, setBasicSalesCount] = useState(null);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const closeDeleteModal = () => {
     setDeleteModalOpen(false);
@@ -195,6 +200,63 @@ const ClientsList = () => {
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
+  };
+
+  const fetchAllPassengersForExport = useCallback(async () => {
+    const search = debouncedSearchTerm;
+    const params = new URLSearchParams({
+      page: '1',
+      limit: String(EXPORT_PAGE_SIZE),
+      search,
+      type: 'all'
+    });
+    const first = await api.get(`/api/clients/all-passengers?${params}`);
+    if (!first.data.success) {
+      throw new Error(first.data.message || 'No se pudieron obtener los pasajeros');
+    }
+    const { pages } = first.data.data;
+    let all = [...(first.data.data.passengers || [])];
+    for (let page = 2; page <= pages; page++) {
+      const p = new URLSearchParams({
+        page: String(page),
+        limit: String(EXPORT_PAGE_SIZE),
+        search,
+        type: 'all'
+      });
+      const r = await api.get(`/api/clients/all-passengers?${p}`);
+      if (r.data.success) {
+        all = all.concat(r.data.data.passengers || []);
+      }
+    }
+    return all;
+  }, [debouncedSearchTerm]);
+
+  const handleExportClientsCsv = async () => {
+    setExportBusy(true);
+    try {
+      const all = await fetchAllPassengersForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadClientsCsv(`pasajeros-${stamp}.csv`, all);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleExportClientsXlsx = async () => {
+    setExportBusy(true);
+    try {
+      const all = await fetchAllPassengersForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadClientsXlsx(`pasajeros-${stamp}.xlsx`, all);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   const handleClientClick = (clientId, client) => {
@@ -595,7 +657,7 @@ const ClientsList = () => {
               </div>
               
               {/* Add New Client Button */}
-              <div className="lg:ml-6">
+              <div className="lg:ml-6 flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                 <button
                   onClick={() => navigate('/clients/new')}
                   className="btn-primary w-full lg:w-auto"
@@ -606,6 +668,29 @@ const ClientsList = () => {
                     </svg>
                     <span>Agregar pasajero titular</span>
                   </span>
+                </button>
+              </div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-dark-400 max-w-xl">
+                Exportar todos los pasajeros que coinciden con la búsqueda actual (titulares y acompañantes), no solo esta página.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={exportBusy}
+                  onClick={handleExportClientsCsv}
+                  className="btn-secondary text-sm px-3 py-1.5 border-white/15"
+                >
+                  {exportBusy ? 'Exportando…' : 'CSV'}
+                </button>
+                <button
+                  type="button"
+                  disabled={exportBusy}
+                  onClick={handleExportClientsXlsx}
+                  className="btn-secondary text-sm px-3 py-1.5 border-primary-500/40 text-primary-300"
+                >
+                  {exportBusy ? 'Exportando…' : 'Excel'}
                 </button>
               </div>
             </div>

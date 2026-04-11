@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../utils/api';
 import ComprehensiveSalesOverview from '../components/ComprehensiveSalesOverview';
 import MonthlyProfitabilityChart from '../components/MonthlyProfitabilityChart';
@@ -10,6 +11,13 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useCurrencyFormat } from '../hooks/useCurrencyFormat';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { formatDateOnlyLocal } from '../utils/dateDisplay';
+import {
+  EXPORT_PAGE_SIZE,
+  buildSalesListExportParams,
+  downloadSalesAndPaymentsXlsx,
+  downloadSalesCsv,
+  downloadPaymentsCsv
+} from '../utils/exportSalesAndPayments';
 
 // TruncatedText component with double-click to show scrollbar
 const TruncatedText = ({ text, className = '', title = '' }) => {
@@ -103,6 +111,7 @@ const SalesList = () => {
     cupoId: ''
   });
   const [viewMode, setViewMode] = useState('comprehensive'); // 'comprehensive', 'monthly', 'financial', 'traditional'
+  const [exportBusy, setExportBusy] = useState(false);
   const [debouncedFilters, setDebouncedFilters] = useState({
     status: '',
     startDate: '',
@@ -292,6 +301,90 @@ const SalesList = () => {
       console.error('Failed to fetch available quotas:', error);
     }
   }, []);
+
+  const fetchAllSalesForExport = useCallback(async (filters) => {
+    const base = buildSalesListExportParams(filters);
+    base.set('page', '1');
+    base.set('limit', String(EXPORT_PAGE_SIZE));
+    const first = await api.get(`/api/sales?${base.toString()}`);
+    if (!first.data.success) {
+      throw new Error(first.data.message || 'No se pudieron obtener las ventas');
+    }
+    const { pages } = first.data.data;
+    let all = [...(first.data.data.sales || [])];
+    for (let page = 2; page <= pages; page++) {
+      const p = buildSalesListExportParams(filters);
+      p.set('page', String(page));
+      p.set('limit', String(EXPORT_PAGE_SIZE));
+      const r = await api.get(`/api/sales?${p.toString()}`);
+      if (r.data.success) {
+        all = all.concat(r.data.data.sales || []);
+      }
+    }
+    return all;
+  }, []);
+
+  const fetchAllPaymentsForExport = useCallback(async () => {
+    const first = await api.get(`/api/payments?page=1&limit=${EXPORT_PAGE_SIZE}`);
+    if (!first.data.success) {
+      throw new Error(first.data.message || 'No se pudieron obtener los pagos');
+    }
+    const { pages } = first.data.data;
+    let all = [...(first.data.data.payments || [])];
+    for (let page = 2; page <= pages; page++) {
+      const r = await api.get(`/api/payments?page=${page}&limit=${EXPORT_PAGE_SIZE}`);
+      if (r.data.success) {
+        all = all.concat(r.data.data.payments || []);
+      }
+    }
+    return all;
+  }, []);
+
+  const handleExportSalesPaymentsXlsx = async () => {
+    setExportBusy(true);
+    try {
+      const f = debouncedFiltersRef.current;
+      const [sales, payments] = await Promise.all([
+        fetchAllSalesForExport(f),
+        fetchAllPaymentsForExport()
+      ]);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadSalesAndPaymentsXlsx(`ventas-pagos-${stamp}.xlsx`, sales, payments);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleExportSalesCsvOnly = async () => {
+    setExportBusy(true);
+    try {
+      const sales = await fetchAllSalesForExport(debouncedFiltersRef.current);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadSalesCsv(`ventas-${stamp}.csv`, sales);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleExportPaymentsCsvOnly = async () => {
+    setExportBusy(true);
+    try {
+      const payments = await fetchAllPaymentsForExport();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadPaymentsCsv(`pagos-${stamp}.csv`, payments);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   // Initial load effect - fetch both sales and clients
   useEffect(() => {
@@ -681,6 +774,39 @@ const SalesList = () => {
                   </select>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-dark-400 max-w-xl">
+              Excel: hoja «Ventas» con los mismos filtros que la lista, y hoja «Pagos» con todos los pagos que podés ver
+              (vendedores: solo ventas y pagos de sus ventas). CSV por separado para ventas o pagos.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={handleExportSalesPaymentsXlsx}
+                className="btn-secondary text-sm px-3 py-1.5 border-primary-500/40 text-primary-300"
+              >
+                {exportBusy ? 'Exportando…' : 'Excel (ventas + pagos)'}
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={handleExportSalesCsvOnly}
+                className="btn-secondary text-sm px-3 py-1.5 border-white/15"
+              >
+                {exportBusy ? '…' : 'CSV ventas'}
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={handleExportPaymentsCsvOnly}
+                className="btn-secondary text-sm px-3 py-1.5 border-white/15"
+              >
+                {exportBusy ? '…' : 'CSV pagos'}
+              </button>
             </div>
           </div>
 

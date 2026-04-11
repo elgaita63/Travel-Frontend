@@ -1,47 +1,75 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import api from '../utils/api';
 import { apiConfig, FRONTEND_VERSION } from '../config/api';
 
 const AuthContext = createContext();
 
+const IDLE_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel'];
+
+const applyIdlePolicy = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return { enabled: false, idleSeconds: 600 };
+  }
+  const enabled = !!payload.enabled;
+  const raw = Number(payload.idleSeconds);
+  const idleSeconds = Math.max(60, Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 600);
+  return { enabled, idleSeconds };
+};
+
 export const AuthProvider = ({ children }) => {
-  // Inicializamos el token directamente del storage para evitar saltos de render
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(`V${FRONTEND_VERSION}`);
-  const [timeLeft, setTimeLeft] = useState(1800); 
+
+  const [sessionIdleEnabled, setSessionIdleEnabled] = useState(false);
+  const [sessionIdleLimitSeconds, setSessionIdleLimitSeconds] = useState(600);
+  /** null = política desactivada o sin sesión; número = segundos restantes de inactividad */
+  const [remainingSeconds, setRemainingSeconds] = useState(null);
+
+  const deadlineRef = useRef(Date.now());
+  const limitRef = useRef(600);
+  const lastBumpRef = useRef(0);
+
+  const ingestSessionIdle = useCallback((payload) => {
+    const { enabled, idleSeconds } = applyIdlePolicy(payload);
+    setSessionIdleEnabled(enabled);
+    setSessionIdleLimitSeconds(idleSeconds);
+    limitRef.current = idleSeconds;
+    if (enabled) {
+      deadlineRef.current = Date.now() + idleSeconds * 1000;
+      setRemainingSeconds(idleSeconds);
+    } else {
+      setRemainingSeconds(null);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('token');
-      
-      try {
-        // 1. Carga de configuración inicial del sistema
-        const [versionRes, configRes] = await Promise.all([
-          api.get('/api/system/version').catch(() => null),
-          api.get('/api/system/config').catch(() => null)
-        ]);
 
-        if (isMounted) {
-          if (versionRes?.data?.success) {
-            const backendVersion = versionRes.data.version;
-            setVersion(FRONTEND_VERSION === backendVersion ? `v${FRONTEND_VERSION}` : `F${FRONTEND_VERSION} B${backendVersion}`);
-          }
-          if (configRes?.data?.success) {
-            setTimeLeft(configRes.data.data.session_timeout_seconds);
-          }
+      try {
+        const versionRes = await api.get('/api/system/version').catch(() => null);
+
+        if (isMounted && versionRes?.data?.success) {
+          const backendVersion = versionRes.data.version;
+          setVersion(
+            FRONTEND_VERSION === backendVersion
+              ? `v${FRONTEND_VERSION}`
+              : `F${FRONTEND_VERSION} B${backendVersion}`
+          );
         }
 
-        // 2. Validación de sesión existente
         if (storedToken) {
           const response = await api.get(apiConfig.endpoints.auth.me);
           if (isMounted && response.data?.success) {
             const userData = response.data.data?.user || response.data.user;
+            const sessionIdle = response.data.data?.sessionIdle;
             setUser(userData);
             setToken(storedToken);
+            ingestSessionIdle(sessionIdle);
           }
         }
       } catch (error) {
@@ -50,6 +78,8 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);
+          setRemainingSeconds(null);
+          setSessionIdleEnabled(false);
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -57,58 +87,118 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-    return () => { isMounted = false; }; 
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [ingestSessionIdle]);
 
-  const login = async (email, password) => {
+  useEffect(() => {
+    if (!token || !user || !sessionIdleEnabled) {
+      return undefined;
+    }
+
+    const lim = Math.max(60, Number(sessionIdleLimitSeconds) || 600);
+    limitRef.current = lim;
+    deadlineRef.current = Date.now() + lim * 1000;
+    setRemainingSeconds(lim);
+    lastBumpRef.current = 0;
+
+    const bump = () => {
+      const now = Date.now();
+      if (now - lastBumpRef.current < 250) return;
+      lastBumpRef.current = now;
+      deadlineRef.current = Date.now() + limitRef.current * 1000;
+      setRemainingSeconds(limitRef.current);
+    };
+
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
+      setRemainingSeconds(left);
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    IDLE_EVENTS.forEach((ev) => window.addEventListener(ev, bump, { passive: true }));
+
+    return () => {
+      clearInterval(id);
+      IDLE_EVENTS.forEach((ev) => window.removeEventListener(ev, bump));
+    };
+  }, [token, user, sessionIdleEnabled, sessionIdleLimitSeconds]);
+
+  useEffect(() => {
+    if (!sessionIdleEnabled || !token || !user) return;
+    if (remainingSeconds !== 0) return;
+    localStorage.removeItem('token');
+    localStorage.removeItem('admin_token_backup');
+    setToken(null);
+    setUser(null);
+    setRemainingSeconds(null);
+    setSessionIdleEnabled(false);
+    window.location.assign('/login?reason=inactividad');
+  }, [remainingSeconds, sessionIdleEnabled, token, user]);
+
+  const login = async (email, password, options = {}) => {
+    const forceLogin = !!options.forceLogin;
     try {
-      // Intento 1: Login normal
-      let response = await api.post(apiConfig.endpoints.auth.login, { email, password });
-      
-      // CASO A: Sesión activa detectada (Concurrencia en el Back)
-      if (response.data?.hasActiveSession) {
-        console.warn('⚠️ Sesión activa en otra pantalla. Forzando ingreso...');
-        // Intento 2: Forzamos el login
-        response = await api.post(apiConfig.endpoints.auth.login, { 
-          email, 
-          password, 
-          forceLogin: true 
-        });
-      }
+      const response = await api.post(apiConfig.endpoints.auth.login, {
+        email,
+        password,
+        forceLogin
+      });
 
-      // CASO B: Cambio de contraseña obligatorio
-      if (response.data?.requirePasswordChange) {
-        return { 
-          success: true, 
-          requirePasswordChange: true, 
-          userId: response.data.data?.userId 
+      if (response.data?.hasActiveSession) {
+        return {
+          success: false,
+          needsSessionConfirm: true,
+          message:
+            response.data.message ||
+            'Ya hay una sesión activa. ¿Deseás cerrarla e ingresar desde aquí?'
         };
       }
 
-      // CASO C: Login exitoso
+      if (response.data?.requirePasswordChange) {
+        return {
+          success: true,
+          requirePasswordChange: true,
+          userId: response.data.data?.userId
+        };
+      }
+
       const responseData = response.data?.data || response.data;
       const newToken = responseData?.token;
       const userData = responseData?.user;
-      
+      const sessionIdle = responseData?.sessionIdle;
+
       if (newToken) {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(userData);
-        
-        return { 
-          success: true, 
-          user: userData, 
-          data: responseData 
+        ingestSessionIdle(sessionIdle);
+
+        return {
+          success: true,
+          user: userData,
+          data: responseData
         };
       }
-      
-      return { success: false, message: 'No se recibió un token de acceso válido' };
 
+      return { success: false, message: 'No se recibió un token de acceso válido' };
     } catch (error) {
       console.error('Login error detail:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Credenciales inválidas' 
+      const data = error.response?.data;
+      if (error.response?.status === 403 && data?.systemSessionsExhausted) {
+        return {
+          success: false,
+          systemSessionsExhausted: true,
+          message:
+            data.message ||
+            'No hay plazas de sesión libres en el sistema. Intentá más tarde.'
+        };
+      }
+      return {
+        success: false,
+        message: data?.message || 'Credenciales inválidas'
       };
     }
   };
@@ -119,9 +209,11 @@ export const AuthProvider = ({ children }) => {
       if (response.data?.success) {
         localStorage.setItem('admin_token_backup', token);
         const { token: newToken, user: newUser } = response.data.data;
+        const sessionIdle = response.data.data?.sessionIdle;
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(newUser);
+        ingestSessionIdle(sessionIdle);
         return { success: true };
       }
       return { success: false, message: response.data?.message };
@@ -139,15 +231,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- FUNCIÓN REGISTRAR V4.2.0: AHORA INCLUYE COMISIÓN ---
   const register = async (username, email, password, role, comision) => {
     try {
-      const response = await api.post('/api/auth/register', { 
-        username, 
-        email, 
-        password, 
-        role, 
-        comision 
+      const response = await api.post('/api/auth/register', {
+        username,
+        email,
+        password,
+        role,
+        comision
       });
 
       if (response.data?.success) {
@@ -156,9 +247,9 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: response.data?.message || 'Error al registrar' };
     } catch (error) {
       console.error('Register error detail:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error de conexión con el servidor' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error de conexión con el servidor'
       };
     }
   };
@@ -168,20 +259,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('admin_token_backup');
     setToken(null);
     setUser(null);
+    setRemainingSeconds(null);
+    setSessionIdleEnabled(false);
   };
-  
+
   const value = {
     token,
     user,
     loading,
     version,
-    timeLeft,
+    remainingSeconds,
+    sessionIdleEnabled,
+    sessionIdleLimitSeconds,
+    /** @deprecated usar remainingSeconds; se mantiene por compatibilidad con código viejo */
+    timeLeft: remainingSeconds ?? 0,
     login,
     register,
     logout,
     impersonate,
     stopImpersonating,
-    updateUser: setUser, 
+    updateUser: setUser,
     isImpersonating: !!localStorage.getItem('admin_token_backup'),
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin' || user?.isSuper,

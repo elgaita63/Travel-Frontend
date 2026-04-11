@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 const StatusBar = ({ user: propUser }) => {
-  const { user, version, timeLeft } = useAuth();
+  const { user, version, remainingSeconds, sessionIdleEnabled } = useAuth();
   const [sysInfo, setSysInfo] = useState({ env: '...', dbHost: '...', dbName: '...' });
   const [now, setNow] = useState(new Date());
 
@@ -30,7 +30,6 @@ const StatusBar = ({ user: propUser }) => {
   const horaStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const isProduction = sysInfo.env.toUpperCase() === 'PRODUCTION';
 
-  // Formateo del RemSegs
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -45,9 +44,20 @@ const StatusBar = ({ user: propUser }) => {
         USER: {userName} | 
         {user && (
           <>
-            <span className={timeLeft < 60 ? 'text-error-500 font-bold animate-pulse' : 'text-primary-400'}>
-              REMSEGS: {formatTime(timeLeft)}
-            </span> | 
+            <span
+              title="Segundos hasta cierre por inactividad (se reinicia con mouse o teclado)"
+              className={
+                sessionIdleEnabled && remainingSeconds != null && remainingSeconds < 60
+                  ? 'text-error-500 font-bold animate-pulse'
+                  : 'text-primary-400'
+              }
+            >
+              REMSEGS:{' '}
+              {sessionIdleEnabled && remainingSeconds != null
+                ? formatTime(remainingSeconds)
+                : '—'}
+            </span>{' '}
+            |
           </>
         )}
         VER: {version} | FECHA: {fechaStr} | HORA: {horaStr}

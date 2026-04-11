@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import StatusBar from '../components/StatusBar'; 
 
@@ -13,8 +13,16 @@ const Login = () => {
 
   const { login, version } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const agencyLogo = import.meta.env.VITE_AGENCY_LOGO;
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'inactividad') {
+      setError('Sesión cerrada por inactividad. Volvé a iniciar sesión.');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -27,8 +35,11 @@ const Login = () => {
     setError('');
 
     try {
-      const result = await login(formData.email, formData.password);
-      
+      let result = await login(formData.email, formData.password);
+      if (result.needsSessionConfirm) {
+        result = await login(formData.email, formData.password, { forceLogin: true });
+      }
+
       if (result.success) {
         if (result.requirePasswordChange) {
           navigate('/force-password-change', { state: { userId: result.userId } });
@@ -36,7 +47,7 @@ const Login = () => {
           setTimeout(() => navigate('/dashboard'), 100);
         }
       } else {
-        setError(result.message);
+        setError(result.message || 'No se pudo ingresar');
       }
     } catch (error) {
       if (error.response?.status === 409) {
@@ -44,7 +55,9 @@ const Login = () => {
       } else {
         setError('Ocurrió un error inesperado durante el ingreso');
       }
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handlers para el efecto OnHold
@@ -133,6 +146,7 @@ const Login = () => {
           </form>
         </div>
       </div>
+
       <StatusBar /> 
     </div>
   );
