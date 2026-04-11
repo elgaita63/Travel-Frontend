@@ -220,18 +220,26 @@ const SellerDashboard = () => {
 
         {/* Últimas Ventas */}
         <div className="mb-12">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-3xl font-bold text-dark-100 flex items-center">
-              <div className="icon-container bg-primary-500 mr-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              Últimas Ventas
-            </h3>
-            <button 
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 mb-8">
+            <div className="flex flex-col gap-1 min-w-0">
+              <h3 className="text-3xl font-bold text-dark-100 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="inline-flex items-center">
+                  <span className="icon-container bg-primary-500 mr-4 shrink-0">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </span>
+                  Últimas Ventas
+                </span>
+                <span className="text-sm font-normal text-dark-400 sm:ml-1">
+                  Clickear sobre la venta para ver el detalle
+                </span>
+              </h3>
+            </div>
+            <button
+              type="button"
               onClick={() => navigate('/sales')}
-              className="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+              className="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors shrink-0"
             >
               Ver Todas →
             </button>
@@ -258,7 +266,16 @@ const SellerDashboard = () => {
               sales.map((sale) => (
               <div
                 key={sale.id}
-                className="card hover-lift p-6"
+                role="button"
+                tabIndex={0}
+                className="card hover-lift p-6 cursor-pointer transition-colors hover:border-primary-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60"
+                onClick={() => navigate(`/sales/${sale.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/sales/${sale.id}`);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-6">
@@ -298,8 +315,13 @@ const SellerDashboard = () => {
                         {formatCurrencyCompact(sale.amount)}
                       </div>
                     </div>
-                    <div className="relative">
-                      <button 
+                    <div
+                      className="relative"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
                         onClick={() => setActiveDropdown(activeDropdown === sale.id ? null : sale.id)}
                         className="p-2 text-dark-400 hover:text-primary-400 hover:bg-primary-500/10 rounded-xl transition-all duration-200"
                       >
@@ -312,6 +334,7 @@ const SellerDashboard = () => {
                         <div className="absolute right-0 top-full mt-2 w-48 bg-dark-800 border border-white/10 rounded-lg shadow-lg z-10">
                           <div className="py-2">
                             <button
+                              type="button"
                               onClick={() => {
                                 navigate(`/sales/${sale.id}`);
                                 setActiveDropdown(null);
@@ -321,6 +344,7 @@ const SellerDashboard = () => {
                               Ver Detalles
                             </button>
                             <button
+                              type="button"
                               onClick={() => {
                                 navigate(`/sales/${sale.id}/edit`);
                                 setActiveDropdown(null);

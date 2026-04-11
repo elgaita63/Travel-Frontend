@@ -259,7 +259,7 @@ const InventoryDashboard = () => {
             Panel de <CurrencyDisplay>Cupos</CurrencyDisplay>
           </h1>
           <p className="text-xl text-dark-300 max-w-3xl mx-auto mb-8">
-            Gestion? <CurrencyDisplay>cupos</CurrencyDisplay> precomprados y sus reservas
+            Gestión de cupos precomprados y sus reservas
           </p>
           <button
             onClick={() => navigate('/cupos/new')}

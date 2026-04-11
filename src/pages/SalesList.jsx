@@ -493,8 +493,8 @@ const SalesList = () => {
                     {(filters.startDate || filters.endDate) && (
                       <span className="px-2 py-1 bg-slate-600 text-slate-100 text-xs rounded">
                         {filters.dateRangeType === 'trip'
-                          ? 'Fechas: inicio del viaje (servicios)'
-                          : 'Fechas: creación del registro'}
+                          ? 'Fechas: Inicio del viaje'
+                          : 'Fechas: Creación de la venta'}
                       </span>
                     )}
                     {filters.status && (
@@ -533,8 +533,8 @@ const SalesList = () => {
                     onChange={(e) => handleFilterChange('dateRangeType', e.target.value)}
                     className="input-field"
                   >
-                    <option value="creation">Fecha de creación del registro de venta</option>
-                    <option value="trip">Fecha de inicio del viaje (servicios)</option>
+                    <option value="creation">Creación de la venta</option>
+                    <option value="trip">Inicio del viaje</option>
                   </select>
                   <p className="text-xs text-dark-500 mt-2">
                     «Desde» / «Hasta» aplican a la opción elegida: creación en el sistema o la primera fecha de servicio del viaje.
