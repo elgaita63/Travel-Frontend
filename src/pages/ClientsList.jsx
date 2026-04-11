@@ -5,6 +5,7 @@ import api from '../utils/api';
 import DatabaseValue from '../components/DatabaseValue';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadClientsCsv, downloadClientsXlsx } from '../utils/exportClients';
+import PassengerImportModal from '../components/PassengerImportModal';
 
 const EXPORT_PAGE_SIZE = 200;
 
@@ -38,6 +39,7 @@ const ClientsList = () => {
   const [basicSalesCheckLoading, setBasicSalesCheckLoading] = useState(false);
   const [basicSalesCount, setBasicSalesCount] = useState(null);
   const [exportBusy, setExportBusy] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const closeDeleteModal = () => {
     setDeleteModalOpen(false);
@@ -231,12 +233,13 @@ const ClientsList = () => {
     return all;
   }, [debouncedSearchTerm]);
 
-  const handleExportClientsCsv = async () => {
+  /** Todos los pasajeros que coinciden con la búsqueda (todas las páginas). */
+  const handleExportAllCsv = async () => {
     setExportBusy(true);
     try {
       const all = await fetchAllPassengersForExport();
       const stamp = new Date().toISOString().slice(0, 10);
-      downloadClientsCsv(`pasajeros-${stamp}.csv`, all);
+      downloadClientsCsv(`pasajeros-completo-${stamp}.csv`, all);
     } catch (e) {
       console.error(e);
       toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
@@ -245,18 +248,37 @@ const ClientsList = () => {
     }
   };
 
-  const handleExportClientsXlsx = async () => {
+  const handleExportAllXlsx = async () => {
     setExportBusy(true);
     try {
       const all = await fetchAllPassengersForExport();
       const stamp = new Date().toISOString().slice(0, 10);
-      downloadClientsXlsx(`pasajeros-${stamp}.xlsx`, all);
+      downloadClientsXlsx(`pasajeros-completo-${stamp}.xlsx`, all);
     } catch (e) {
       console.error(e);
       toast.error(e.response?.data?.message || e.message || 'No se pudo exportar');
     } finally {
       setExportBusy(false);
     }
+  };
+
+  /** Solo las filas visibles en la página actual de la lista. */
+  const handleExportPageCsv = () => {
+    if (!clients.length) {
+      toast.warning('No hay filas en esta página para exportar.');
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadClientsCsv(`pasajeros-lista-pag${currentPage}-${stamp}.csv`, clients);
+  };
+
+  const handleExportPageXlsx = () => {
+    if (!clients.length) {
+      toast.warning('No hay filas en esta página para exportar.');
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadClientsXlsx(`pasajeros-lista-pag${currentPage}-${stamp}.xlsx`, clients);
   };
 
   const handleClientClick = (clientId, client) => {
@@ -672,40 +694,81 @@ const ClientsList = () => {
               </div>
             </div>
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-dark-400 max-w-xl">
-                Exportar todos los pasajeros que coinciden con la búsqueda actual (titulares y acompañantes), no solo esta página.
+              <p className="text-sm font-semibold text-dark-200">
+                Exportar pasajeros{' '}
+                <span className="font-normal text-dark-400">(Exporta la lista completa)</span>
               </p>
               <div className="flex flex-wrap gap-2">
+                {user?.isSuper && (
+                  <button
+                    type="button"
+                    onClick={() => setImportModalOpen(true)}
+                    className="btn-secondary text-sm px-3 py-2 border-primary-500/40 text-primary-300"
+                  >
+                    Importar con IA
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={exportBusy}
-                  onClick={handleExportClientsCsv}
-                  className="btn-secondary text-sm px-3 py-1.5 border-white/15"
+                  onClick={handleExportAllCsv}
+                  className="btn-secondary text-sm px-3 py-2 border-white/15"
                 >
-                  {exportBusy ? 'Exportando…' : 'CSV'}
+                  {exportBusy ? 'Exportando…' : 'Exportar CSV'}
                 </button>
                 <button
                   type="button"
                   disabled={exportBusy}
-                  onClick={handleExportClientsXlsx}
-                  className="btn-secondary text-sm px-3 py-1.5 border-primary-500/40 text-primary-300"
+                  onClick={handleExportAllXlsx}
+                  className="btn-primary text-sm px-3 py-2"
                 >
-                  {exportBusy ? 'Exportando…' : 'Excel'}
+                  {exportBusy ? 'Exportando…' : 'Exportar Excel (.xlsx)'}
                 </button>
               </div>
             </div>
           </div>
         </div>
 
+        <PassengerImportModal
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImported={() => fetchClients(false)}
+        />
+
         {/* Clients List */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-white/10">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
                 <h4 className="text-lg font-medium text-dark-100">Lista de Pasajeros</h4>
                 <span className="text-sm text-dark-400 font-normal">
                   Clickear sobre el pasajero para ver detalles
                 </span>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <button
+                    type="button"
+                    disabled={!clients.length}
+                    onClick={handleExportPageCsv}
+                    className="btn-secondary text-xs sm:text-sm px-3 py-1.5 border-white/15"
+                    title="Exportar solo las filas de esta página de la lista"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!clients.length}
+                    onClick={handleExportPageXlsx}
+                    className="btn-primary text-xs sm:text-sm px-3 py-1.5"
+                    title="Exportar solo las filas de esta página de la lista"
+                  >
+                    Excel
+                  </button>
+                </div>
+                <p className="text-[11px] text-dark-500 text-right max-w-[220px] leading-snug">
+                  Exporta los seleccionados
+                </p>
               </div>
             </div>
           </div>
